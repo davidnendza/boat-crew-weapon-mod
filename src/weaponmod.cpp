@@ -2064,11 +2064,15 @@ static void* AddCloneMount(void* wsObj, void* mounts, void* source, const Item& 
   // fillCasters blocks a target (code 2) via GunMount.isBlockedByDepression unless GunMount.barrage is set: the straight-line
   // angle to it must lie in gunSad..gunHappy. Player mortars have both 0, so nothing below the tube passes; the game's AI
   // mortars set barrage instead (90/150 mm, disassembly + prefab bytes 2026-11-16), so a crewless copy does the same.
+  // Barrage alone was not enough (battle 21): aimAt lifts the aim by a lob angle, but clamps the pivot to -gunHappy..-gunSad,
+  // and aimAtTargets shoots only once Quaternion.Angle(pivot, aim) < maxGunAngleForShot (2.25). AI mortars have gunHappy 90.
   if (crewless && NumField(mount2, "gunSad") == 0 && NumField(mount2, "gunHappy") == 0) {
     Op o; o.mount = true; o.mul = false; o.field = "barrage"; o.value = 1;
     bool ok = ApplyOp(mount2, o);
+    o.field = "gunHappy"; o.value = 90;
+    bool okUp = ApplyOp(mount2, o);
     static std::set<std::string> told;
-    if (told.insert(it.name).second) Log("  '%s': crewless with 0/0 elevation limits: barrage %s (fire control skips the elevation check, as on AI mortars)", it.name.c_str(), ok ? "set" : "NOT FOUND");
+    if (told.insert(it.name).second) Log("  '%s': crewless with 0/0 elevation limits: barrage %s, gunHappy 90 %s (as on AI mortars: no elevation check, pivot may lob)", it.name.c_str(), ok ? "set" : "NOT FOUND", okUp ? "set" : "NOT FOUND");
   }
   ApplyCrewOffset(mount2, it);
   ApplyPivotOffset(mount2, it);
