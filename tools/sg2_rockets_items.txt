@@ -1,0 +1,137 @@
+# Rocket side-grades, batch 2 (2026-11-15). Models: tools/sg2_rockets.py. All five fire their base launcher's own rocket,
+# scaled. Launchers have no fire rate; rocket reach comes from MuzzleVelocity (maxRange = v^2/g), so reach = mul^2.
+# Stock: X50 4/8, fill 4, reload 2, acc 78; Mk50 8/16, fill 4, reload 4, acc 78; Mk50 Modded 14/28, reload 7;
+# M16 rocket 600 / 600 over 40, 140 m/s. Mousetrap Mk20 4/4, fill 4, reload 0, acc 75; 7.2'' ASW rocket 50 / 60 over 45, 60 m/s.
+# All rocket launchers share one fire sound in the game, so only the Hedgerow (a spigot mortar, not a rocket) sets sound_from.
+
+[item]
+name=16-M-8 Katyusha
+family=Rockets
+base=X50 Rocket Launcher
+model=katyusha_m8
+model_keep=Mount
+description=Soviet 16-rail M-8 Katyusha launcher, as fitted to river armoured boats and torpedo boats to fire on beaches ahead of landings. Sixteen 82 mm rockets to the X50's four that reach much farther, but each hits far softer and they scatter wide.
+mul.price=1.2
+set.MagSize=16
+set.MaxAmmo=32
+set.ammoPerFill=8
+set.reloadCooldown=3
+set.Accuracy=64
+proj.mul.BaseDamage=0.3
+proj.mul.SplashDamageBase=0.45
+proj.mul.SplashDamageRange=0.75
+proj.mul.MuzzleVelocity=1.15
+proj.mul.MuzzleVelocityRealistic=1.15
+proj.mul.projectileWidth=0.75
+
+[item]
+name=M-13 Katyusha
+family=Rockets
+base=Mk50 Rocket Launcher
+model=katyusha_m13
+model_keep=Mount
+description=Soviet M-13 132 mm Katyusha rails, which replaced the after turret on a few river armoured boats. Heavier rockets that fly much farther than the Mk 50's, but only six to a load, slower to reload and they scatter wide.
+mul.price=1.3
+set.MagSize=6
+set.MaxAmmo=12
+set.ammoPerFill=3
+set.reloadCooldown=6
+set.Accuracy=60
+proj.mul.BaseDamage=1.3
+proj.mul.SplashDamageBase=1.3
+proj.mul.SplashDamageRange=1.2
+proj.mul.MuzzleVelocity=1.25
+proj.mul.MuzzleVelocityRealistic=1.25
+proj.mul.projectileWidth=1.15
+
+[item]
+name=4.5-inch Beach Barrage Rocket
+family=Rockets
+base=Mk50 Rocket Launcher
+model=bbr_mk7
+model_keep=Mount
+description=US 4.5-inch Beach Barrage Rocket on Mk 7 racks, fired in ripples by LCS(L)(3) support craft ahead of landings. Twelve cheap rockets with a wide blast, but each hits softer than the Mk 50's, they scatter and they fall far short.
+mul.price=0.75
+set.MagSize=12
+set.MaxAmmo=24
+set.ammoPerFill=6
+set.reloadCooldown=7
+set.Accuracy=64
+proj.mul.BaseDamage=0.6
+proj.mul.SplashDamageBase=0.9
+proj.mul.SplashDamageRange=1.25
+proj.mul.MuzzleVelocity=0.6
+proj.mul.MuzzleVelocityRealistic=0.6
+
+[item]
+name=20 cm Naval Rocket
+family=Rockets
+base=Mk50 Rocket Launcher
+model=naval_rocket_20cm
+model_keep=Mount
+description=Japanese 20 cm naval rocket, a 90 kg spin-stabilised round fired from a trough, used ashore at Peleliu and Iwo Jima. One cheap rocket at a time with a far bigger hit and blast than the Mk 50's, but it wobbles wide and falls short.
+mul.price=0.6
+set.MagSize=1
+set.MaxAmmo=4
+set.ammoPerFill=1
+set.reloadCooldown=5
+set.Accuracy=50
+proj.mul.BaseDamage=4
+proj.mul.SplashDamageBase=2.5
+proj.mul.SplashDamageRange=1.5
+proj.mul.MuzzleVelocity=0.75
+proj.mul.MuzzleVelocityRealistic=0.75
+proj.mul.projectileWidth=1.8
+
+[item]
+name=Hedgerow
+family=Rockets
+base=Mousetrap Mk20
+model=hedgerow
+sound_from=90 mm Jap Mortar
+description=Hedgerow: Hedgehog spigot bombs on landing craft at Normandy, fired to blast paths through the beach defences. Twenty-four bombs in one salvo to the Mousetrap's four, but each bursts softer, they land in a wide ring, the spigots throw them short and it costs more.
+mul.price=1.5
+set.MagSize=24
+set.MaxAmmo=24
+set.ammoPerFill=6
+set.Accuracy=55
+proj.mul.BaseDamage=0.3
+proj.mul.SplashDamageBase=0.3
+proj.mul.SplashDamageRange=0.8
+proj.mul.MuzzleVelocity=0.8
+proj.mul.MuzzleVelocityRealistic=0.8
+
+[template]
+label=M-8 Katyusha
+family=Rockets
+base=X50 Rocket Launcher
+built_from=16-M-8 Katyusha
+weight=0.3
+
+[template]
+label=M-13 Katyusha
+family=Rockets
+base=Mk50 Rocket Launcher
+built_from=M-13 Katyusha
+weight=0.3
+
+[template]
+label=Beach Barrage
+family=Rockets
+base=Mk50 Rocket Launcher
+built_from=4.5-inch Beach Barrage Rocket
+weight=0.3
+
+[template]
+label=20 cm Rocket
+family=Rockets
+base=Mk50 Rocket Launcher
+built_from=20 cm Naval Rocket
+weight=0.3
+
+[template]
+label=Hedgerow
+family=Rockets
+base=Mousetrap Mk20
+built_from=Hedgerow
+weight=0.3

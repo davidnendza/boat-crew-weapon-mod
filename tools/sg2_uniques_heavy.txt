@@ -1,0 +1,192 @@
+# Uniques for the side-grades batch 2, HEAVY / HEAVY+ / MEDIUM / TUB group (2026-11-15). Plain ini text for kDefaultDrops
+# (each block becomes one C string line). Existing effect keys only; every block uses built_from= so it drops through
+# that gun's own loot templates. Rule: the signature effect beats the matching affix's best roll, plus one or two extras.
+
+[unique]
+name=Tankograd
+built_from=T-34 Turret 76 mm
+uses=6
+line=+100% damage on hits within 600 m
+line=+40% damage
+line=+50% fire rate
+flavor=Straight off the factory floor and into the river.
+fx.set.closeBonus=2
+fx.set.closeDist=600
+proj.mul.BaseDamage=1.4
+proj.mul.SplashDamageBase=1.4
+mul.roundsPerMinute=1.5
+mul.shotCooldown=0.667
+
+[unique]
+name=Ragtime
+built_from=1.1-inch Chicago Piano
+uses=6
+line=+100% fire rate
+line=30% chance a shot uses no ammo
+line=+40% damage
+flavor=Four hands on the keys, and nobody misses a beat.
+mul.roundsPerMinute=2
+mul.shotCooldown=0.5
+fx.set.saveAmmo=0.3
+proj.mul.BaseDamage=1.4
+proj.mul.SplashDamageBase=1.4
+
+[unique]
+name=Dawn Patrol
+built_from=QF 2-pdr Single
+uses=6
+line=+150% damage for its first magazine (at least 6 shots) each battle
+line=+50% fire rate
+line=reloads twice as fast
+flavor=First in, at first light.
+fx.set.salvo=2.5
+mul.roundsPerMinute=1.5
+mul.shotCooldown=0.667
+mul.reloadCooldown=0.5
+
+[unique]
+name=Meisterschuss
+built_from=3.7 cm SK C/30
+uses=6
+line=50% chance of a x3 critical hit
+line=+50% damage on hits beyond 1000 m
+line=+50% shell speed
+flavor=One round, one hole.
+fx.set.critChance=0.5
+fx.set.critMult=3
+fx.set.longBonus=1.5
+fx.set.longDist=1000
+proj.mul.MuzzleVelocity=1.5
+proj.mul.MuzzleVelocityRealistic=1.5
+
+[unique]
+name=Gemelli
+built_from=Breda 37/54 Twin
+uses=6
+line=hits mark a ship for 10 s: all your guns do +50% damage to it
+line=+50% fire rate
+line=+50% damage
+flavor=One points. The other one agrees.
+fx.set.mark=0.5
+fx.set.markTime=10
+mul.roundsPerMinute=1.5
+mul.shotCooldown=0.667
+proj.mul.BaseDamage=1.5
+proj.mul.SplashDamageBase=1.5
+
+[unique]
+name=Grey Wolves
+built_from=10.5 cm SK C/32
+uses=6
+line=+150% damage to Rare and Elite ships
+line=+60% damage
+line=ship kills pay +300 RP
+flavor=Every hull a number in the logbook.
+fx.set.giantSlayer=2.5
+proj.mul.BaseDamage=1.6
+proj.mul.SplashDamageBase=1.6
+fx.set.killRP=300
+
+[unique]
+name=Acht-Acht
+built_from=8.8 cm Flak 36
+uses=6
+line=+120% damage on hits beyond 1000 m
+line=+60% shell speed
+line=+100% magazine
+line=reloads twice as fast
+flavor=Pointed at the sky. Aimed at whatever comes.
+fx.set.longBonus=2.2
+fx.set.longDist=1000
+proj.mul.MuzzleVelocity=1.6
+proj.mul.MuzzleVelocityRealistic=1.6
+mul.MagSize=2
+mul.MaxAmmo=2
+mul.reloadCooldown=0.5
+
+[unique]
+name=Minengeschoss
+built_from=MG 151/20 Drilling
+uses=6
+line=+200% blast radius
+line=+50% damage
+line=reloads 3x as fast
+flavor=Thin walls, big bang.
+proj.mul.SplashDamageRange=3
+proj.mul.BaseDamage=1.5
+proj.mul.SplashDamageBase=1.5
+mul.reloadCooldown=0.333
+
+[unique]
+name=Bersagliere
+built_from=Breda 20/65 Mod. 40
+uses=6
+line=+10% damage per kill by its gunner (up to 10 kills), lost if that gunner dies
+line=+50% fire rate
+line=reloads twice as fast
+flavor=Feathers in the cap, one for every kill.
+fx.set.vetPerKill=0.1
+fx.set.vetCap=10
+mul.roundsPerMinute=1.5
+mul.shotCooldown=0.667
+mul.reloadCooldown=0.5
+
+[unique]
+name=Great Dane
+built_from=Madsen 20 mm
+uses=6
+line=kills give your downed crew 20 s more before they bleed out
+line=each hit steadies your crew: 10% less chance a hit on your boat throws one overboard (up to 9 hits, fading)
+line=+60% damage
+line=+40% fire rate
+flavor=Big, loyal, and it never leaves anyone behind.
+fx.set.rally=20
+fx.set.steady=0.1
+fx.set.steadyCap=9
+fx.set.steadyDecay=3
+proj.mul.BaseDamage=1.6
+proj.mul.SplashDamageBase=1.6
+mul.roundsPerMinute=1.4
+mul.shotCooldown=0.714
+
+[unique]
+name=Warsaw Concerto
+built_from=Polsten 20 mm
+uses=6
+line=50% chance a shot uses no ammo
+line=+50% fire rate
+line=reloads twice as fast
+flavor=Fewer parts, more music.
+fx.set.saveAmmo=0.5
+mul.roundsPerMinute=1.5
+mul.shotCooldown=0.667
+mul.reloadCooldown=0.5
+
+[unique]
+name=Doppeltrommel
+built_from=Twin MG 34
+uses=6
+line=+200% belt
+line=+60% fire rate
+line=+150% shot size (easier hits)
+flavor=Two drums, two barrels, no pause.
+mul.MagSize=3
+mul.MaxAmmo=3
+mul.roundsPerMinute=1.6
+mul.shotCooldown=0.625
+proj.mul.projectileWidth=2.5
+proj.mul.projectileLength=2.5
+
+[unique]
+name=Dushka
+built_from=Twin DShK
+uses=6
+line=a killing hit spills 150% of its leftover damage onto the nearest enemy
+line=+50% damage
+line=+100% magazine
+flavor=Sweetheart, they called her. Not to her face.
+fx.set.overkill=1.5
+proj.mul.BaseDamage=1.5
+proj.mul.SplashDamageBase=1.5
+mul.MagSize=2
+mul.MaxAmmo=2

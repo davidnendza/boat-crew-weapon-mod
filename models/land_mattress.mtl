@@ -1,0 +1,9 @@
+newmtl game.Rocket_Launcher|Dark_MG_Metal
+Kd 0.130 0.160 0.190
+
+newmtl game.Gray|Dark_MG_Metal
+Kd 0.410 0.410 0.410
+
+newmtl game.Rocket_Launcher|Gray
+Kd 0.700 0.700 0.700
+

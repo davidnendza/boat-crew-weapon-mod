@@ -1,0 +1,9 @@
+newmtl game.US_3-inch_Gun_Stand_Material|Dark_MG_Metal
+Kd 0.550 0.580 0.620
+
+newmtl game.Dark_MG_Metal
+Kd 0.300 0.310 0.330
+
+newmtl game.Gray|Dark_MG_Metal
+Kd 0.420 0.430 0.450
+

@@ -1,0 +1,8 @@
+newmtl Grey
+Kd 0.45 0.45 0.45
+
+newmtl Orange
+Kd 1.0 0.45 0.05
+
+newmtl Red
+Kd 0.9 0.05 0.05

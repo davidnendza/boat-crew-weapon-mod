@@ -1,0 +1,9 @@
+newmtl game.M1919_Handheld
+Kd 0.140 0.140 0.140
+
+newmtl game.Ammo|Metal_Brass|Crew_Bandolier
+Kd 0.780 0.620 0.320
+
+newmtl game.Holed_50_Cal_Metal
+Kd 0.420 0.420 0.420
+

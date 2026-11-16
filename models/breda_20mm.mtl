@@ -1,0 +1,12 @@
+newmtl game.Oerlikon_Baked_Material|Dark_MG_Metal
+Kd 0.300 0.310 0.330
+
+newmtl game.Ammo|Metal_Brass|Crew_Bandolier
+Kd 0.780 0.620 0.320
+
+newmtl game.Dark_MG_Metal
+Kd 0.300 0.310 0.330
+
+newmtl game.Oerlikon_Leather|Thunderbolt_Leather
+Kd 0.550 0.330 0.220
+

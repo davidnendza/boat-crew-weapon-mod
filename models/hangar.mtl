@@ -1,0 +1,33 @@
+newmtl Black
+Kd 0.040 0.040 0.050
+
+newmtl Cyan
+Kd 0.200 0.850 0.950
+
+newmtl Deck
+Kd 0.360 0.380 0.410
+
+newmtl Grey
+Kd 0.600 0.630 0.670
+
+newmtl Gunmetal
+Kd 0.200 0.220 0.250
+
+newmtl Hull
+Kd 0.580 0.610 0.650
+
+newmtl Navy
+Kd 0.240 0.310 0.470
+
+newmtl Pink
+Kd 1.000 0.370 0.780
+
+newmtl PlaneBlue
+Kd 0.250 0.350 0.600
+
+newmtl Steel
+Kd 0.580 0.600 0.640
+
+newmtl Yellow
+Kd 1.000 0.820 0.100
+

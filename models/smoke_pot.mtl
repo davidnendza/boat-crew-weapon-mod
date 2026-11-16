@@ -1,0 +1,12 @@
+newmtl Lid
+Kd 0.220 0.230 0.210
+
+newmtl OD
+Kd 0.300 0.330 0.200
+
+newmtl SmokeBand
+Kd 0.950 0.780 0.150
+
+newmtl Steel
+Kd 0.550 0.570 0.600
+

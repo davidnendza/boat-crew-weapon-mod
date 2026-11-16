@@ -1,0 +1,9 @@
+newmtl Canvas
+Kd 0.980 0.720 0.120
+
+newmtl Strap
+Kd 0.140 0.130 0.110
+
+newmtl White
+Kd 0.950 0.950 0.950
+

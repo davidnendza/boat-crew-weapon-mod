@@ -1,0 +1,24 @@
+newmtl Cyan
+Kd 0.200 0.850 0.950
+
+newmtl DarkPurple
+Kd 0.300 0.120 0.500
+
+newmtl Gold
+Kd 1.000 0.780 0.200
+
+newmtl Night
+Kd 0.100 0.120 0.300
+
+newmtl Pink
+Kd 1.000 0.370 0.780
+
+newmtl Purple
+Kd 0.480 0.220 0.780
+
+newmtl Space
+Kd 0.100 0.090 0.220
+
+newmtl White
+Kd 0.950 0.950 0.950
+

@@ -1,0 +1,210 @@
+[
+ {
+  "battle": "2026-11-11_1954, 2007, 2010, 2018",
+  "crew": "Thomason, Motowski, Coviello, Morehead",
+  "quote": "Thomason stayed passing ammunition while the splinters flew, and paid for it with fourteen cuts and scrapes. / Morehead stayed standing by with the medical kit while the splinters flew / Morehead stayed tending the wounded while the splinters flew",
+  "problem": "Grammar. 'stayed' + gerund roleprose gives clumsy English ('stayed passing ammunition', 'stayed standing by', 'stayed tending'). It shows up in 4 of the 8 reports, and twice in 2018 (Motowski and Coviello).",
+  "cause": "Rows 542, 545, 614, 620 and 715 use '{Last} stayed {roleprose} ...'. RoleProse (line 1942) returns gerund phrases for ammo and medic ('passing ammunition', 'tending the wounded', 'standing by with the medical kit'), which only read well after 'was', not after 'stayed'.",
+  "fix": "Add a {staying} token next to RoleProse: AMMO 'kept passing ammunition', MEDIC 'kept at the wounded' / 'stayed by the medical kit', REPAIR 'stayed at work on the hull', HELM 'stayed at the helm', GUN 'stayed on <gun>'. Rewrite the five rows as '{Last} {staying} while the splinters flew, ...' etc.",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "This shows up in the current output. I re-rendered 2026-11-11_1954, 2007, 2010 and 2018 with crew_report_test.exe, and all three quoted lines appear word for word. The 1954 line is \"Thomason stayed passing ammunition while the splinters flew, and paid for it with fourteen cuts and scrapes.\" In 2010 Morehead gets \"stayed standing by with the medical kit while the splinters flew\", and in 2007 \"stayed tending the wounded while the splinters flew\". Thomason also gets \"stayed passing ammunition through it all\" in 2007, and in 2018 Motowski and Coviello both get \"stayed passing ammunition\". The lines come from template rows 542, 545, 614, 620 and 715 in crew_report.h, which all read \"{Last} stayed {roleprose} ...\". The gun and helm versions read fine (\"stayed on the Kamaitachi\", \"stayed at the helm\"). The problem is the ammo and medic role phrases, which are -ing forms. \"Stay\" plus an -ing verb works for posture verbs like \"stayed standing\", but not for activities: \"stayed passing ammunition\" and \"stayed tending the wounded\" are not normal English. The idiom is \"kept passing ammunition\" or \"stayed at his post\". So this is a real wording fault, not taste. It is a template problem, not a converter approximation."
+  }
+ },
+ {
+  "battle": "2026-11-11_1949",
+  "crew": "Thomas Wimer",
+  "quote": "Eleven kills were credited to him: four sub chasers, three patrol boats, two tankers and a merchant ship. He got one tanker and the E8N floatplane without help.",
+  "problem": "Count. The list adds up to ten, not eleven. The 11th kill (the floatplane) is left out because the opener sentence named it. Two sentences later the E8N floatplane is named again in full.",
+  "cause": "Line 2345 drops the opener's type from the kill.many list ('the opener sentence named it') while {n} still counts it.",
+  "fix": "At line 2345, keep the opener's item in the list as 'the floatplane' (\"the \" + singular) and do not skip it, so the list sums to {n}. In [kill.alone] use the short noun once it has been named ('the floatplane', not 'the E8N floatplane').",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "I re-rendered tools/battles/2026-11-11_1949.bcb and Wimer's paragraph still contains the quoted text word for word. It opens with the E8N floatplane kill at 00:15, then says \"Eleven kills were credited to him: four sub chasers, three patrol boats, two tankers and a merchant ship\". That list adds up to 4+3+2+1 = 10. The 11th kill, the floatplane, is missing from the breakdown because line 2345 of src/crew_report.h skips a one-off type the opener already named (\"the opener sentence named it\"), while {n} still counts it. A careful reader who adds up the list gets ten against a stated eleven, so this is a real counting error, not a matter of taste. It is not a converter approximation: it comes from the report's own list-building logic. The second point, naming \"the E8N floatplane\" in full again in [kill.alone], is only a minor style issue. The count mismatch alone makes the report real."
+  }
+ },
+ {
+  "battle": "2026-11-11_1949, 2018",
+  "crew": "Cecil Tridle",
+  "quote": "Tridle was credited with ten kills, presumably for putting the boat where the guns could reach it: three sub chasers, three tankers, two patrol boats and two others.",
+  "problem": "Clause join. The colon list comes straight after 'reach it', so the kill list reads as if it explains 'it' (the boat).",
+  "cause": "[kill.nogun.many] row 1009 '{He} was credited with {n} kills{why}{list}.' puts {why} before {list}.",
+  "fix": "Put the list first and the reason last: '{He} was credited with {n} kills{list}; {why}.' (why without the leading comma), or '{N} kills went into the book under {Last}'s name{list}, {why}.'",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "The defect is real: the sentence appears word for word in the current render of tools/battles/2026-11-11_1949.bcb (line 16). The 2018 battle shows the same pattern (\"...where the guns could reach it: four motor gunboats, two Fubuki destroyers and two patrol boats.\"). Both come from the template, not from a converter approximation. Row 1009 of [kill.nogun.many] in src/crew_report.h, '{He} was credited with {n} kills{why}{list}.', puts the colon list right after [kill.why.helm], which ends in 'reach it'. The colon then reads as if it introduces what 'it' is, so a careful reader takes the list as explaining 'it' (the boat or the target) rather than the kills. That is a grammar problem in the sentence's structure, not a matter of taste. The proposed fix (list first, reason last, e.g. '{He} was credited with {n} kills{list}; {why}.' with {why} losing its leading comma) would solve it. Check other rows that use {why} before changing how it is punctuated."
+  }
+ },
+ {
+  "battle": "2026-11-11_1958",
+  "crew": "Emma V. Cushman",
+  "quote": "Through all of it the raking kept her under a shower of splinters; she came out of it white and unsteady.\nCame out of it wounded, with a third of her strength (63 of 150 left).",
+  "problem": "Repetition. 'came out of it' twice in a row, plus 'all of it' in the same sentence, so three 'it's with no clear antecedent.",
+  "cause": "[swarm.cost.4] row 676 '{he} came out of it white and unsteady' meets [out.wounded] row 1098 'Came out of it wounded, ...', inside [graze.shared.swarm] row 600.",
+  "fix": "Change row 1098 to 'Ended the action wounded, with {frac} {hpline}.' and row 676 to '{he} was left white and unsteady'.",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "I rendered tools/battles/2026-11-11_1958.bcb again with crew_report_test.exe, and Emma V. Cushman's section still prints the quoted text word for word: \"...she came out of it white and unsteady.\" and then the next line, \"Came out of it wounded, with a third of her strength (63 of 150 left).\" The same three-word phrase closes one sentence and opens the very next one, and \"Through all of it\" comes just before. A careful reader would call that repetition, not a matter of taste. It comes from how two templates are written, not from a known converter approximation. Coviello and Wimer get the same out.wounded line without the clash, because their previous sentence does not end in \"came out of it\", so changing either row would fix this case. I did not check the suggested replacement wording or the row numbers."
+  }
+ },
+ {
+  "battle": "2026-11-11_1954",
+  "crew": "George Thomason, Cecil Tridle",
+  "quote": "On top of that, other enemies left him two more. / Three more splinters came from other guns.",
+  "problem": "Facts against the log. Both extra sets came from a single source ('IJN Patrol T1' with its IJN Soukou-Tei Gun), but the rows say 'other enemies' and 'other guns'. The plural is picked from the splinter count, not the source count.",
+  "cause": "Line 2706 picks [graze.shared.more] (rows 512-519, several of them plural: 'other guns', 'other enemies') whenever more > 1.",
+  "fix": "Count the distinct g.enemy != src in c.grazes. If there is one, use a new [graze.shared.more.oneenemy] section ('{M} more came from {enemy}.' with {enemy} = Mention of it, e.g. 'Two more came from a patrol boat.'). Keep the plural rows for two or more sources.",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "Both quoted sentences are in the current render of 2026-11-11_1954.bcb. Thomason's reads \"On top of that, other enemies left him two more.\" and Tridle's reads \"Three more splinters came from other guns.\" The game log for this battle (crew-reports.txt, lines 2681 and 2689) names one source for those extra splinters: 'IJN Patrol T1', its IJN Soukou-Tei Gun, with 2 hits and 3 hits. The .bcb gz rows say the same, since every non-rake graze for these two men is from 'IJN Patrol T1'. This is not a converter approximation. log_to_bcb.py keeps grazes per enemy name, and the wrong plural comes from crew_report.h line 2706, which picks [graze.shared.more] whenever more > 1. That section (lines 510-519) contains rows that name plural sources (\"other guns\", \"other enemies\"). So the source count is decided by the splinter count, and it would go wrong the same way in live play. The singular section [graze.shared.more.one] says \"another enemy\" and \"another gun\", which shows the code mixes up the number of splinters with the number of sources. A reader checking the report against its own log sees one enemy and one gun described as several. One caveat: the log groups enemies by name, and two same-named patrol boats were alive at 01:43-01:44, so several hulls are possible. The report itself presents them as one source, though, so the wording still contradicts what the reader is shown. The proposed fix (count distinct g.enemy != src, and use a one-source row when there is one) fits the code."
+  }
+ },
+ {
+  "battle": "2026-11-11_2010",
+  "crew": "Wimer, Cushman",
+  "quote": "Wimer and Emma V. Cushman between them finished the sub chaser in the last minute (02:32). / In the last minute (02:32) Cushman and Thomas Wimer finished the sub chaser together.",
+  "problem": "Repetition. Wimer's and Cushman's sections tell the same shared kill in nearly the same words.",
+  "cause": "[kill.shared] rows 879/881 are drawn separately in each sharer's paragraph. There is no 'already told' check for gun kills (nogunSaid at line 1571 only covers the helm/ammo case).",
+  "fix": "Keep a gunSaid[killId] = surname map like nogunSaid. When the kill was already told, draw [kill.shared.again]: '{He} was the other gun on that {ship}, with {mate}.' / 'That {ship} was {his} too, shared with {mate}.'",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "Re-rendering 2026-11-11_2010.bcb with the current crew_report_test.exe gives both quoted lines word for word. They are the closing sentences of the WIMER and CUSHMAN sections, which sit one after the other. Each section has two sentences, and the second one tells the same single shared kill: same ship, same time (02:32), the two men naming each other. Read in sequence, the second telling adds nothing, so a careful reader sees it as redundant, not as a matter of taste. It is also not a converter approximation. The diagnosis is correct. crew_report.h already has 'told once' guards for repeated shared facts: openerSaid, bigSaid ('a shared big kill is told in the first paragraph only'), nogunSaid with [kill.nogun.again], and killSets with [kill.same]. In one() (around line 2260) only the kill.nogun path checks nogunSaid. Plain kill.shared, from line 2277 or 2284, has no such check, so every sharer's paragraph tells the kill again in full. The suggested gunSaid map plus a [kill.shared.again] row follows the existing nogunSaid pattern."
+  }
+ },
+ {
+  "battle": "2026-11-11_1943, 2007",
+  "crew": "",
+  "quote": "Wounded, with half his strength (148 of 288 left), and never left his post. ... Came home wounded, still at his post at the end. ... still at it when the firing stopped. ... still at his post at the end. ... still at it when the firing stopped. ... and never left her post.",
+  "problem": "Repetition. In 1943 nine of the ten sections end with an out.post clause, so 'still at his post at the end', 'still at it when the firing stopped' and 'never left his/her post' each appear twice. The order also reads backwards: 'Came home wounded, and never left his post.' (2007 Andrews) and 'Brought home wounded, ..., and stayed at it to the end.'",
+  "cause": "[out.post] has 6 rows (1115-1120), and the bag refills after six. Line 2785-2789 attaches it to any [out.wounded] row, including 'Came home wounded.' (1096) and 'Brought home wounded...' (1097).",
+  "fix": "Attach out.post only to rows 1095/1098 (skip it after 'Came home'/'Brought home'). When more than four crew qualify, drop the per-section clause and add one summary sentence: 'Every one of them stayed at his post to the end.' Otherwise stop attaching once the bag is used up (no refill).",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "I re-rendered both battles with the current exe, and the quoted text appears as reported. In 1943, nine of the ten sections end with an [out.post] clause. Only six rows exist (lines 1113-1120 of src/crew_report.h), so they repeat: \"still at his post at the end\" appears twice (Coviello, Morehead), \"still at it when the firing stopped\" twice (Tridle, Tipper), and \"and never left his/her post\" twice (Thomason, Cushman). The bigger problem is the attach rule at lines 2785-2789. It adds the clause to any [out.wounded] row, including \"Came home wounded.\" and \"Brought home wounded...\". That produces lines that read backwards: \"Came home wounded, still at his post at the end.\" (1943 Coviello), \"Came home wounded, and never left his post.\" (2007 Andrews), \"Brought home wounded, ..., and stayed at it to the end.\" (1943 Motowski, 2007 Morehead). Coming home happens after the fight, so pinning \"still at his post at the end\" onto it is a real sequence error that a careful reader would notice. This is not a converter approximation; it is the prose generator. The repetition alone could pass as a style matter, but the backwards attachment is a real defect."
+  }
+ },
+ {
+  "battle": "2026-11-11_1943, 1958, 2007, 2010",
+  "crew": "",
+  "quote": "In the last minute (02:23) ... In the last minute (02:36) ... the first in the last minute (02:31) / In the opening minute (00:58) ... a motor gunboat in the opening minute (00:59) ... Wimer drew first blood in the opening minute (00:59) / In the last minute (03:18) ... in the last minute (03:55) ... in the last minute (03:55)",
+  "problem": "Repetition. The time phrase repeats three times in each of these reports, because the first and last minute have only one wording each.",
+  "cause": "Absolute() lines 1728 and 1730 return fixed strings. Only the middle minutes rotate alternatives through absMinute and x.p->abs (lines 1739-1749).",
+  "fix": "Give the edges alternatives and push them through the same least-used logic: first minute {\"in the opening minute\", \"within the first minute\", \"right at the start\"}, last minute {\"in the last minute\", \"in the closing minute\", \"near the very end\"}.",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "This is real. I re-rendered all four battles with the current crew_report_test.exe, which was built at 21:18, after crew_report.h was last changed at 21:16. Every quoted phrase is still in the output. In 1943, \"in the last minute\" appears three times: in the summary (02:23), in Herron's section (02:36) and in Cushman's (02:31). In 1958, \"in the opening minute\" appears three times (00:58, 00:59, 00:59). In 2007 it is \"in the last minute\" three times (03:18, 03:55, 03:55); \"Like Coviello, Herron was given a share of a sub chaser in the last minute (03:55)\" comes directly after Coviello's identical phrase. In 2010 it is \"in the last minute\" three times as well (02:24, 02:32, 02:32).\n\nThe reported cause is correct. Absolute() returns fixed strings for t < 60 (\"in the opening minute\", line 1728) and for T-60 < t <= T-15 (\"in the last minute\", line 1730). Only the middle-minute branch rotates its alternatives through absMinute and x.p->abs. The code's own comment there says \"another paragraph at the same minute gets another one\", so it already treats this kind of repetition across paragraphs as a defect. The edge minutes simply never got that treatment. This is not a converter approximation.\n\nThe suggested alternatives need two changes. \"right at the start\" is wrong for 00:58. \"near the very end\" clashes with the existing \"near the end\" used in the 0.8T branch. Better choices would be \"within the first minute\" and \"inside the first minute\" for the start, and \"in the closing minute\" and \"with a minute left\" for the end. They should be keyed into absMinute the same way the middle minutes are."
+  }
+ },
+ {
+  "battle": "2026-11-11_2007",
+  "crew": "Cecil Tridle",
+  "quote": "In the second minute (01:57) a tanker went into the book under Tridle's name alone, presumably for steering the boat onto it. He was credited with another tanker about a minute after that, presumably for the way the boat was handled.",
+  "problem": "Repetition. 'presumably' in two consecutive sentences, and a third time in Coviello's section ('presumably for keeping the ammunition coming').",
+  "cause": "Line 2275-2277 renders a sentence per helm kill when n == 2, and `one` sets s.v[\"why\"] = why(...) (line 2265) on every sentence.",
+  "fix": "Give {why} only on the first nogun sentence of a paragraph (e.g. 'bool whySaid' in the paragraph; set why to \"\" once used). Also add a non-'presumably' row to [kill.why.helm.solo] such as 'no doubt for steering the boat onto it'.",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "I re-rendered tools/battles/2026-11-11_2007.bcb with the current build, and line 17 of the output still contains the quoted text word for word. Tridle's two sentences sit next to each other and both carry the same hedge clause, \"presumably for steering the boat onto it\" and then \"presumably for the way the boat was handled\". Any editor would flag the same hedge word in back-to-back sentences, so this is more than a matter of taste, and it is not a converter approximation. The second hedge also adds nothing new. The third \"presumably\" in Coviello's section (line 14) is in a different section and is fine on its own. The two in Tridle's paragraph are the real defect. The suggested fix should work: say the why clause only on the first helm-kill sentence of a paragraph, and add a variant that does not use \"presumably\". I did not check the reported cause line numbers against crew_report.h."
+  }
+ },
+ {
+  "battle": "2026-11-11_2018, 1943, 1949",
+  "crew": "Harry Morehead, Carwood Herron",
+  "quote": "Morehead was standing by with the medical kit the whole time and collected splinters with every pass; the loss of blood told on him before it was over.",
+  "problem": "Logic and tone. Over five minutes, while every man aboard was being hit, the medic is described as only 'standing by with the medical kit the whole time'. Herron in 1949 'spent the raking standing by with the medical kit'.",
+  "cause": "HurtBefore (line 1926) only asks whether someone was first hurt more than 5 s before this medic's own first hurt. In a deck-wide rake everyone is first hit within seconds, so medics are always 'standing by'.",
+  "fix": "Use 'tending the wounded' whenever anyone else ended hurt (outcome != O_UNHURT) and the medic's hits span more than ~10 s. Keep 'standing by with the medical kit' for a medic hit only once, early.",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "I re-rendered tools/battles/2026-11-11_2018.bcb with the current build and the quoted sentence appears exactly, from template line 618 (\"{Last} was {roleprose} the whole time...\"). The same report says nine of the ten crew were hurt over five minutes, that the deck was raked for half a minute, and that \"the medics had them cleaned and dressed\" (Tridle). Saying the medic was only \"standing by with the medical kit the whole time\" contradicts that, and a careful reader would see it. The cause is as reported: RoleProse line 1946 picks \"standing by\" unless HurtBefore (line 1926) finds someone first hurt more than 5 s before the medic. In a deck-wide rake everyone's first splinter lands within seconds, so the test fails. 1949 shows the same thing for Herron (\"spent the raking standing by with the medical kit\"), and so do Herron in 2018 and Morehead in 1943. This is a logic fault in the role choice, not a converter approximation. I did not try the suggested fix."
+  }
+ },
+ {
+  "battle": "2026-11-11_2007, 2018",
+  "crew": "Carwood Herron",
+  "quote": "Wounded, and complaining about it, which the medics took as a good sign. / While standing by with the medical kit, Herron was hit by splinters more times than anyone could count; the medics called them a nuisance rather than a worry.",
+  "problem": "Logic. Herron is one of the medics, so 'the medics' judging his wounds reads as if he were not one.",
+  "cause": "[out.wounded.ok] row 1106 and [swarm.cost.2/3] rows 646, 651, 656, 660, 663 mention 'the medics' and are drawn for RC_MEDIC crew too.",
+  "fix": "Tag those rows (e.g. a [m] prefix like [h]) and skip them in Draw when RoleCat(c.role) == RC_MEDIC. Or swap 'the medics' for '{othermedic}' ('which Morehead took as a good sign').",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "This is a real defect. I re-rendered both battles and the quoted text is in the current output. In 2026-11-11_2007, line 23 is \"Wounded, and complaining about it, which the medics took as a good sign.\" In 2026-11-11_2018, line 17 is \"While standing by with the medical kit, Herron was hit by splinters more times than anyone could count; the medics called them a nuisance rather than a worry.\" In both renders Herron's header reads \"# CARWOOD HERRON - medic\", and both renders also have a second medic, Harry Morehead. A careful reader sees \"the medics\" as a group Herron is not part of, while the header says he is a medic, so the logic slip is noticeable and is not a matter of taste. It is also not a converter approximation: the wording comes straight from the report rows in crew_report.h. Those are [out.wounded.ok] at line 1106 and the 'the medics' rows of [swarm.cost.2] and [swarm.cost.3] at lines 646, 651, 656, 660 and 663. Nothing in Draw stops them from being picked for RC_MEDIC crew. The same risk applies to lines 848, 1089 and 1090, which also say 'the medics', but I did not see those drawn for a medic in these two renders."
+  }
+ },
+ {
+  "battle": "2026-11-11_1958",
+  "crew": "Bernard Tipper, Thomas Wimer, George Thomason",
+  "quote": "By the end Tipper had a hand in eleven kills ... Splinters found Tipper on the Barge Buster of Fire again and again; he was weak from them by the end. / By the end he and the Heavy Type 96 had a hand in thirteen kills / he was pale with the loss of blood by the end.",
+  "problem": "Repetition. 'by the end' four times in one report, twice in Tipper's two sentences.",
+  "cause": "[kill.many] rows 925 and 926 both start 'By the end'. [swarm.cost.4] rows 673 and 675 both end 'by the end'.",
+  "fix": "Row 926 -> '{He} had a hand in {n} kills in all: {typeList}.' Row 673 -> '{he} was weak from them afterwards'. Row 675 -> 'the loss of blood left {him} pale'.",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "I re-rendered 2026-11-11_1958.bcb and all four quoted pieces are in the current output. \"By the end Tipper had a hand in eleven kills...\" is followed directly by \"Splinters found Tipper ... he was weak from them by the end.\" Wimer's \"By the end he and the Heavy Type 96 had a hand in thirteen kills\" and Thomason's \"he was pale with the loss of blood by the end\" are there too. That makes four uses of \"by the end\" in one report. Two of them fall in back-to-back sentences about the same man, and a careful reader would see that as a clumsy echo, not a matter of taste. The cause given is right: in src/crew_report.h, rows 925 and 926 both start \"By the end\", and rows 673 and 675 both end with \"by the end\". Rows 498, 584 and 1124 use the same phrase, so they can add more echoes. This is template text, not a converter approximation. The proposed rewrites of rows 926, 673 and 675 would remove the repeats. I did not render any other battles to see how often the phrase stacks up elsewhere."
+  }
+ },
+ {
+  "battle": "2026-11-11_2018",
+  "crew": "Thomason, Wimer, Cushman, Tridle",
+  "quote": "he will feel them for a few days ... they will mean a sore few days, nothing more ... a few days of stiffness would see the last of them / the medics had them cleaned and dressed in a few minutes. Nothing a dressing won't fix. ... Fit for duty after a few dressings.",
+  "problem": "Repetition. 'few days' three times in one report, and 'dress/dressing' three times. Twice it sits in one section: Tridle's 'cleaned and dressed' then 'Nothing a dressing won't fix'. There is also a tense slip ('will' next to 'would see').",
+  "cause": "[swarm.cost.2] rows 644, 648 and 650 share the 'few days' idea, and row 646 echoes [out.light] rows 1134/1136.",
+  "fix": "Row 648 -> '{he} will be stiff for a while'. Row 650 -> 'the stiffness will pass soon enough'. Row 646 -> 'the medics had them cleaned up in a few minutes'. Skip out.light rows containing 'dressing' when the paragraph already has 'dress'.",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "The defect is real. I re-rendered tools/battles/2026-11-11_2018.bcb with the current crew_report_test.exe and every quoted sentence is in the output. \"A few days\" appears three times in the splinter section: Thomason \"he will feel them for a few days\", Wimer \"they will mean a sore few days\" and Cushman \"a few days of stiffness would see the last of them\". \"A few minutes\" and \"a few dressings\" push it to five uses of \"a few\". The worst case is Tridle's line, \"the medics had them cleaned and dressed in a few minutes.\", which is followed straight away by \"Nothing a dressing won't fix.\" A careful reader notices that echo at once. It is a wording-template problem, not a converter approximation. The tense point is weak: \"would see the last of them\" reads as an acceptable hedged prediction. The repetition alone makes this real. I did not check whether crew_report.h already has a repeat guard that the suggested fix could reuse."
+  }
+ },
+ {
+  "battle": "2026-11-11_1949",
+  "crew": "Motowski, Andrews, Tridle, Cushman, Morehead",
+  "quote": "several of them needed stitching ... enough of them went deep to need stitches afterwards ... he needed a good deal of stitching afterwards ... a few went deep enough to need the needle ... he came away with a row of stitches to show for them",
+  "problem": "Repetition. Five of the seven wounded sections in 1949 come down to 'needed stitches'.",
+  "cause": "[swarm.cost.3] has 10 rows and 5 of them are about stitching (655, 657, 658, 659, 664). The bag draws different rows that say the same thing.",
+  "fix": "Reword at least three: 657 -> 'several of them had to be dug out'. 659 -> '{he} spent a long while under the medics' hands afterwards'. 664 -> 'one or two will leave scars'. Keep 655 and 658.",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "I re-rendered 2026-11-11_1949.bcb with the current crew_report_test.exe. All five lines in the quote appear word for word in the output: Motowski on line 7, Andrews on 10, Tridle on 17, Cushman on 31 and Morehead on 34. Each one closes on the wounds needing stitches. They come from five different rows in [swarm.cost.3] in src/crew_report.h (lines 655, 657, 658, 659 and 664). So the bag is working as designed: it never draws the same row twice. The problem is that half the pool says the same thing. A careful reader would notice the same consequence five times in one report, which is the exact repetition the bag exists to prevent. That is a real wording defect, not a matter of taste, and the converter does not cause it. The proposed fix (reword 657, 659 and 664, keep 655 and 658) is sound. I did not check the line-2685 rule that drops the \"stitches afterwards\" wording for men who die or have allowH off, so the new rows need the same gating as the old ones."
+  }
+ },
+ {
+  "battle": "2026-11-11_2007",
+  "crew": "Andrews, Wimer",
+  "quote": "the medics were still picking them out of him long after the shooting stopped / the medics spent a while picking them out of him.",
+  "problem": "Repetition. The same 'picking them out of him' image in two sections of one report (also 1943 Cushman and 1949 Tipper).",
+  "cause": "[swarm.cost.3] rows 656 and 663 share the phrase.",
+  "fix": "Row 656 -> 'the medics spent a while on {him} with the tweezers'.",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "This defect is real. Rendering 2026-11-11_2007.bcb with the current build shows both quoted lines in the same report. Andrews' section (line 10) has \"the medics were still picking them out of him long after the shooting stopped\". Wimer's section, 16 lines further down, has \"the medics spent a while picking them out of him.\" They come from two different rows of the [swarm.cost.3] pool in src/crew_report.h, lines 656 and 663, which share the phrase \"picking them out of {him}\". The pool only stops the same row being picked twice, so it cannot stop this. The phrase is a distinctive image, not filler, and a careful reader would see it repeated word for word in one document. It is also not a converter approximation. The suggested replacement for row 656, \"the medics spent a while on {him} with the tweezers\", is still unused in the pool and would fix it. A lesser related point: \"stitch/stitches/stitching\" also comes up four times in this report (Motowski, Coviello, Herron, Morehead). I only re-rendered battle 2007, not 1943 or 1949."
+  }
+ },
+ {
+  "battle": "2026-11-11_2010",
+  "crew": "Thomason, Herron",
+  "quote": "The raking caught Thomason passing ammunition; fifteen cuts, and he kept at it. / Herron, standing by with the medical kit, collected eleven cuts and scrapes and kept at it.",
+  "problem": "Repetition. 'kept at it' in two sections of a short report.",
+  "cause": "[graze.shared.only] rows 539 and 544 both end 'kept at it'.",
+  "fix": "Row 539 -> '{Last}, {roleprose}, collected {G} cuts and scrapes and carried on.'",
+  "slice": "nov11-b",
+  "verdict": {
+   "real": true,
+   "reason": "I re-rendered tools/battles/2026-11-11_2010.bcb with the current build and both quoted lines are there. Thomason's paragraph ends \"fifteen cuts, and he kept at it.\" Herron's ends \"collected eleven cuts and scrapes and kept at it.\" Both come from the 12-row [graze.shared.only] pool in src/crew_report.h, at lines 539 and 544, and both rows end in \"kept at it\". This is not a converter approximation. The report gives ten crew a short graze paragraph each, so the pool is there for variety, and an attentive reader would notice the same closing phrase twice in this short a report. The suggested fix works and nothing else in the pool uses \"carried on\": change line 539 to \"{Last}, {roleprose}, collected {G} cuts and scrapes and carried on.\" Separately, the same render prints \"Morehead stayed standing by with the medical kit\", which reads awkwardly, but that was not the reported defect."
+  }
+ }
+]

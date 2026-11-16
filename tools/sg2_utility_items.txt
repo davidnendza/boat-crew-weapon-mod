@@ -1,0 +1,144 @@
+[item]
+name=Holman Projector
+family=Utility Weapon
+base=M2 60 mm Mortar
+model=holman_projector
+description=British Holman Projector, a cheap compressed-air or steam thrower of Mills bombs carried by trawlers, merchant ships and Coastal Forces gunboats from 1940. It reloads twice as fast as the 60 mm and costs far less, but each bomb is small: a weak blast over a short reach.
+mul.price=0.3
+set.reloadCooldown=0.75
+set.MaxAmmo=24
+set.ammoPerFill=8
+set.Accuracy=80
+set.engagementDistance=500
+proj.mul.BaseDamage=0.3
+proj.mul.SplashDamageBase=0.4
+proj.mul.SplashDamageRange=0.3
+
+[item]
+name=7.5 cm Pak 40
+family=Utility Weapon
+base=M1A1 75 mm Howitzer
+model=pak40
+model_keep=Stand,pack_howitzer_75mm_carriage,Crank
+sound_from=Generic Tank Gun
+description=German 7.5 cm Pak 40, the standard heavy anti-tank gun from 1942, also carried by the Marder tank destroyers. Its fast, flat shell hits hard where it strikes, but bursts small instead of spreading the howitzer's wide blast, and it reloads slower.
+mul.price=1.35
+set.reloadCooldown=3.5
+proj.set.BaseDamage=3000
+proj.mul.SplashDamageBase=0.3
+proj.mul.SplashDamageRange=0.25
+proj.mul.MuzzleVelocity=2.1
+proj.mul.MuzzleVelocityRealistic=2.1
+
+[item]
+name=45 mm 21-K
+family=Utility Weapon
+base=M3 37 mm AT
+model=k21_45mm
+model_keep=Stand,Crank
+description=Soviet 45 mm 21-K, the navy's standard light deck gun from 1934, two to each MO-4 sub chaser. Its bigger shell bursts much wider than the 37 mm's, but it strikes a little softer, flies a little slower and reloads slower.
+mul.price=1.1
+set.reloadCooldown=3.6
+set.Accuracy=95
+proj.mul.BaseDamage=0.9
+proj.mul.SplashDamageBase=1.5
+proj.mul.SplashDamageRange=1.6
+proj.mul.MuzzleVelocity=0.95
+proj.mul.MuzzleVelocityRealistic=0.96
+
+[item]
+name=Type 1 47 mm AT
+family=Utility Weapon
+base=M3 37 mm AT
+model=type1_47mm
+model_keep=Stand,Crank
+sound_from=Soukou Tei Tank Gun
+description=Captured Japanese Type 1 47 mm anti-tank gun, built after Nomonhan showed the 37 mm too weak, and Japan's main gun against the M4 tank. A faster shell that strikes harder than the 37 mm's, but with a smaller burst and a slower reload.
+mul.price=1.15
+set.reloadCooldown=3.5
+proj.mul.BaseDamage=1.35
+proj.mul.SplashDamageBase=0.85
+proj.mul.MuzzleVelocity=1.05
+proj.mul.MuzzleVelocityRealistic=1.04
+
+[item]
+name=Blacker Bombard
+family=Utility Weapon
+base=M3 37 mm AT
+model=blacker_bombard
+model_keep=Stand,Crank
+sound_from=90 mm Jap Mortar
+description=British Blacker Bombard, the Home Guard's spigot mortar that led to the Hedgehog. Its 20 lb bomb hits far harder than a 37 mm shell with a bigger blast, but it flies slowly in a high arc, cannot reach far, scatters more and is slow to reload.
+mul.price=0.7
+set.reloadCooldown=5.4
+set.Accuracy=80
+proj.mul.BaseDamage=1.8
+proj.mul.SplashDamageBase=1.5
+proj.mul.SplashDamageRange=1.5
+proj.mul.MuzzleVelocity=0.07
+proj.mul.MuzzleVelocityRealistic=0.1
+proj.mul.FrameLifeTime=4
+proj.mul.projectileWidth=2
+
+[item]
+name=Sturmtiger 38 cm RW 61
+family=Utility Weapon
+base=M1A1 75 mm Howitzer
+model=sturmtiger_38cm
+model_keep=Stand,pack_howitzer_75mm_carriage,Crank
+sound_from=US Superheavy Artillery
+description=The 38 cm RW 61 rocket mortar of the German Sturmtiger, firing a 345 kg rocket-assisted shell. One enormous, slow shell with a colossal blast, then a very long reload; ruinously expensive, only two carried, and do not fire it at anything close.
+mul.price=3
+set.MagSize=1
+set.MaxAmmo=2
+set.ammoPerFill=1
+set.reloadCooldown=20
+set.Accuracy=88
+proj.set.BaseDamage=6000
+proj.mul.SplashDamageBase=4
+proj.mul.SplashDamageRange=1.5
+proj.mul.MuzzleVelocity=0.65
+proj.mul.MuzzleVelocityRealistic=0.65
+proj.mul.projectileWidth=5
+
+[template]
+label=Holman
+family=Utility Weapon
+base=M2 60 mm Mortar
+built_from=Holman Projector
+weight=0.3
+
+[template]
+label=Pak 40
+family=Utility Weapon
+base=M1A1 75 mm Howitzer
+built_from=7.5 cm Pak 40
+weight=0.3
+
+[template]
+label=45mm 21-K
+family=Utility Weapon
+base=M3 37 mm AT
+built_from=45 mm 21-K
+weight=0.3
+
+[template]
+label=47mm Type 1
+family=Utility Weapon
+base=M3 37 mm AT
+built_from=Type 1 47 mm AT
+weight=0.3
+
+[template]
+label=Blacker Bombard
+family=Utility Weapon
+base=M3 37 mm AT
+built_from=Blacker Bombard
+weight=0.3
+
+[template]
+label=Sturmtiger
+family=Utility Weapon
+base=M1A1 75 mm Howitzer
+built_from=Sturmtiger 38 cm RW 61
+weight=0.3

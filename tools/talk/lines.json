@@ -1,0 +1,3073 @@
+[
+ {
+  "name": "joker.battle_start",
+  "lines": [
+   "Here comes the welcome wagon. Smile pretty.",
+   "Company's coming and I didn't even sweep.",
+   "Hey {mate}, bet you a smoke they miss first.",
+   "Nobody tell 'em this tub's made of plywood.",
+   "Swell day for it. Wish I'd stayed in bed.",
+   "Look sharp, everybody. Try not to get holes in ya."
+  ]
+ },
+ {
+  "name": "joker.wounded",
+  "lines": [
+   "Ow! That's coming outta somebody's pay.",
+   "Hey, I was using that!",
+   "Just a scratch. A big, bleeding scratch.",
+   "Well, there goes my movie career.",
+   "Somebody write my Ma! No, wait, I'm fine.",
+   "That one had my name on it. Spelled wrong, though.",
+   "Doc! Or a bartender, whichever's closer.",
+   "Damn, they finally found me. Took 'em long enough."
+  ]
+ },
+ {
+  "name": "joker.kill",
+  "lines": [
+   "Scratch one! Put it on my tab.",
+   "And stay down!",
+   "Hey {mate}, you see that? Tell your grandkids.",
+   "Special delivery, no return address.",
+   "That's what you get for showing up.",
+   "Bang! Now that's what I call a sinking feeling.",
+   "Somebody tell 'em the party's over.",
+   "Ha! Another one for the scrapbook."
+  ]
+ },
+ {
+  "name": "joker.kill_plane",
+  "lines": [
+   "Birdie down! Fore!",
+   "Hey, flyboy, you dropped something. Yourself.",
+   "Ground floor, everybody out!",
+   "That's one less mosquito.",
+   "Down she goes, and good riddance."
+  ]
+ },
+ {
+  "name": "joker.crew_down",
+  "lines": [
+   "{down}! Quit napping, we're busy here!",
+   "Hang on, {down}, don't you dare quit on me.",
+   "{down}'s hit! Somebody get the kit!",
+   "Hey {down}, no fair, you owe me five bucks.",
+   "{down}, stay with us. Who else laughs at my jokes?",
+   "Aw hell, {down}. Not you."
+  ]
+ },
+ {
+  "name": "joker.crew_killed",
+  "lines": [
+   "{dead}? Come on, {dead}, that ain't funny.",
+   "No. Not {dead}. Not like this.",
+   "{dead} still owed me a laugh. Damn it.",
+   "They got {dead}. Somebody's gonna pay for that.",
+   "Ah hell. {dead} was the good one.",
+   "{dead}... I got no joke for that one."
+  ]
+ },
+ {
+  "name": "joker.crew_overboard",
+  "lines": [
+   "{down} went for a swim! Lousy timing!",
+   "{down}'s over the side! Kick, {down}, kick!",
+   "{down}, the pool's closed! Get back here!",
+   "{down}'s in the drink! Swim, ya lunk!",
+   "{down} jumped ship! I'm telling the old man!"
+  ]
+ },
+ {
+  "name": "joker.man_overboard",
+  "lines": [
+   "Overboard! {down}'s gone fishing without a pole!",
+   "{down}'s in the drink! Somebody throw a line!",
+   "Hey! {down} just quit the Navy! Over the side!"
+  ]
+ },
+ {
+  "name": "joker.fire",
+  "lines": [
+   "Fire! And me without my marshmallows.",
+   "Who left the stove on?",
+   "Smoking lamp is NOT lit! Put it out!",
+   "Hot foot! Grab the extinguisher!",
+   "Great, now we're a floating barbecue."
+  ]
+ },
+ {
+  "name": "joker.quiet",
+  "lines": [
+   "Anybody else's feet wet, or just mine?",
+   "If chow gets worse, I'll surrender for the rations.",
+   "Scuttlebutt says ice cream next week. Ha.",
+   "I been wet so long I'm growing gills.",
+   "This tub rattles worse than my uncle's Ford.",
+   "Who's got the cards? I'm feeling lucky.",
+   "Mosquitoes out here got bigger guns than us.",
+   "I'd trade my left shoe for eight hours of sleep.",
+   "Nice and quiet. I hate it.",
+   "Somebody tell the Navy I'd like a refund."
+  ]
+ },
+ {
+  "name": "joker.quiet_home",
+  "lines": [
+   "Back in {home} they'd never believe this heat.",
+   "Folks in {home} think I'm on a cruise.",
+   "When this is over I'm gonna {plan}.",
+   "After the war I'll {plan}. Laugh, I dare ya.",
+   "Brought {keep}. Lucky charm, sorta.",
+   "I carry {keep}. Don't laugh.",
+   "Before all this I {job}. Nobody shot at me, though.",
+   "I {job}. Now look at me: a target."
+  ]
+ },
+ {
+  "name": "joker.letter",
+  "lines": [
+   "Got a letter from {from}. Hold your applause.",
+   "Mail from {from}! Somebody out there remembers me.",
+   "Letter from {from}. Now I owe one back. Rats.",
+   "Heard from {from}. Don't everybody crowd around.",
+   "Letter from {from}. Smells like home. Sort of."
+  ]
+ },
+ {
+  "name": "joker.grief",
+  "lines": [
+   "{dead} planned to {deadplan}. ...Would've been something.",
+   "{dead} laughed at all my jokes. Even the bad ones.",
+   "{dead} carried {deadkeep}.",
+   "{dead} talked about {deadhome} like it was heaven.",
+   "Bet folks in {deadhome} don't know about {dead} yet.",
+   "Funny thing, {dead} still owed me two bucks."
+  ]
+ },
+ {
+  "name": "joker.grief_start",
+  "lines": [
+   "First one without {dead}. Feels lopsided.",
+   "{dead} would've had a crack ready for this.",
+   "{dead} would've bet against us. Prove 'em wrong.",
+   "Quiet without {dead} griping, ain't it?"
+  ]
+ },
+ {
+  "name": "joker.reply_quiet",
+  "lines": [
+   "Keep talking, it beats listening to the engines.",
+   "Pal, you ain't kidding.",
+   "Yeah. I hear ya.",
+   "Me and you both, pal.",
+   "Can't argue with that. Wish I could.",
+   "Same here, more or less."
+  ]
+ },
+ {
+  "name": "joker.reply_letter",
+  "lines": [
+   "Lucky. All I got was a bill from the dentist.",
+   "Any cookies with it? I'm starving here.",
+   "Read me the mushy parts.",
+   "Mail call skipped me again. The Navy hates me.",
+   "Tell 'em I said hi. They won't know me, but still.",
+   "Swell. Now write back before they forget your face."
+  ]
+ },
+ {
+  "name": "joker.reply_letter_bad",
+  "lines": [
+   "Aw, hell. I'm sorry, {mate}.",
+   "No wisecrack for that one. I'm sorry.",
+   "That's rough, pal. Real rough.",
+   "Hell. Want me to shut up a while?"
+  ]
+ },
+ {
+  "name": "joker.reply_grief",
+  "lines": [
+   "Yeah. {dead} was one of a kind.",
+   "Don't. I'll start bawling and ruin my reputation.",
+   "{dead} would've laughed at us moping like this.",
+   "I keep looking for {dead} at chow.",
+   "Here's to {dead}, wherever {deadhe} ended up."
+  ]
+ },
+ {
+  "name": "joker.rollcall_here",
+  "lines": [
+   "Present, and good-looking as ever.",
+   "Here! Sadly.",
+   "Still here. Don't sound so disappointed.",
+   "Yo! Alive and accounted for."
+  ]
+ },
+ {
+  "name": "stoic.battle_start",
+  "lines": [
+   "Here they come.",
+   "Steady. Wait for range.",
+   "Eyes front.",
+   "Contact. Stand ready.",
+   "All right. Let's work.",
+   "Load up. Hold fire."
+  ]
+ },
+ {
+  "name": "stoic.wounded",
+  "lines": [
+   "Hit. Still working.",
+   "It's nothing. Keep going.",
+   "Took one. I'm fine.",
+   "Mm. Bleeding some.",
+   "Winged. I can still shoot.",
+   "Later. Not now.",
+   "Ow. All right.",
+   "Patch it after."
+  ]
+ },
+ {
+  "name": "stoic.kill",
+  "lines": [
+   "Target down.",
+   "Got it.",
+   "That's one.",
+   "Hit. It's done.",
+   "Next one.",
+   "Mm. Gone.",
+   "Good. Shift fire.",
+   "Finished. Who's next?"
+  ]
+ },
+ {
+  "name": "stoic.kill_plane",
+  "lines": [
+   "Plane down.",
+   "Splash one.",
+   "Got the flier.",
+   "That one's done. Watch the sky.",
+   "Down. More coming?"
+  ]
+ },
+ {
+  "name": "stoic.crew_down",
+  "lines": [
+   "{down}'s hit. Get over there.",
+   "{down}. Stay down.",
+   "Somebody see to {down}.",
+   "Hold on, {down}.",
+   "{down}'s down. Keep firing.",
+   "Easy, {down}. We've got you."
+  ]
+ },
+ {
+  "name": "stoic.crew_killed",
+  "lines": [
+   "{dead}'s gone.",
+   "...{dead}. Damn.",
+   "Lost {dead}. Keep firing.",
+   "{dead}. Rest easy.",
+   "{dead}'s done for. Hold your post.",
+   "Cover {dead} later. Fight now."
+  ]
+ },
+ {
+  "name": "stoic.crew_overboard",
+  "lines": [
+   "{down}'s over the side.",
+   "{down}'s in the water. Keep an eye out.",
+   "Swim, {down}.",
+   "{down} went over. Mark it.",
+   "Watch for {down}."
+  ]
+ },
+ {
+  "name": "stoic.man_overboard",
+  "lines": [
+   "Overboard. It's {down}.",
+   "{down}'s gone over. Line ready.",
+   "Over the side. {down}. Watch the spot."
+  ]
+ },
+ {
+  "name": "stoic.fire",
+  "lines": [
+   "Fire. Put it out.",
+   "Fire aboard. Extinguisher.",
+   "Smoke. Get on it.",
+   "Burning. Douse it.",
+   "Fire. Stay calm."
+  ]
+ },
+ {
+  "name": "stoic.quiet",
+  "lines": [
+   "Too quiet.",
+   "Weather's turning.",
+   "Engines sound rough.",
+   "Get some rest while you can.",
+   "Coffee's cold. Still coffee.",
+   "Long patrol yet.",
+   "Sea's calm. For now.",
+   "Mm. Could use sleep.",
+   "Keep your eyes open.",
+   "Smells like rain."
+  ]
+ },
+ {
+  "name": "stoic.quiet_home",
+  "lines": [
+   "Wonder how {home} is doing.",
+   "Miss {home}. Some.",
+   "After this I'll {plan}.",
+   "Plan is to {plan}. That's all.",
+   "Still have {keep}.",
+   "Got {keep}. Keeps me steady.",
+   "I {job}. Then this.",
+   "Back home, I {job}."
+  ]
+ },
+ {
+  "name": "stoic.letter",
+  "lines": [
+   "Letter from {from}. Read it three times.",
+   "Word from {from}. Good to have.",
+   "Note from {from}. I'll answer tonight.",
+   "Got mail from {from}. Keeping it dry.",
+   "Heard from {from}."
+  ]
+ },
+ {
+  "name": "stoic.grief",
+  "lines": [
+   "{dead} was gonna {deadplan}.",
+   "{dead} was from {deadhome}.",
+   "{dead} kept {deadkeep}.",
+   "Good sailor, {dead}.",
+   "Miss {dead}.",
+   "Never complained, {dead}."
+  ]
+ },
+ {
+  "name": "stoic.grief_start",
+  "lines": [
+   "No {dead} this time. Stay sharp.",
+   "Remember {dead}. Then work.",
+   "{dead}'s spot. I'll cover it.",
+   "Short-handed without {dead}. Manage."
+  ]
+ },
+ {
+  "name": "stoic.reply_quiet",
+  "lines": [
+   "Mm. Maybe.",
+   "Could be.",
+   "True enough.",
+   "I hear you.",
+   "Mm-hm. Eyes out.",
+   "That's fair."
+  ]
+ },
+ {
+  "name": "stoic.reply_letter",
+  "lines": [
+   "Good. Write back.",
+   "Glad to hear it.",
+   "That's good news.",
+   "Keep it safe.",
+   "Mm. Read it twice.",
+   "Answer it tonight."
+  ]
+ },
+ {
+  "name": "stoic.reply_letter_bad",
+  "lines": [
+   "That's rough.",
+   "Sorry, {mate}.",
+   "Mm. Hard news.",
+   "I'm here if you need it."
+  ]
+ },
+ {
+  "name": "stoic.reply_grief",
+  "lines": [
+   "Yeah. {dead}.",
+   "I know.",
+   "{dead} was solid.",
+   "Don't forget {dead}.",
+   "We'll remember."
+  ]
+ },
+ {
+  "name": "stoic.rollcall_here",
+  "lines": [
+   "Here.",
+   "Present. Ready.",
+   "Aye. Accounted for.",
+   "On station."
+  ]
+ },
+ {
+  "name": "crazy.battle_start",
+  "lines": [
+   "HERE THEY COME! Hot dog!",
+   "Come on, come on, let's dance!",
+   "Skipper, tell 'em to hurry up!",
+   "Ooh, I can smell the cordite already!",
+   "Load 'er up! This is the good part!",
+   "Look at 'em! Like ducks in a row!"
+  ]
+ },
+ {
+  "name": "crazy.wounded",
+  "lines": [
+   "HA! That all you got?",
+   "Just a scratch! Keep firing!",
+   "Now I'm REALLY sore!",
+   "Blasted thing bit me! Ha!",
+   "I'm leaking a little. Who cares!",
+   "That one tickled! Do it again!",
+   "Hit me? Hell, I'll hit 'em back twice!",
+   "Got me in the meat! Still standing!"
+  ]
+ },
+ {
+  "name": "crazy.kill",
+  "lines": [
+   "SCRATCH ONE! Who's next?",
+   "Down she goes! WAHOO!",
+   "Did you see that? DID YOU SEE THAT?",
+   "Look at it burn! Beautiful!",
+   "Ha! Give my regards to the fish!",
+   "That's how it's done, Skipper!",
+   "More! I want MORE of those!",
+   "Blew 'em to kingdom come!"
+  ]
+ },
+ {
+  "name": "crazy.kill_plane",
+  "lines": [
+   "Splash one! YEEHAW!",
+   "Look at that bird fall!",
+   "Out of the sky, pal! HA!",
+   "Got wings? Not anymore!",
+   "Another flyboy goes swimming!"
+  ]
+ },
+ {
+  "name": "crazy.crew_down",
+  "lines": [
+   "{down}! Get up! No napping on duty!",
+   "Hang on, {down}! I'll make 'em sorry!",
+   "Somebody see to {down}! Quick!",
+   "{down} is hit! Now I'm mad!",
+   "Stay with us, {down}! Don't you quit!",
+   "They got {down}! THEY'LL PAY FOR THAT!"
+  ]
+ },
+ {
+  "name": "crazy.crew_killed",
+  "lines": [
+   "{dead}! NO! You dirty rats!",
+   "They killed {dead}! I'll get every one!",
+   "{dead}'s gone. Not one of 'em gets home!",
+   "That's for {dead}! And that! And that!",
+   "Not {dead}... Damn you! DAMN YOU!",
+   "Somebody's gonna answer for {dead}!"
+  ]
+ },
+ {
+  "name": "crazy.crew_overboard",
+  "lines": [
+   "{down} went for a swim! Ha!",
+   "{down}'s in the drink! Paddle, paddle!",
+   "Kick those legs, {down}!",
+   "Hey {down}, water warm? HA!",
+   "Swim back, {down}! The party's here!"
+  ]
+ },
+ {
+  "name": "crazy.man_overboard",
+  "lines": [
+   "{down} went flying! OVERBOARD!",
+   "WHOA! {down}'s in the water!",
+   "Over the side goes {down}! Grab 'em!"
+  ]
+ },
+ {
+  "name": "crazy.fire",
+  "lines": [
+   "FIRE! Now it's a real party!",
+   "We're burning! Ha, it's toasty!",
+   "Fire aboard! Grab a bucket, quick!",
+   "Smoke! Lovely! Somebody put it out!",
+   "Ooh, fireworks! Douse it, douse it!"
+  ]
+ },
+ {
+  "name": "crazy.quiet",
+  "lines": [
+   "Too quiet. I hate quiet.",
+   "Where'd they go? I was having fun!",
+   "Come back! I ain't done yet!",
+   "Chow better be hot tonight.",
+   "Bet you a buck the next one's bigger.",
+   "I could go another ten rounds easy.",
+   "Gimme a bigger gun! A BIG one!",
+   "Rain, sun, who cares? Bring the enemy!",
+   "Who needs sleep? Not me!",
+   "My ears are ringing. Swell, ain't it?"
+  ]
+ },
+ {
+  "name": "crazy.quiet_home",
+  "lines": [
+   "Back in {home} they'd never believe this!",
+   "{home} was boring. This is LIVING!",
+   "After the war I'm gonna {plan}. Bet on it!",
+   "If I live, I'll {plan}. Ha! IF!",
+   "Still got {keep}. Lucky charm!",
+   "I carry {keep}. Bulletproof!",
+   "Before all this I {job}. This beats it!",
+   "Back home I {job}. Feels like a dream now!"
+  ]
+ },
+ {
+  "name": "crazy.letter",
+  "lines": [
+   "Got a letter from {from}! Wanna hear it?",
+   "Wrote back to {from}. Said I'm a hero!",
+   "Mail from {from}! Mail! For ME!",
+   "Letter from {from}! Read it four times already!",
+   "Hey! A letter from {from}! Who'd have thunk it?"
+  ]
+ },
+ {
+  "name": "crazy.grief",
+  "lines": [
+   "{dead} could out-holler the engines. Nobody can now.",
+   "{dead} was gonna {deadplan}. Damn it.",
+   "{dead} had {deadkeep}. Damn.",
+   "Gonna see {deadhome} someday. For {dead}.",
+   "Nobody laughed louder than {dead}. Nobody.",
+   "Keep turning to yell at {dead}. Nobody there."
+  ]
+ },
+ {
+  "name": "crazy.grief_start",
+  "lines": [
+   "{dead}'d want a show. Let's give 'em one!",
+   "For {dead}! Bring 'em on, all of 'em!",
+   "{dead}, watch this one from up there!",
+   "No {dead} today. So I fight double!"
+  ]
+ },
+ {
+  "name": "crazy.reply_quiet",
+  "lines": [
+   "You and me both, {mate}!",
+   "Yeah. Ain't that the truth!",
+   "Huh. Never thought of it like that!",
+   "Can't argue there, {mate}!",
+   "Yeah, yeah. I know it.",
+   "Talk later! Eyes on the water!"
+  ]
+ },
+ {
+  "name": "crazy.reply_letter",
+  "lines": [
+   "Swell! Read me the juicy parts!",
+   "Tell 'em we're winning! HA!",
+   "Lucky! Only the draft board ever wrote me.",
+   "Write back and say I'm famous!",
+   "Home? Feels a million miles off.",
+   "Give 'em my regards, {mate}!"
+  ]
+ },
+ {
+  "name": "crazy.reply_letter_bad",
+  "lines": [
+   "Aw, no. That stinks, {mate}.",
+   "Damn it! Sorry, {mate}. Really.",
+   "That ain't fair. Not one bit.",
+   "Want me to shoot something for you?"
+  ]
+ },
+ {
+  "name": "crazy.reply_grief",
+  "lines": [
+   "{dead} went down swinging. Like us.",
+   "We'll pay 'em back for {dead}. Double.",
+   "Yeah. {dead} was a real firecracker.",
+   "Don't. Not now. Later, with a drink.",
+   "{dead} would want us shooting, not moping."
+  ]
+ },
+ {
+  "name": "crazy.rollcall_here",
+  "lines": [
+   "HERE! Wind me up!",
+   "Present and rarin' to go!",
+   "Aye aye! Point me at 'em!",
+   "Yo! Alive and kicking!"
+  ]
+ },
+ {
+  "name": "silent.battle_start",
+  "lines": [
+   "...Company.",
+   "Ready, Skipper.",
+   "Steady now."
+  ]
+ },
+ {
+  "name": "silent.wounded",
+  "lines": [
+   "...Just nicked.",
+   "Hm. I'm fine.",
+   "Keep going."
+  ]
+ },
+ {
+  "name": "silent.kill",
+  "lines": [
+   "...Got one.",
+   "One less.",
+   "Scratch that one.",
+   "...She's going down.",
+   "Another one."
+  ]
+ },
+ {
+  "name": "silent.kill_plane",
+  "lines": [
+   "...Plane's down.",
+   "Bird down.",
+   "...Got the bird."
+  ]
+ },
+ {
+  "name": "silent.crew_down",
+  "lines": [
+   "{down}'s hit.",
+   "...Hang on, {down}.",
+   "...Not {down}."
+  ]
+ },
+ {
+  "name": "silent.crew_killed",
+  "lines": [
+   "...{dead}. No.",
+   "Damn it.",
+   "...Lost {dead}."
+  ]
+ },
+ {
+  "name": "silent.crew_overboard",
+  "lines": [
+   "{down}. Swim.",
+   "...Over the side.",
+   "Come on, {down}."
+  ]
+ },
+ {
+  "name": "silent.man_overboard",
+  "lines": [
+   "...{down}. Overboard.",
+   "{down}. In the water.",
+   "Line. {down}'s over."
+  ]
+ },
+ {
+  "name": "silent.fire",
+  "lines": [
+   "Fire aboard.",
+   "...Smoke rising.",
+   "Put it out."
+  ]
+ },
+ {
+  "name": "silent.quiet",
+  "lines": [
+   "All quiet.",
+   "...Rain coming.",
+   "Could eat.",
+   "...Wind's shifting."
+  ]
+ },
+ {
+  "name": "silent.quiet_home",
+  "lines": [
+   "Miss {home}.",
+   "Gonna {plan}.",
+   "Still got {keep}.",
+   "I {job}. Once."
+  ]
+ },
+ {
+  "name": "silent.letter",
+  "lines": [
+   "Letter from {from}.",
+   "...Word from {from}.",
+   "Need to write {from}."
+  ]
+ },
+ {
+  "name": "silent.grief",
+  "lines": [
+   "{dead} meant to {deadplan}.",
+   "...Gonna miss {dead}.",
+   "{deadhome}. {dead}'s town. Should go there."
+  ]
+ },
+ {
+  "name": "silent.grief_start",
+  "lines": [
+   "For {dead}.",
+   "...No {dead} today.",
+   "Without {dead}, then."
+  ]
+ },
+ {
+  "name": "silent.reply_quiet",
+  "lines": [
+   "Yeah. Maybe.",
+   "Mm. True.",
+   "...Yeah. I know."
+  ]
+ },
+ {
+  "name": "silent.reply_letter",
+  "lines": [
+   "Good news?",
+   "...That's nice.",
+   "Good for you, {mate}."
+  ]
+ },
+ {
+  "name": "silent.reply_letter_bad",
+  "lines": [
+   "...Rough, {mate}.",
+   "...Hell.",
+   "...That's hard.",
+   "...I'm here."
+  ]
+ },
+ {
+  "name": "silent.reply_grief",
+  "lines": [
+   "...Yeah. Me too.",
+   "{dead} was good.",
+   "...I know it."
+  ]
+ },
+ {
+  "name": "silent.rollcall_here",
+  "lines": [
+   "Mm. Here.",
+   "...Aye, here.",
+   "Still here."
+  ]
+ },
+ {
+  "name": "hothead.battle_start",
+  "lines": [
+   "Here they come. Let's make 'em pay.",
+   "Come on, come on, get in range already!",
+   "I've been itching for this all week.",
+   "Nobody shoots at my boat and walks away.",
+   "Skipper, just point us at 'em!",
+   "Load up. I want every round on target."
+  ]
+ },
+ {
+  "name": "hothead.wounded",
+  "lines": [
+   "Damn it! They winged me!",
+   "That all you got? Hell!",
+   "I'm bleeding and I'm still mad!",
+   "Blasted thing went right through me!",
+   "Oh, now it's personal.",
+   "It's a scratch. Keep shooting!",
+   "Son of a gun, that stings!",
+   "You'll pay for that one, Tojo!"
+  ]
+ },
+ {
+  "name": "hothead.kill",
+  "lines": [
+   "Got you! Go on, sink!",
+   "That's what you get!",
+   "Down she goes! Who's next?",
+   "Ha! Burn, damn you!",
+   "One less of 'em. Keep 'em coming!",
+   "Scratch that one off the list!",
+   "Didn't like that, did you?",
+   "That one won't shoot at us again!"
+  ]
+ },
+ {
+  "name": "hothead.kill_plane",
+  "lines": [
+   "Out of my sky!",
+   "Flamer! Splash one, Skipper!",
+   "Ha! Swim home, flyboy!",
+   "Fly over my boat, will ya?",
+   "That's a smoker going in!"
+  ]
+ },
+ {
+  "name": "hothead.crew_down",
+  "lines": [
+   "{down}! Hang on, damn it!",
+   "They got {down}! Somebody pays for that!",
+   "Stay with us, {down}! You hear me?",
+   "{down}'s hit! I'll get 'em for this!",
+   "Don't you quit on me, {down}!",
+   "Get a bandage on {down}, now!"
+  ]
+ },
+ {
+  "name": "hothead.crew_killed",
+  "lines": [
+   "No! Not {dead}! Damn you all!",
+   "{dead}'s gone. Every one of 'em pays.",
+   "They killed {dead}! Give 'em everything!",
+   "{dead}... Hell. HELL!",
+   "For {dead}! Pour it on!",
+   "I'll square this for {dead}, I swear it."
+  ]
+ },
+ {
+  "name": "hothead.crew_overboard",
+  "lines": [
+   "{down}'s over the side! Swim, damn it!",
+   "{down}! Get back here, you lunkhead!",
+   "Crew overboard! It's {down}!",
+   "Keep your head up, {down}! Kick!",
+   "Don't you dare drown, {down}!"
+  ]
+ },
+ {
+  "name": "hothead.man_overboard",
+  "lines": [
+   "{down}'s overboard! Throw a line, damn it!",
+   "Overboard! Get {down} outta there!",
+   "Damn it, {down}'s in the water! Move!"
+  ]
+ },
+ {
+  "name": "hothead.fire",
+  "lines": [
+   "Fire! Get the blasted extinguisher!",
+   "Fire aft! Somebody beat it out!",
+   "Damn it, we're burning!",
+   "Put it out before it hits the gas!",
+   "Smoke everywhere! Hell of a time for this!"
+  ]
+ },
+ {
+  "name": "hothead.quiet",
+  "lines": [
+   "Where'd they go? Cowards.",
+   "I hate waiting. Just come back and fight.",
+   "Chow better not be Spam again.",
+   "If I get my hands on that cook...",
+   "This heat's gonna drive me nuts.",
+   "Bugs, rain, sun. What a lousy place.",
+   "Scuttlebutt says we're stuck out here a year.",
+   "Three nights no sleep. I'm gonna bite somebody.",
+   "They oughta give us a real gun, not these peashooters.",
+   "The brass sit pretty while we sweat it out."
+  ]
+ },
+ {
+  "name": "hothead.quiet_home",
+  "lines": [
+   "Nobody pushes me around back in {home}.",
+   "Back in {home} we settle things quick.",
+   "I'm gonna {plan}. Try and stop me.",
+   "Soon as I'm home, I'll {plan}.",
+   "Still carry {keep}. Don't laugh.",
+   "I'd swim back for {keep}.",
+   "Before all this I {job}. Different world.",
+   "Used to be I {job}. Now Uncle Sam owns me."
+  ]
+ },
+ {
+  "name": "hothead.letter",
+  "lines": [
+   "Got a letter from {from}. Took two blasted months.",
+   "Letter from {from} came soaked. Can't read half, damn it.",
+   "Letter from {from}. About time, damn it.",
+   "Mail from {from}. The censor's scissors got at it.",
+   "Finally, a letter from {from}. Don't bother me a minute."
+  ]
+ },
+ {
+  "name": "hothead.grief",
+  "lines": [
+   "{dead} was gonna {deadplan}. Now what?",
+   "It ain't right. {dead} should be here.",
+   "{dead} never got back to {deadhome}. Never will.",
+   "I got {deadkeep} from {dead}'s bunk. Can't look at it.",
+   "Every round I fire now has {dead}'s name on it.",
+   "{dead} never shut up about {deadhome}. Now it's too quiet."
+  ]
+ },
+ {
+  "name": "hothead.grief_start",
+  "lines": [
+   "First fight without {dead}. Let's make it count.",
+   "We owe 'em for {dead}. Time to pay up.",
+   "{dead}'s spot is empty. Shoot like {deadhe}'s watching.",
+   "Remember {dead}, everybody. Then hit 'em hard."
+  ]
+ },
+ {
+  "name": "hothead.reply_quiet",
+  "lines": [
+   "Yeah, yeah. Keep your eyes peeled, {mate}.",
+   "Yeah. Ain't that the way of it.",
+   "You said it, {mate}.",
+   "Don't get me started, {mate}.",
+   "Yeah. Same here, damn it.",
+   "That's the truest thing you've said all week."
+  ]
+ },
+ {
+  "name": "hothead.reply_letter",
+  "lines": [
+   "Lucky. My mail's always late.",
+   "Mail got through for once. Keep it safe, {mate}.",
+   "Read it later. Eyes on the water.",
+   "Tell 'em we're giving 'em hell out here.",
+   "Folks back home got no idea, {mate}.",
+   "Write back you're fine. Lie if you gotta."
+  ]
+ },
+ {
+  "name": "hothead.reply_letter_bad",
+  "lines": [
+   "Damn it. That ain't right, {mate}.",
+   "Hell of a thing to read out here.",
+   "That's a raw deal. I'm sorry.",
+   "Lousy news. Just lousy."
+  ]
+ },
+ {
+  "name": "hothead.reply_grief",
+  "lines": [
+   "Yeah. We'll get even for {dead}.",
+   "Don't. I can't talk about {dead} yet.",
+   "{dead} was the best of us. Leave it there.",
+   "I know, {mate}. I know.",
+   "Save it for the enemy. That's how we honor {dead}."
+  ]
+ },
+ {
+  "name": "hothead.rollcall_here",
+  "lines": [
+   "Here. Get on with it.",
+   "Yeah, I'm here.",
+   "Present. Still breathing.",
+   "Here. Ready to go."
+  ]
+ },
+ {
+  "name": "worrier.battle_start",
+  "lines": [
+   "Oh no, here they come. How many are there?",
+   "That's more than we figured, isn't it?",
+   "Please let this one be quick.",
+   "Skipper, are we sure about this?",
+   "Lord, keep this boat afloat.",
+   "Checked my life jacket. Checked it again."
+  ]
+ },
+ {
+  "name": "worrier.wounded",
+  "lines": [
+   "I'm hit! Is it bad? Tell me it's not bad.",
+   "Oh God, there's blood. Is that mine?",
+   "I knew it. I just knew it.",
+   "Somebody look at this! I can't look!",
+   "It hurts! Am I gonna make it?",
+   "Ma's gonna kill me if I die out here.",
+   "I'm okay. I think I'm okay?",
+   "Don't let it get infected, please."
+  ]
+ },
+ {
+  "name": "worrier.kill",
+  "lines": [
+   "Did I get it? I got it!",
+   "It's sinking. Thank God, it's sinking.",
+   "That's one less to shoot at us.",
+   "Oh. Oh, I really hit it.",
+   "Is it really down? Make sure it's down.",
+   "Good. Maybe now they'll leave us be.",
+   "I hope its crew got off.",
+   "One down. How many more, though?"
+  ]
+ },
+ {
+  "name": "worrier.kill_plane",
+  "lines": [
+   "It's falling! It's not falling on us, is it?",
+   "I got the plane! I actually got it!",
+   "Down it goes. Any more up there?",
+   "Watch out for the wreck! Oh, it missed.",
+   "Thank heaven. That one was diving right at us."
+  ]
+ },
+ {
+  "name": "worrier.crew_down",
+  "lines": [
+   "They got {down}! Where's the first-aid kit?",
+   "{down}'s not moving! Is {down} breathing?",
+   "Somebody help {down}! I don't know what to do!",
+   "Hold on, {down}, please hold on.",
+   "That could've been me. Hold on, {down}.",
+   "Keep pressure on it! {down}'s bleeding bad!"
+  ]
+ },
+ {
+  "name": "worrier.crew_killed",
+  "lines": [
+   "{dead}? No. No, no, no.",
+   "{dead}'s dead. Who's next? Who's next?",
+   "Not {dead}. Please, God, not {dead}.",
+   "I can't do this. {dead} is gone.",
+   "We were just talking, {dead} and me.",
+   "Oh God. Somebody cover {dead} up."
+  ]
+ },
+ {
+  "name": "worrier.crew_overboard",
+  "lines": [
+   "{down}'s in the water! Can {down} even swim?",
+   "Swim, {down}! Watch for sharks!",
+   "We're leaving {down} behind! Skipper!",
+   "{down}! Grab something that floats!",
+   "Oh Lord, {down} went over. I can't see!"
+  ]
+ },
+ {
+  "name": "worrier.man_overboard",
+  "lines": [
+   "Oh God, {down} went over! Overboard!",
+   "Overboard! {down}! Somebody throw something!",
+   "{down}'s in the water! Where's the life ring?"
+  ]
+ },
+ {
+  "name": "worrier.fire",
+  "lines": [
+   "Fire! We're gonna blow sky high!",
+   "The gas tanks! Is it near the gas?",
+   "Fire! Where's the extinguisher? Where is it?",
+   "Smoke! I can't breathe! Put it out!",
+   "Oh no, oh no, we're on fire."
+  ]
+ },
+ {
+  "name": "worrier.quiet",
+  "lines": [
+   "Too quiet. They're coming back, I'd bet on it.",
+   "How deep you figure the water is here?",
+   "I counted the life jackets. We're short one.",
+   "My stomach's in knots. Can't eat a thing.",
+   "Haven't slept right in a month.",
+   "What if the engines quit out here?",
+   "Sharks follow boats, you know. I read that.",
+   "This plywood won't stop a thing, will it?",
+   "Clouds coming in. Storms out here are awful.",
+   "I heard what happens to PT crews. Don't tell me."
+  ]
+ },
+ {
+  "name": "worrier.quiet_home",
+  "lines": [
+   "I hope {home} is okay. I worry, you know.",
+   "Is it dumb that I miss {home} this much?",
+   "If I live through this, I'll {plan}.",
+   "I keep thinking I'll never get to {plan}.",
+   "I hold onto {keep}. For luck.",
+   "Never without {keep}. Never.",
+   "Back then I {job}. Never thought I'd end up here.",
+   "I {job}, back home. Wonder who does it now."
+  ]
+ },
+ {
+  "name": "worrier.letter",
+  "lines": [
+   "Letter from {from}. Took weeks to get here.",
+   "Mail from {from}. I'm almost scared to open it.",
+   "Letter from {from}. Reading it slow, so it lasts.",
+   "Got one from {from}. Thank God, a letter.",
+   "Letter from {from}. I'll answer it tonight, first thing."
+  ]
+ },
+ {
+  "name": "worrier.grief",
+  "lines": [
+   "{dead} wanted to {deadplan}. Now {deadhe} never will.",
+   "Who tells {dead}'s family? Somebody has to.",
+   "{dead} was from {deadhome}. They'll get the telegram soon.",
+   "Who's gonna send {deadkeep} to {dead}'s folks?",
+   "I keep seeing {dead}'s face.",
+   "I think {dead} was scared too. Never let on."
+  ]
+ },
+ {
+  "name": "worrier.grief_start",
+  "lines": [
+   "Our first one without {dead}. I'm not ready.",
+   "It feels wrong without {dead} here.",
+   "Same boat, same odds, and no {dead}.",
+   "{dead} was here last time. Now look."
+  ]
+ },
+ {
+  "name": "worrier.reply_quiet",
+  "lines": [
+   "Me too, {mate}. Me too.",
+   "I guess. I just keep watching the water.",
+   "Maybe. Did you hear an engine just now?",
+   "Sure, {mate}, sure. Can we talk quieter?",
+   "That's what worries me.",
+   "I hope you're right. I really do."
+  ]
+ },
+ {
+  "name": "worrier.reply_letter",
+  "lines": [
+   "Is everybody okay back home?",
+   "You're lucky. My mail must be lost.",
+   "Read me a bit? I miss regular things.",
+   "Does it say anything about the war ending?",
+   "Keep it dry, {mate}. Letters are all we've got.",
+   "Write back soon. They'll worry otherwise."
+  ]
+ },
+ {
+  "name": "worrier.reply_letter_bad",
+  "lines": [
+   "Oh no. Oh, {mate}, I'm so sorry.",
+   "That's awful. Is there anything I can do?",
+   "Oh Lord. I'll pray on it tonight.",
+   "I was afraid of news like that. I'm sorry."
+  ]
+ },
+ {
+  "name": "worrier.reply_grief",
+  "lines": [
+   "Please don't. I can't stop thinking about {dead}.",
+   "I miss {dead} too, {mate}.",
+   "It could've been any of us. That's what scares me.",
+   "{dead} didn't deserve it. Nobody does.",
+   "Let's say a prayer for {dead} tonight."
+  ]
+ },
+ {
+  "name": "worrier.rollcall_here",
+  "lines": [
+   "Here! I'm here.",
+   "Present. Still in one piece.",
+   "Here. Is everybody else here?",
+   "Aye aye. Here."
+  ]
+ },
+ {
+  "name": "professional.battle_start",
+  "lines": [
+   "Contacts closing. Guns manned and ready, Skipper.",
+   "All stations report ready.",
+   "Enemy closing fast. Hold fire until in range.",
+   "Bearing steady, range dropping. Stand by.",
+   "Ammunition up, safeties off. Ready on your word.",
+   "Battle stations. Keep your eyes on your sector."
+  ]
+ },
+ {
+  "name": "professional.wounded",
+  "lines": [
+   "I'm hit. Still at my station.",
+   "Minor wound. Continuing to fire.",
+   "Took a fragment. I can work.",
+   "Hit in the arm. No need to relieve me.",
+   "Bleeding, but serviceable. Carry on.",
+   "Wounded. I'll see to it after the action.",
+   "Shrapnel. Nothing that stops me.",
+   "Hit, Skipper. Still in the fight."
+  ]
+ },
+ {
+  "name": "professional.kill",
+  "lines": [
+   "Target destroyed.",
+   "Direct hit. Target is going down.",
+   "Target burning and settling. Shifting fire.",
+   "Target sinking. Next target.",
+   "Confirmed kill, Skipper. Log it.",
+   "Hits on the waterline. That one's finished.",
+   "Target done for. Looking for the next.",
+   "Scratch one. Awaiting next bearing."
+  ]
+ },
+ {
+  "name": "professional.kill_plane",
+  "lines": [
+   "Aircraft down. Splash one.",
+   "Plane destroyed. Watch for more.",
+   "Got the aircraft. Sky's clearing.",
+   "Bandit down, Skipper.",
+   "One aircraft in the water. Tracking the next."
+  ]
+ },
+ {
+  "name": "professional.crew_down",
+  "lines": [
+   "{down} is down. Need a hand here.",
+   "Casualty! {down}, badly hurt.",
+   "{down}'s hit bad. Somebody cover that station.",
+   "Report: {down} down. Station unmanned.",
+   "Stay with us, {down}. That's an order.",
+   "Keep firing. {down} needs us to finish this."
+  ]
+ },
+ {
+  "name": "professional.crew_killed",
+  "lines": [
+   "{dead} is gone, Skipper.",
+   "We lost {dead}. Keep to your stations.",
+   "{dead}'s dead. Log it later. Fight now.",
+   "Killed in action: {dead}. Carry on.",
+   "{dead}... Nothing to be done. Eyes forward.",
+   "Lost {dead}. Somebody take that gun."
+  ]
+ },
+ {
+  "name": "professional.crew_overboard",
+  "lines": [
+   "{down} over the side! Mark the position!",
+   "Crew overboard! {down}, port or starboard?",
+   "{down} in the water. Swim for the boat!",
+   "Lost {down} over the rail. Swim, {down}!",
+   "{down} overboard. Somebody mark the bearing."
+  ]
+ },
+ {
+  "name": "professional.man_overboard",
+  "lines": [
+   "Overboard: {down}. Life ring, now.",
+   "{down} is in the water. Lookout, keep eyes on.",
+   "Overboard! Throw {down} a line!"
+  ]
+ },
+ {
+  "name": "professional.fire",
+  "lines": [
+   "Fire aboard! Extinguisher, on the double.",
+   "Fire on deck. Rig the hose.",
+   "We're burning. Fight it before it spreads.",
+   "Fire! Keep it away from the fuel.",
+   "Fire reported. Damage control, now."
+  ]
+ },
+ {
+  "name": "professional.quiet",
+  "lines": [
+   "Engines sound rough. I'll check the plugs later.",
+   "Gun's cleaned and oiled. Ready when needed.",
+   "Keep scanning. A lull is no excuse.",
+   "Fuel state's fair. We'll make it back.",
+   "Sea's calming. Good for gunnery.",
+   "Spam again tonight, I expect.",
+   "Regulations say stay alert. So stay alert.",
+   "Eighteen hours of sleep this week. Total.",
+   "Hull's holding. Bilge pump's keeping up.",
+   "Scuttlebutt says we get a refit soon. Unconfirmed."
+  ]
+ },
+ {
+  "name": "professional.quiet_home",
+  "lines": [
+   "{home} seems a long way off right now.",
+   "Back in {home} I kept a tidy schedule.",
+   "After discharge I intend to {plan}.",
+   "The plan stands: I'm going to {plan}.",
+   "I carry {keep}. Always have.",
+   "Still have {keep}. Kept it dry so far.",
+   "Before I enlisted, I {job}.",
+   "I {job}. Seems like another life."
+  ]
+ },
+ {
+  "name": "professional.letter",
+  "lines": [
+   "Mail call brought a letter from {from}.",
+   "Read the letter from {from} twice. Filed it in my locker.",
+   "Correspondence from {from}. Dated six weeks back.",
+   "Letter from {from}. I'll reply by the next mail run.",
+   "Letter from {from}. Answer goes out tomorrow."
+  ]
+ },
+ {
+  "name": "professional.grief",
+  "lines": [
+   "{dead} meant to {deadplan}. Had a timetable.",
+   "{dead} came from {deadhome}. I'll write the family.",
+   "Send {deadkeep} home to {dead}'s family. I'll see to it.",
+   "{dead} never missed a watch. Not once.",
+   "I keep looking at {dead}'s station.",
+   "Best hand we had, {dead}. I think {deadhe} knew it."
+  ]
+ },
+ {
+  "name": "professional.grief_start",
+  "lines": [
+   "First action without {dead}. Mind your stations.",
+   "{dead}'s station is covered. Let's go.",
+   "We go in without {dead} today. Do it right.",
+   "Do the job the way {dead} would have."
+  ]
+ },
+ {
+  "name": "professional.reply_quiet",
+  "lines": [
+   "Noted, {mate}.",
+   "Fair point. Keep your eyes out while you talk.",
+   "Could be. Hard to know from out here.",
+   "Agreed. Now check your ammunition.",
+   "Can't argue with that, {mate}.",
+   "Understood, {mate}. Back to your sector."
+  ]
+ },
+ {
+  "name": "professional.reply_letter",
+  "lines": [
+   "Word from home helps. Glad you got it.",
+   "Write back tonight, {mate}. Don't put it off.",
+   "Keep it dry. Letters don't survive salt water.",
+   "Anything in it about the rationing?",
+   "Mine's overdue. Mail's slow out here.",
+   "Read me the part about home, {mate}. Later."
+  ]
+ },
+ {
+  "name": "professional.reply_letter_bad",
+  "lines": [
+   "Bad news travels far. I'm sorry, {mate}.",
+   "Take a minute. I'll cover your sector.",
+   "Hard news. You'll get through it.",
+   "I'm sorry, {mate}. Truly."
+  ]
+ },
+ {
+  "name": "professional.reply_grief",
+  "lines": [
+   "I know. {dead} was squared away.",
+   "{dead} deserved better. We all know it.",
+   "Later, {mate}. We grieve after the action.",
+   "Yes. I'll write {deadhis} folks myself.",
+   "Hard loss. Stay on your gun."
+  ]
+ },
+ {
+  "name": "professional.rollcall_here",
+  "lines": [
+   "Present. Station manned.",
+   "Here. No injuries to report.",
+   "Aye. Present and fit for duty.",
+   "Present and accounted for."
+  ]
+ },
+ {
+  "name": "cheerful.battle_start",
+  "lines": [
+   "Here they come! We've licked worse, right?",
+   "Chin up, everybody. We'll be home for chow.",
+   "Swell day for a scrap!",
+   "Stick together and we'll be fine.",
+   "Nothing to it. Just like practice!",
+   "Let's give 'em a show, crew!"
+  ]
+ },
+ {
+  "name": "cheerful.wounded",
+  "lines": [
+   "Ow! Just a scratch, honest!",
+   "Ha! Missed everything that matters!",
+   "I'm hit, but I'm still smiling.",
+   "That'll make a swell story later.",
+   "Ouch! Don't worry about me, keep going!",
+   "Just nicked me. I'm fine, really!",
+   "Well, there goes my good looks.",
+   "Lucky it wasn't worse. Still kicking!"
+  ]
+ },
+ {
+  "name": "cheerful.kill",
+  "lines": [
+   "Got 'em! Hot dog!",
+   "Down she goes! Nice work, everybody!",
+   "Hooray! That's one less to worry about!",
+   "We did it! Did you see that?",
+   "Whoo! Right on the nose!",
+   "That's how it's done! Swell shooting!",
+   "Bullseye! Ma would be proud.",
+   "Ha! Blew it to pieces!"
+  ]
+ },
+ {
+  "name": "cheerful.kill_plane",
+  "lines": [
+   "Got the plane! Look at it go!",
+   "Down in flames! Hot diggity!",
+   "Wings off! That one won't bother us.",
+   "Plane's down! Somebody pinch me!",
+   "Knocked it clean out of the sky!"
+  ]
+ },
+ {
+  "name": "cheerful.crew_down",
+  "lines": [
+   "Hang on, {down}! You're gonna be fine!",
+   "{down}! Stay with me, okay?",
+   "Don't you quit on us, {down}!",
+   "Easy, {down}, easy. Help's coming.",
+   "{down}'s hurt! Somebody get over here!",
+   "You'll pull through, {down}. You always do."
+  ]
+ },
+ {
+  "name": "cheerful.crew_killed",
+  "lines": [
+   "No... not {dead}. Not {dead}.",
+   "{dead}? Come on... come on.",
+   "Oh God. {dead} is gone.",
+   "We'll get 'em for you, {dead}.",
+   "{dead}... I'm so sorry.",
+   "Keep fighting. {dead} would want that."
+  ]
+ },
+ {
+  "name": "cheerful.crew_overboard",
+  "lines": [
+   "{down}'s over the side! Swim, {down}, swim!",
+   "{down} went in! Keep your head up!",
+   "Kick, {down}! You can make it back!",
+   "Crew in the water! Stick with us, {down}!",
+   "{down}'s taking a swim! Come on back!"
+  ]
+ },
+ {
+  "name": "cheerful.man_overboard",
+  "lines": [
+   "Uh oh! {down}'s overboard!",
+   "{down} took a dive! Throw a line!",
+   "Overboard! Don't worry, {down}, we see you!"
+  ]
+ },
+ {
+  "name": "cheerful.fire",
+  "lines": [
+   "Fire! We can beat this, come on!",
+   "It's burning! Quick, before it spreads!",
+   "Fire aboard! Grab a bucket, anybody!",
+   "Little fire, no problem! Let's put it out!",
+   "Smoke! Stay calm, we've got this."
+  ]
+ },
+ {
+  "name": "cheerful.quiet",
+  "lines": [
+   "Look at that sky. Pretty, isn't it?",
+   "Bet the cook's making something good tonight.",
+   "Hey, we're still afloat. That's something, ain't it?",
+   "Anybody want half my chocolate bar?",
+   "Once this is done, I'm sleeping a week.",
+   "Old tub runs better than she looks.",
+   "Warm water, at least. Could be the Atlantic!",
+   "The old man smiled today. I saw it!",
+   "Scuttlebutt says there's ice cream at the base!",
+   "Every day closer to home, right?"
+  ]
+ },
+ {
+  "name": "cheerful.quiet_home",
+  "lines": [
+   "Bet it's a sunny day back in {home}.",
+   "{home} has the best pie in the country.",
+   "I'm gonna {plan}. Just you wait!",
+   "Can't wait to {plan}.",
+   "Got {keep}. My lucky charm.",
+   "Never go anywhere without {keep}.",
+   "I {job}. Seems like a hundred years ago!",
+   "Before the war I {job}. Simpler times!"
+  ]
+ },
+ {
+  "name": "cheerful.letter",
+  "lines": [
+   "Got a letter from {from}!",
+   "Mail from {from}! Best part of the week!",
+   "A letter from {from}! Gonna read it twice.",
+   "Hey, a letter from {from}! Never doubted it!",
+   "Letter from {from}! I'm saving it for tonight."
+  ]
+ },
+ {
+  "name": "cheerful.grief",
+  "lines": [
+   "{dead} always made me laugh.",
+   "{dead} was gonna {deadplan}. I believed it, too.",
+   "{dead} told the best stories about {deadhome}.",
+   "I keep thinking about {dead} with {deadkeep}.",
+   "Bet {dead}'s somewhere better now.",
+   "I miss {dead}'s laugh. Honest, I do."
+  ]
+ },
+ {
+  "name": "cheerful.grief_start",
+  "lines": [
+   "Let's win one for {dead}, everybody.",
+   "Let's make {dead} proud today.",
+   "Gonna miss {dead}'s grin out here today.",
+   "Come on. {dead} would want us to smile."
+  ]
+ },
+ {
+  "name": "cheerful.reply_quiet",
+  "lines": [
+   "I know just what you mean, {mate}.",
+   "Gee, I hadn't thought of that.",
+   "Sure is nice to talk, {mate}.",
+   "Yeah. I think about that too.",
+   "Glad you said it, {mate}.",
+   "Same here, {mate}. Honest."
+  ]
+ },
+ {
+  "name": "cheerful.reply_letter",
+  "lines": [
+   "Swell, {mate}! Mail's the best part of the week.",
+   "Read me the good parts!",
+   "Lucky! Tell 'em I said hello.",
+   "Aw, that's sweet. Write back soon!",
+   "See? Folks back home are rooting for us.",
+   "Any cookies with it? Kidding!"
+  ]
+ },
+ {
+  "name": "cheerful.reply_letter_bad",
+  "lines": [
+   "Aw, {mate}. I'm real sorry.",
+   "That's rough. Want half my chocolate bar?",
+   "Come here. Sit with me a minute.",
+   "Rotten luck. I'm sorry, {mate}."
+  ]
+ },
+ {
+  "name": "cheerful.reply_grief",
+  "lines": [
+   "I miss {dead} too.",
+   "{dead} was the best of us.",
+   "Yeah. I think about {dead} every day.",
+   "We'll remember {dead}. Always.",
+   "Go on and cry, {mate}. Nobody's looking."
+  ]
+ },
+ {
+  "name": "cheerful.rollcall_here",
+  "lines": [
+   "Here and kicking!",
+   "Present, bright and early!",
+   "Right here!",
+   "Yo! Here!"
+  ]
+ },
+ {
+  "name": "any.rollcall_open",
+  "lines": [
+   "Sound off! Everybody answer up.",
+   "Roll call. Sing out when I call you.",
+   "Muster up. Let's hear who's still here.",
+   "All hands, sound off. Now.",
+   "Names, quick. Answer when you hear yours."
+  ]
+ },
+ {
+  "name": "any.rollcall_silence",
+  "lines": [
+   "...{dead}?",
+   "{dead}... gone. Next name.",
+   "{dead}? ...Nobody? Mark it.",
+   "Strike {dead}. God rest {deadhis} soul.",
+   "{dead} won't answer. Not anymore.",
+   "Somebody write {dead}'s folks in {deadhome}.",
+   "{dead} meant to {deadplan}. Damn it.",
+   "Skip {dead}. Not coming back."
+  ]
+ },
+ {
+  "name": "any.rollcall_close",
+  "lines": [
+   "That's everybody who's left.",
+   "All present that can be. Back to it.",
+   "Roll's done. Eyes on the water.",
+   "That's the count. We're short."
+  ]
+ },
+ {
+  "name": "any.letter_returned",
+  "lines": [
+   "A letter came for {dead}. Postmarked {deadhome}.",
+   "{dead} got mail today. Too late.",
+   "Marked {dead}'s letter 'deceased.' It's going back.",
+   "Letter for {dead} goes back to {deadhome} unopened.",
+   "Somebody in {deadhome} still thinks {deadhe}'s alive.",
+   "{dead}'s letter from {from} came back."
+  ]
+ },
+ {
+  "name": "any.man_overboard",
+  "lines": [
+   "Man overboard! {down}'s in the water!",
+   "Overboard! {down} went over!",
+   "{down}'s over the side! Swim, {down}!",
+   "Man overboard! Keep your eyes on {down}!",
+   "{down} went in! Swim for the boat!"
+  ]
+ },
+ {
+  "name": "any.fire",
+  "lines": [
+   "Fire! Fire aboard!",
+   "We're burning! Get on it!",
+   "Smoke! We're on fire, Skipper!",
+   "She's burning! Put it out, damn it!",
+   "Fire! Watch the gas tanks!"
+  ]
+ },
+ {
+  "name": "joker.combat_gun",
+  "lines": [
+   "Hold still, I'm trying to hit you!",
+   "Leading 'em like a bad date!",
+   "Barrel's hot enough to fry eggs!",
+   "Jammed! Of course it's jammed!",
+   "That splash was personal!",
+   "Pour it on, it's on the house!",
+   "Ring the bell, we got a winner!"
+  ]
+ },
+ {
+  "name": "joker.combat_ammo",
+  "lines": [
+   "Delivery! Sign here, Skipper!",
+   "Fresh rounds, still warm!",
+   "More bullets, less complaining!",
+   "Express mail for {mate}!",
+   "I should charge by the pound!"
+  ]
+ },
+ {
+  "name": "joker.combat_repair",
+  "lines": [
+   "Hole's plugged. Mostly.",
+   "Who ordered the skylight?",
+   "Pump faster, I can't swim!",
+   "Chewing gum and prayer, Skipper!",
+   "Patched. Don't lean on it."
+  ]
+ },
+ {
+  "name": "joker.combat_medic",
+  "lines": [
+   "Trust me, I read half the manual!",
+   "You'll live. Your dungarees won't.",
+   "Bite down, it's only a scratch.",
+   "Quit bleeding on my clean deck!",
+   "Be brave, you get a lollipop."
+  ]
+ },
+ {
+  "name": "joker.combat_helm",
+  "lines": [
+   "Hang on to your lunch!",
+   "Hard over! Mind the coffee!",
+   "Dodging like I owe 'em money!",
+   "All ahead flank, scenic route!",
+   "Zig, zag, and a little rumba!"
+  ]
+ },
+ {
+  "name": "joker.combat_any",
+  "lines": [
+   "Well, this is exciting!",
+   "Smile, they're taking our picture!",
+   "Who invited these clowns?",
+   "Duck! No, the other way!",
+   "I'm writing Ma about this!",
+   "Too late to join the Army?"
+  ]
+ },
+ {
+  "name": "joker.raked",
+  "lines": [
+   "Hey! That was my good side!",
+   "Swell, now we got air conditioning!",
+   "Splinters! Free toothpicks!",
+   "Hey, we just painted that!",
+   "Now we're a colander!"
+  ]
+ },
+ {
+  "name": "stoic.combat_gun",
+  "lines": [
+   "On target.",
+   "Lead adjusted.",
+   "Rounds away.",
+   "Jammed. Clearing.",
+   "Short. Adjusting.",
+   "Close one.",
+   "Same again."
+  ]
+ },
+ {
+  "name": "stoic.combat_ammo",
+  "lines": [
+   "Ammo up.",
+   "Gun's loaded.",
+   "More rounds coming.",
+   "Here. Take it.",
+   "Fresh belt."
+  ]
+ },
+ {
+  "name": "stoic.combat_repair",
+  "lines": [
+   "Patching it.",
+   "Leak's holding.",
+   "Plug's in.",
+   "Pump's running.",
+   "Holds for now."
+  ]
+ },
+ {
+  "name": "stoic.combat_medic",
+  "lines": [
+   "Don't move.",
+   "Pressure. Here.",
+   "You'll keep.",
+   "Breathe slow.",
+   "Bandage on."
+  ]
+ },
+ {
+  "name": "stoic.combat_helm",
+  "lines": [
+   "Coming about.",
+   "Hard a-port.",
+   "Full speed.",
+   "Steady as she goes.",
+   "Changing course."
+  ]
+ },
+ {
+  "name": "stoic.combat_any",
+  "lines": [
+   "Keep at it.",
+   "Stay sharp.",
+   "Still here.",
+   "Here it comes.",
+   "Eyes front.",
+   "Do your job."
+  ]
+ },
+ {
+  "name": "stoic.raked",
+  "lines": [
+   "Taking hits.",
+   "Splinters. Cover up.",
+   "Get down.",
+   "We're holed.",
+   "Hit forward."
+  ]
+ },
+ {
+  "name": "crazy.combat_gun",
+  "lines": [
+   "HA! Eat lead, you bums!",
+   "Lead 'em, lead 'em, POUR IT ON!",
+   "Barrel's glowing! KEEP FEEDING ME!",
+   "Jammed! Come on, you ugly beauty!",
+   "Splash right on 'em! AGAIN!",
+   "HIT! Saw it spark! Ha ha!",
+   "Walk it in... walk it in... YES!",
+   "More! I want MORE of 'em!"
+  ]
+ },
+ {
+  "name": "crazy.combat_ammo",
+  "lines": [
+   "Ammo! Hot and fresh, come get it!",
+   "Feed the beast! FEED THE BEAST!",
+   "{mate}! Catch! Don't drop it!",
+   "Another can! I love this job!",
+   "Shells up! Who's hungry?!"
+  ]
+ },
+ {
+  "name": "crazy.combat_repair",
+  "lines": [
+   "Patch it, slap it, KEEP GOING!",
+   "Water's coming in! Fine by me!",
+   "Hammer and plug! HA!",
+   "Holes? We got holes! WHO CARES!",
+   "Hold together, you tub! HOLD!"
+  ]
+ },
+ {
+  "name": "crazy.combat_medic",
+  "lines": [
+   "You ain't dying today, hear me?",
+   "Bite down! Ha, you'll live!",
+   "Bleed later, we're BUSY!",
+   "Stay with me, {mate}! STAY!",
+   "Bandage on! Back in the fight!"
+  ]
+ },
+ {
+  "name": "crazy.combat_helm",
+  "lines": [
+   "Hard over! HANG ON TO SOMETHING!",
+   "Full throttle! Let her SCREAM!",
+   "Zig! Zag! Can't touch us!",
+   "Right down their throats! HA!",
+   "Hang on! I'm cutting it CLOSE!"
+  ]
+ },
+ {
+  "name": "crazy.combat_any",
+  "lines": [
+   "THIS is living! Ha ha!",
+   "Is that all you got?!",
+   "Come on! COME ON!",
+   "Give 'em hell, {mate}!",
+   "Now we're dancing!",
+   "Duck! Ha, missed me!"
+  ]
+ },
+ {
+  "name": "crazy.raked",
+  "lines": [
+   "They're raking us! LOVELY!",
+   "Splinters everywhere! WAHOO!",
+   "We're taking hits! HIT 'EM BACK!",
+   "Ha! That one tickled!",
+   "They scratched the paint! NOW I'M MAD!"
+  ]
+ },
+ {
+  "name": "silent.combat_gun",
+  "lines": [
+   "On it.",
+   "Hit.",
+   "Leading.",
+   "Jammed.",
+   "Hot barrel."
+  ]
+ },
+ {
+  "name": "silent.combat_ammo",
+  "lines": [
+   "Ammo.",
+   "Here.",
+   "Loaded.",
+   "Catch."
+  ]
+ },
+ {
+  "name": "silent.combat_repair",
+  "lines": [
+   "Plugged.",
+   "Patching.",
+   "Holding.",
+   "Leak plugged."
+  ]
+ },
+ {
+  "name": "silent.combat_medic",
+  "lines": [
+   "Easy.",
+   "Breathe.",
+   "Stay down.",
+   "Hold still."
+  ]
+ },
+ {
+  "name": "silent.combat_helm",
+  "lines": [
+   "Turning.",
+   "Hard over.",
+   "Full speed.",
+   "Dodging."
+  ]
+ },
+ {
+  "name": "silent.combat_any",
+  "lines": [
+   "Steady.",
+   "Heads down.",
+   "Close one.",
+   "Incoming."
+  ]
+ },
+ {
+  "name": "silent.raked",
+  "lines": [
+   "Down!",
+   "Splinters.",
+   "Taking hits.",
+   "Damn."
+  ]
+ },
+ {
+  "name": "hothead.combat_gun",
+  "lines": [
+   "Eat lead, damn you!",
+   "Stand still and take it!",
+   "Damn gun's jammed! Come ON!",
+   "Barrel's red hot. Keep feeding it!",
+   "Missed me! My turn now!",
+   "Got you! How'd that taste?",
+   "Pour it on! No mercy!",
+   "Leading you right into hell!"
+  ]
+ },
+ {
+  "name": "hothead.combat_ammo",
+  "lines": [
+   "Ammo up! Out of my way!",
+   "Here's your ammo. Make it hurt!",
+   "Load it and kill 'em!",
+   "{mate}, quit gawking, grab a box!",
+   "I'll haul this whole damn magazine!"
+  ]
+ },
+ {
+  "name": "hothead.combat_repair",
+  "lines": [
+   "Patch it, plug it, hit back!",
+   "Damn holes! Who shot my boat?",
+   "Leak's plugged. Now let me shoot!",
+   "Hammer, {mate}! Now, damn it!",
+   "They'll pay for every hole!"
+  ]
+ },
+ {
+  "name": "hothead.combat_medic",
+  "lines": [
+   "You're not dying on me, hear?",
+   "Bite down and quit squirming!",
+   "Who did this? I'll kill 'em!",
+   "Damn it, I'm working here!",
+   "Bleed later! Not on my watch!"
+  ]
+ },
+ {
+  "name": "hothead.combat_helm",
+  "lines": [
+   "Hard over! Try and hit that!",
+   "Full speed, right down their throats!",
+   "Can't touch us, you clowns!",
+   "Hang on! I'm cutting hard!",
+   "Nobody catches this boat. Nobody!"
+  ]
+ },
+ {
+  "name": "hothead.combat_any",
+  "lines": [
+   "Is that all you got?",
+   "Come on! Come and get it!",
+   "Hell, now they've made me angry!",
+   "Keep shooting! Make 'em regret it!",
+   "{mate}, quit ducking and fight!",
+   "I'm gonna remember this one!"
+  ]
+ },
+ {
+  "name": "hothead.raked",
+  "lines": [
+   "Damn it! They hit us!",
+   "Splinters! Oh, now it's personal!",
+   "We're taking hits! Shoot back!",
+   "Lucky shot! Won't be another!",
+   "Hit me again, I dare you!"
+  ]
+ },
+ {
+  "name": "worrier.combat_gun",
+  "lines": [
+   "Leading it... I think? Oh no.",
+   "Missed! Missed again!",
+   "Gun's running hot! Is that bad?",
+   "It jammed! Why now? Why now?",
+   "That splash was way too close!",
+   "Where'd it go? I lost it!",
+   "Keep firing, keep firing...",
+   "I hit it! I actually hit it!"
+  ]
+ },
+ {
+  "name": "worrier.combat_ammo",
+  "lines": [
+   "Is this enough? It's never enough!",
+   "Ammo coming! Don't shoot me!",
+   "We're running low, aren't we?",
+   "Last box? Please say it isn't!",
+   "Don't drop it, don't drop it..."
+  ]
+ },
+ {
+  "name": "worrier.combat_repair",
+  "lines": [
+   "Another leak! How many more?",
+   "Is she sinking? Is she sinking?",
+   "This patch won't hold, I know it!",
+   "Water's rising! Bail faster!",
+   "Come on, hold... just hold..."
+  ]
+ },
+ {
+  "name": "worrier.combat_medic",
+  "lines": [
+   "Stay awake! Look at me!",
+   "So much blood. Oh, so much...",
+   "You'll be fine. I think. Hold on!",
+   "Where's the gauze? Where is it?",
+   "Breathe! Just keep breathing!"
+  ]
+ },
+ {
+  "name": "worrier.combat_helm",
+  "lines": [
+   "Port? Starboard? Port!",
+   "Turning! Hold on, hold on!",
+   "Too fast? Not fast enough?",
+   "Zigzag, zigzag... please miss us!",
+   "Skipper, I can't dodge them all!"
+  ]
+ },
+ {
+  "name": "worrier.combat_any",
+  "lines": [
+   "We're gonna die out here!",
+   "Too many of 'em! Too many!",
+   "Keep your head down, {mate}!",
+   "Is anyone else scared? Just me?",
+   "Oh Lord, oh Lord, oh Lord...",
+   "Skipper, can we leave now?"
+  ]
+ },
+ {
+  "name": "worrier.raked",
+  "lines": [
+   "We're hit! We're hit bad!",
+   "Splinters everywhere! Anyone hurt?",
+   "Holes! She's full of holes!",
+   "I knew it! I knew this'd happen!",
+   "They found us! They found us!"
+  ]
+ },
+ {
+  "name": "professional.combat_gun",
+  "lines": [
+   "On target. Firing for effect.",
+   "Leading the target. Steady.",
+   "Hits observed. Continuing fire.",
+   "Gun jammed. Clearing it now.",
+   "Barrel running hot. Easing off.",
+   "Near miss, port side. Still firing.",
+   "Correcting left. Fire.",
+   "Short bursts. Conserve ammunition."
+  ]
+ },
+ {
+  "name": "professional.combat_ammo",
+  "lines": [
+   "Ammunition coming up.",
+   "Belts up. Load and fire.",
+   "Magazine reloaded, Skipper.",
+   "Passing ammo forward. Stand by.",
+   "Ready rounds restocked."
+  ]
+ },
+ {
+  "name": "professional.combat_repair",
+  "lines": [
+   "Plugging the hole now.",
+   "Leak contained, for now.",
+   "Damage control under way.",
+   "Shoring up the hull.",
+   "Patch holding. Moving on."
+  ]
+ },
+ {
+  "name": "professional.combat_medic",
+  "lines": [
+   "Stay still. Let me work.",
+   "Pressure on the wound.",
+   "Bleeding controlled. Next.",
+   "Keep breathing. Slow and steady.",
+   "Morphine's in. Rest easy."
+  ]
+ },
+ {
+  "name": "professional.combat_helm",
+  "lines": [
+   "Hard right rudder.",
+   "All ahead full.",
+   "Evasive turn. Hold on.",
+   "Steady as she goes.",
+   "Slowing for a steady deck."
+  ]
+ },
+ {
+  "name": "professional.combat_any",
+  "lines": [
+   "Keep your heads down.",
+   "Watch your sectors.",
+   "Stay at your stations.",
+   "Eyes on the target, {mate}.",
+   "Maintain fire discipline.",
+   "Steady. We trained for this."
+  ]
+ },
+ {
+  "name": "professional.raked",
+  "lines": [
+   "Taking hits amidships.",
+   "We're hit. Report damage.",
+   "Splinters! Get down!",
+   "Hull struck. Assessing.",
+   "Raked topside. Stay low."
+  ]
+ },
+ {
+  "name": "cheerful.combat_gun",
+  "lines": [
+   "Got 'em in my sights!",
+   "Lead 'em a hair... there!",
+   "Pour it on! Ha!",
+   "Jammed! Gimme one second!",
+   "She's running hot and happy!",
+   "Missed me! Try again, pal!",
+   "That's a hit! Did you see that?",
+   "Ring the bell, that one counted!"
+  ]
+ },
+ {
+  "name": "cheerful.combat_ammo",
+  "lines": [
+   "Hot rounds, coming through!",
+   "Special delivery for the guns!",
+   "More where that came from!",
+   "Keep shooting, I'll keep hauling!",
+   "Fresh belts, fresh luck!"
+  ]
+ },
+ {
+  "name": "cheerful.combat_repair",
+  "lines": [
+   "Good as new! Well, almost.",
+   "Little hole, big plug!",
+   "She's tougher than she looks!",
+   "Patched! Keep her floating!",
+   "Bailing like a champ!"
+  ]
+ },
+ {
+  "name": "cheerful.combat_medic",
+  "lines": [
+   "You'll be fine, I promise.",
+   "You're doing swell, {mate}!",
+   "Just a scratch. Mostly.",
+   "Easy now, I've got you.",
+   "Stay with me, sunshine."
+  ]
+ },
+ {
+  "name": "cheerful.combat_helm",
+  "lines": [
+   "Hold on to your hats!",
+   "Hang on, hard to port!",
+   "Zig! Now zag!",
+   "Watch her dance!",
+   "Full speed and grinning!"
+  ]
+ },
+ {
+  "name": "cheerful.combat_any",
+  "lines": [
+   "We've got this!",
+   "Give 'em hell, {mate}!",
+   "Nice shooting, everybody!",
+   "Best crew in the Navy!",
+   "Keep smiling, keep firing!",
+   "Ha! They can't touch us!"
+  ]
+ },
+ {
+  "name": "cheerful.raked",
+  "lines": [
+   "Yikes! Everyone still here?",
+   "We're taking hits! Chins up!",
+   "Splinters! Nobody's hurt, right?",
+   "Ouch! She can take it!",
+   "That stung! Still floating!"
+  ]
+ },
+ {
+  "name": "joker.crew_killed_close",
+  "lines": [
+   "No. No, {dead}, that's not funny. Get up.",
+   "{dead}, you owe me a punchline. Get up!",
+   "Ha... ha. Real cute, {dead}. Quit kidding around.",
+   "Somebody shot my best audience. Somebody pays.",
+   "Hey, {dead}? {dead}! Come on, laugh, damn it."
+  ]
+ },
+ {
+  "name": "joker.grief_close",
+  "lines": [
+   "We {why}. Who laughs at my jokes?",
+   "Funny. We {why}. Never said thanks.",
+   "{dead} was gonna {deadplan}. Ain't funny.",
+   "Promised {dead} I'd see {deadhome}. Guess I'll go alone.",
+   "Got a joke about {dead}. Can't remember how it ends.",
+   "{dead} still owes me two bucks. Guess I'll let it slide."
+  ]
+ },
+ {
+  "name": "joker.grief_start_close",
+  "lines": [
+   "First fight without {dead}. Somebody else laugh, okay?",
+   "[gun] Who's gonna heckle my aim now, {dead}?",
+   "Okay. Jokes are off today. Let's go.",
+   "No {dead} to laugh at my jokes. Tough crowd today."
+  ]
+ },
+ {
+  "name": "joker.rollcall_silence_close",
+  "lines": [
+   "{dead}'s late again. ...Yeah. I know.",
+   "Call it again. Maybe {deadhe} didn't hear.",
+   "Sorry. I almost answered for {dead}. Habit."
+  ]
+ },
+ {
+  "name": "joker.quiet_partner",
+  "lines": [
+   "{mate}, you still owe me a beer from last week.",
+   "[gun] {mate}, aim where I aim. Then a little to the left.",
+   "After the war, {mate}, we open a bar. I tend, you pay.",
+   "[warm] We {why}. No joke, {mate}.",
+   "Keep your head down, {mate}. I can't afford new friends.",
+   "{mate}, your snoring scares the enemy worse than our guns."
+  ]
+ },
+ {
+  "name": "joker.reply_partner",
+  "lines": [
+   "Put it on my tab, {mate}.",
+   "Ha! Says you, {mate}. Says you.",
+   "Double or nothing, {mate}. Always double or nothing.",
+   "That joke's older than this boat, {mate}.",
+   "You keep me alive, {mate}, I keep you entertained."
+  ]
+ },
+ {
+  "name": "joker.reply_partner_warm",
+  "lines": [
+   "Always, {mate}. Somebody's gotta.",
+   "Same here, {mate}. Don't spread it around.",
+   "You know I will. Who else'd put up with ya?"
+  ]
+ },
+ {
+  "name": "stoic.crew_killed_close",
+  "lines": [
+   "{dead}. No. Not you.",
+   "[deadgun] Keep firing. {dead} would.",
+   "{dead}... Damn it.",
+   "Eyes front. Grieve later.",
+   "[deadgun] Somebody take {deadhis} gun."
+  ]
+ },
+ {
+  "name": "stoic.grief_close",
+  "lines": [
+   "We {why}. That's all.",
+   "We {why}. Should've been me.",
+   "{dead} wanted to {deadplan}.",
+   "{dead} always talked about {deadhome}.",
+   "Still pour two cups. Habit.",
+   "Quiet without {dead}. Too quiet."
+  ]
+ },
+ {
+  "name": "stoic.grief_start_close",
+  "lines": [
+   "No {dead} today. Let's work.",
+   "{dead}'s spot is empty. Work around it.",
+   "Just me now. Load up."
+  ]
+ },
+ {
+  "name": "stoic.rollcall_silence_close",
+  "lines": [
+   "Don't call it again.",
+   "{dead}. Gone. Next name.",
+   "Nobody answers for {dead}."
+  ]
+ },
+ {
+  "name": "stoic.quiet_partner",
+  "lines": [
+   "[warm] Watch my left, {mate}. Like always.",
+   "[warm] Glad it's you out here, {mate}.",
+   "[warm] We {why}, {mate}. That counts.",
+   "[warm] After the war, {mate}. Fishing. Quiet.",
+   "Coffee's on, {mate}. Your turn.",
+   "Pack of smokes says it rains by noon, {mate}."
+  ]
+ },
+ {
+  "name": "stoic.reply_partner",
+  "lines": [
+   "Heard that one, {mate}.",
+   "Could be, {mate}. Could be.",
+   "Not bad, {mate}.",
+   "You'd lose that bet, {mate}.",
+   "Later, {mate}. Eyes out."
+  ]
+ },
+ {
+  "name": "stoic.reply_partner_warm",
+  "lines": [
+   "Always, {mate}.",
+   "Same, {mate}.",
+   "Count on it."
+  ]
+ },
+ {
+  "name": "crazy.crew_killed_close",
+  "lines": [
+   "{dead}! NO! Who did that? I'll kill every last one of 'em!",
+   "They got {dead}! Pour it on, damn you, pour it ON!",
+   "Get up, {dead}! Get up! ...Then they ALL go down!",
+   "That was {dead}, you sons of guns! Come and get me!",
+   "{dead}'s gone! Ram 'em! I don't care, ram 'em!"
+  ]
+ },
+ {
+  "name": "crazy.grief_close",
+  "lines": [
+   "We {why}. And now it's just OVER?",
+   "We {why}. I should've yelled louder!",
+   "{dead} was gonna {deadplan}. Now who will?",
+   "I'll go to {deadhome} and tell 'em how {deadhe} fought!",
+   "Up there laughing at me, {dead}? Go on, laugh, then!",
+   "Somebody owes me for {dead}. I'm collecting, every last cent."
+  ]
+ },
+ {
+  "name": "crazy.grief_start_close",
+  "lines": [
+   "This one's for {dead}! Open up on everything!",
+   "No {dead} today. So I'm twice as crazy. Let's go!",
+   "Watch this, {dead}! I'm gonna make 'em pay!"
+  ]
+ },
+ {
+  "name": "crazy.rollcall_silence_close",
+  "lines": [
+   "Answer, {dead}! ANSWER, damn it! ...Ah, hell.",
+   "Somebody say 'here' for {dead}! ...Fine. HERE!",
+   "Don't you call that name again. Don't you dare."
+  ]
+ },
+ {
+  "name": "crazy.quiet_partner",
+  "lines": [
+   "[gun] Hey {mate}, bet you a buck I bag the next one first.",
+   "{mate}, I painted a shark mouth on my helmet. Like it?",
+   "After the war, {mate}, we race motorcycles coast to coast!",
+   "[warm] We {why}. Nothing can touch us now!",
+   "You cover me, {mate}, I'll do something stupid. Deal?",
+   "{mate}, when I lose my head, just aim it at the enemy."
+  ]
+ },
+ {
+  "name": "crazy.reply_partner",
+  "lines": [
+   "Ha! You're on, {mate}! Double or nothing!",
+   "Pipe down, {mate}, I'm saving my lungs for yelling.",
+   "That's rich, {mate}! Coming from you!",
+   "Sure, {mate}, and I'm Admiral Nimitz.",
+   "Keep dreaming, {mate}! I'm the better shot and you know it!"
+  ]
+ },
+ {
+  "name": "crazy.reply_partner_warm",
+  "lines": [
+   "Always, {mate}! Till the wheels come off!",
+   "Same here, {mate}! You and me!",
+   "You know I will! Cross my heart!"
+  ]
+ },
+ {
+  "name": "silent.crew_killed_close",
+  "lines": [
+   "{dead}. No. No.",
+   "Hold on, {dead}...",
+   "Not {dead}. Not you.",
+   "For {dead}. Every last one.",
+   "Somebody pays for this."
+  ]
+ },
+ {
+  "name": "silent.grief_close",
+  "lines": [
+   "We {why}. Yeah.",
+   "We {why}. Gone now.",
+   "{dead} wanted to {deadplan}.",
+   "Who tells them in {deadhome}?",
+   "Miss you, {dead}.",
+   "Still hear {deadhis} laugh."
+  ]
+ },
+ {
+  "name": "silent.grief_start_close",
+  "lines": [
+   "For {dead}. Load.",
+   "Without you, {dead}.",
+   "Ride along, {dead}."
+  ]
+ },
+ {
+  "name": "silent.rollcall_silence_close",
+  "lines": [
+   "...{dead}'s not coming.",
+   "Here. For {dead}.",
+   "Don't. Just don't."
+  ]
+ },
+ {
+  "name": "silent.quiet_partner",
+  "lines": [
+   "[warm] {mate}. Stay close.",
+   "Your deal, {mate}.",
+   "[warm] Got your back, {mate}.",
+   "[warm] We {why}. Enough said.",
+   "[warm] After the war. Same porch, {mate}.",
+   "Bet's still on, {mate}."
+  ]
+ },
+ {
+  "name": "silent.reply_partner",
+  "lines": [
+   "Sure, {mate}. Sure.",
+   "Heh. Maybe, {mate}.",
+   "Shut it, {mate}.",
+   "Later, {mate}. Watch left.",
+   "Yeah. Me too."
+  ]
+ },
+ {
+  "name": "silent.reply_partner_warm",
+  "lines": [
+   "Always.",
+   "Me too, {mate}.",
+   "I will."
+  ]
+ },
+ {
+  "name": "hothead.crew_killed_close",
+  "lines": [
+   "{dead}! No! I'll kill every last one of you!",
+   "They got {dead}! Pour it on, damn you, pour it on!",
+   "That was {dead}! You'll pay for that, you hear me?",
+   "[gun] {dead} is down! Give me a target, now!",
+   "Not {dead}! Hell no! Keep firing, keep firing!"
+  ]
+ },
+ {
+  "name": "hothead.grief_close",
+  "lines": [
+   "We {why}. They'll pay for {dead}.",
+   "We {why}. Now I fight for two.",
+   "{dead} was gonna {deadplan}. Damn them all.",
+   "{deadhome} gets a telegram. They get my guns.",
+   "Don't tell me it's fate. {dead} deserved better, damn it.",
+   "Quit staring at me. I'm fine. I'm just gonna kill more."
+  ]
+ },
+ {
+  "name": "hothead.grief_start_close",
+  "lines": [
+   "This one's for {dead}. Nobody tell me to ease off.",
+   "First fight without {dead}. Let's make it a bloody one.",
+   "{dead}'s watching. Load up and make it loud."
+  ]
+ },
+ {
+  "name": "hothead.rollcall_silence_close",
+  "lines": [
+   "{dead} ain't gonna answer. Move on.",
+   "Don't call that name again. I heard it.",
+   "I'll answer for {dead}. Here!"
+  ]
+ },
+ {
+  "name": "hothead.quiet_partner",
+  "lines": [
+   "{mate}, you still owe me five bucks. Don't you dare die.",
+   "[warm] Stick close, {mate}. Anybody shoots at you answers to me.",
+   "[warm] We {why}, {mate}. We're not done yet.",
+   "After the war, {mate}, first round's on me. Second's on you.",
+   "{mate}, if I start a fight in port, you finish it.",
+   "[gun] Bet you a carton I outshoot you today, {mate}."
+  ]
+ },
+ {
+  "name": "hothead.reply_partner",
+  "lines": [
+   "Shut your trap, {mate}. ...And thanks.",
+   "Says you, {mate}. Watch me.",
+   "Ha! You wish, {mate}. Keep your head down.",
+   "Put a sock in it, {mate}. I got your back.",
+   "Damn right, {mate}. Nobody touches you while I'm here."
+  ]
+ },
+ {
+  "name": "hothead.reply_partner_warm",
+  "lines": [
+   "Always, {mate}. Anybody says different, I'll flatten 'em.",
+   "Same here, {mate}. Don't get mushy on me.",
+   "You know I will. Now quit asking."
+  ]
+ },
+ {
+  "name": "worrier.crew_killed_close",
+  "lines": [
+   "No, no, no, {dead}! Oh God, I was right there!",
+   "{dead}? {dead}, say something! Please!",
+   "Oh God... I told {dead} to keep down.",
+   "It should've been me. Not {dead}. Me.",
+   "Somebody help! {dead}'s hit! I can't... I can't..."
+  ]
+ },
+ {
+  "name": "worrier.grief_close",
+  "lines": [
+   "We {why}. Why didn't I see it coming?",
+   "We {why}. Now I'm on my own.",
+   "{dead} wanted to {deadplan}. Now {deadhe} won't.",
+   "Who's gonna tell them in {deadhome}? Not me. I can't.",
+   "I keep seeing it. Over and over. {dead}...",
+   "{dead} trusted me to watch {deadhis} side. I didn't."
+  ]
+ },
+ {
+  "name": "worrier.grief_start_close",
+  "lines": [
+   "Who's watching my side now? Without {dead}...",
+   "I turned to tell {dead} something. Again.",
+   "Without {dead} here... my hands won't stop shaking."
+  ]
+ },
+ {
+  "name": "worrier.rollcall_silence_close",
+  "lines": [
+   "Oh. Oh no. I keep hoping {dead} will answer.",
+   "I... I can't answer for {dead}. I just can't.",
+   "Please, somebody say it's a mistake. {dead}?"
+  ]
+ },
+ {
+  "name": "worrier.quiet_partner",
+  "lines": [
+   "[warm] {mate}, promise me you'll keep your head down today.",
+   "[warm] Check your Mae West, {mate}. Check it twice. For me.",
+   "[warm] We {why}, {mate}. Stay with me.",
+   "[warm] {mate}, if anything happens, you write my folks, right?",
+   "{mate}, you hear that? Tell me you heard that too.",
+   "[warm] After all this, {mate}, come home with me. Mom cooks. Promise?"
+  ]
+ },
+ {
+  "name": "worrier.reply_partner",
+  "lines": [
+   "Easy for you to say, {mate}. I'm sweating bullets.",
+   "Okay, okay, {mate}. Just stay where I can see you.",
+   "You really think so, {mate}? You're not just saying that?",
+   "Don't joke like that, {mate}. You'll jinx us.",
+   "Heh. Thanks, {mate}. I needed that."
+  ]
+ },
+ {
+  "name": "worrier.reply_partner_warm",
+  "lines": [
+   "Always, {mate}. Just... stay close, okay?",
+   "Me too, {mate}. More than you know.",
+   "I will. I promise. You do the same."
+  ]
+ },
+ {
+  "name": "professional.crew_killed_close",
+  "lines": [
+   "{dead} is down. Log it later. Keep firing.",
+   "[gun] Casualty: {dead}. Nothing to be done. Stay on the gun.",
+   "Report {dead} killed. ...Report it. Somebody report it.",
+   "Hold your station. I said hold it. That was {dead}.",
+   "[gun] {dead}'s gone. Reload. Reload, damn it."
+  ]
+ },
+ {
+  "name": "professional.grief_close",
+  "lines": [
+   "We {why}. That goes in my report.",
+   "Since we {why}, I knew {deadhis} habits cold.",
+   "I'll pack {dead}'s gear. We {why}.",
+   "{dead} meant to {deadplan}. Damn shame.",
+   "Somebody has to write the folks in {deadhome}. I'll do it.",
+   "Ammo count's off. {dead} always kept the count."
+  ]
+ },
+ {
+  "name": "professional.grief_start_close",
+  "lines": [
+   "First action without {dead}. Stations. Same as always.",
+   "[deadgun] Somebody take {dead}'s side of the mount. Now.",
+   "Battle stations. ...Without {dead}. Fine. Battle stations.",
+   "One short without {dead}. Everybody covers the gap."
+  ]
+ },
+ {
+  "name": "professional.rollcall_silence_close",
+  "lines": [
+   "{dead}, lost. Strike it. ...I'll strike it.",
+   "No answer for {dead}. There won't be one.",
+   "Mark {dead} absent. Permanently."
+  ]
+ },
+ {
+  "name": "professional.quiet_partner",
+  "lines": [
+   "{mate}, your shoes are a disgrace. Fix that before inspection.",
+   "[gun] Check your belt feed, {mate}. Humor me.",
+   "[warm] We {why}, {mate}. Means something.",
+   "[warm] After the war, {mate}, you and me build boats. Proper ones.",
+   "[warm] Good work today, {mate}. I mean that.",
+   "[gun] No betting aboard, {mate}. Five says I hit first."
+  ]
+ },
+ {
+  "name": "professional.reply_partner",
+  "lines": [
+   "Noted, {mate}. Now eyes on your sector.",
+   "Request denied, {mate}. Keep talking, though.",
+   "Put it in writing, {mate}. I'll file it.",
+   "Not regulation, {mate}. Funny, though.",
+   "Affirmative, {mate}. You owe me for that one."
+  ]
+ },
+ {
+  "name": "professional.reply_partner_warm",
+  "lines": [
+   "Always, {mate}. That's a standing order.",
+   "Likewise, {mate}. For the record.",
+   "You have my word, {mate}."
+  ]
+ },
+ {
+  "name": "cheerful.crew_killed_close",
+  "lines": [
+   "{dead}? {dead}, come on, get up! Please!",
+   "No, no, no. Not {dead}. Not {dead}!",
+   "{dead} was laughing a second ago. A second ago!",
+   "Somebody tell me {dead}'s okay. Somebody!",
+   "Oh God, {dead}. Hang on, I'm right here."
+  ]
+ },
+ {
+  "name": "cheerful.grief_close",
+  "lines": [
+   "We {why}. Who do I joke with now?",
+   "Since we {why}, {dead} had my back.",
+   "{dead} wanted to {deadplan}. Swell plan.",
+   "I promised to visit {deadhome} someday. Still might.",
+   "Keep turning to tell {dead} something funny.",
+   "{dead} had the worst jokes. I'd give anything for one."
+  ]
+ },
+ {
+  "name": "cheerful.grief_start_close",
+  "lines": [
+   "Okay. Okay. Do it for {dead}, everybody.",
+   "[deadgun] No {dead} singing at the gun today. Feels wrong.",
+   "Let's make {dead} proud out there. Let's go.",
+   "I keep looking for {dead}. Okay. Eyes out, everybody."
+  ]
+ },
+ {
+  "name": "cheerful.rollcall_silence_close",
+  "lines": [
+   "{dead} always yelled 'Here!' loudest of anybody.",
+   "Say it again. Maybe {dead} didn't hear.",
+   "I'll answer for {dead}. Here. ...Here."
+  ]
+ },
+ {
+  "name": "cheerful.quiet_partner",
+  "lines": [
+   "[warm] {mate}, after the war we open a diner. Deal?",
+   "Bet you a candy bar the cook burns supper again, {mate}.",
+   "[warm] We {why}, {mate}. Best partner on the boat.",
+   "Smile, {mate}. You're stuck with me for the duration.",
+   "{mate}, teach me that card trick again. I almost got it.",
+   "[warm] Stick close, {mate}. We're lucky together."
+  ]
+ },
+ {
+  "name": "cheerful.reply_partner",
+  "lines": [
+   "Ha! You wish, {mate}!",
+   "Oh, you're on, {mate}. Double or nothing.",
+   "{mate}, you crack me up. Never change.",
+   "Says the one who fell in the bilge, {mate}!",
+   "Deal, {mate}. Shake on it. Spit optional."
+  ]
+ },
+ {
+  "name": "cheerful.reply_partner_warm",
+  "lines": [
+   "Always and forever, {mate}!",
+   "Same here, {mate}! Best crew in the Navy.",
+   "You bet I will, {mate}."
+  ]
+ },
+ {
+  "name": "joker.combat_partner",
+  "lines": [
+   "[gun] {mate}, you aim low, I'll aim high. One of us is bound to look good.",
+   "[gun] {mate}, whoever misses buys the beer tonight!",
+   "[gun] Hey {mate}, you're missing so wide they think you're on their side!",
+   "[warm] {mate}, you stay in one piece, hear? I mean it, no kidding.",
+   "[warm] We {why}, {mate}. Don't you quit on me now.",
+   "Duck, {mate}! That pretty face is this outfit's only asset!",
+   "{mate}, stick close. If I go, I want a witness to how brave I was!",
+   "Hey {mate}, they're still at it! Nobody asked for an encore!",
+   "{mate}, you get hit, I'm keeping your cigarettes!"
+  ]
+ },
+ {
+  "name": "joker.reply_combat_partner",
+  "lines": [
+   "Heard ya, {mate}! Now quit yapping and hold on!",
+   "Ha! Later, {mate}! Little busy here!",
+   "Not now, I'm being heroic!",
+   "You said it, {mate}! Whatever it was!",
+   "Sure, {mate}! Right after I finish panicking!",
+   "Noted, {mate}! I'll pencil it in between explosions!",
+   "Swell, {mate}! Wake me when it's over!"
+  ]
+ },
+ {
+  "name": "joker.reply_combat_partner_warm",
+  "lines": [
+   "You too, {mate}. And that's no gag.",
+   "Shucks, {mate}. Now don't make it weird.",
+   "Count on it, {mate}. Just don't tell the others I went soft.",
+   "Goes double for me, {mate}. Triple, on a good day.",
+   "I hear ya, {mate}. Don't make me cry out here."
+  ]
+ },
+ {
+  "name": "stoic.combat_partner",
+  "lines": [
+   "[gun] Short bursts, {mate}. Don't waste them.",
+   "[gun] Same target, {mate}. Make them count.",
+   "[gun] Hold fire, {mate}. Not yet.",
+   "[warm] Don't go down, {mate}. I need you.",
+   "[warm] Not losing you today, {mate}. We {why}.",
+   "Ride it out, {mate}. It'll pass.",
+   "Keep your nerve, {mate}. One thing at a time.",
+   "Brace, {mate}. They're not done.",
+   "Done this before, {mate}. Steady."
+  ]
+ },
+ {
+  "name": "stoic.reply_combat_partner",
+  "lines": [
+   "Heard, {mate}. Steady on.",
+   "Hm. So be it, {mate}.",
+   "Mm. All right, {mate}.",
+   "Right, {mate}. Eyes open.",
+   "Fair enough, {mate}.",
+   "I'm here, {mate}.",
+   "We'll manage, {mate}."
+  ]
+ },
+ {
+  "name": "stoic.reply_combat_partner_warm",
+  "lines": [
+   "Goes for you too, {mate}.",
+   "Mm. Back at you, {mate}.",
+   "Feeling's mutual, {mate}.",
+   "With you to the end, {mate}.",
+   "Won't forget it, {mate}."
+  ]
+ },
+ {
+  "name": "crazy.combat_partner",
+  "lines": [
+   "[gun] {mate}! Pick a target, any target! I'll take whatever's left!",
+   "[gun] Keep 'em hot, {mate}! Two barrels, one big racket!",
+   "[gun] Light 'em up, {mate}! Right down their throat!",
+   "[warm] {mate}! Whatever comes, you stick with me! I'd go nuts without you!",
+   "[warm] We {why}, {mate}! You stick around, hear?",
+   "Get low, {mate}! I ain't done needing you yet!",
+   "{mate}! The both of us, still ticking! HA! Ain't that something!",
+   "Don't you go catching lead, {mate}! Catching lead is MY job!",
+   "Hoo boy, {mate}, they ain't done with us yet! Hang on to your hat!"
+  ]
+ },
+ {
+  "name": "crazy.reply_combat_partner",
+  "lines": [
+   "HA! You bet your boots, {mate}!",
+   "Yeehaw! Loud and clear!",
+   "Ha! Now you're talking, {mate}!",
+   "Gotcha, {mate}! Best day of my life!",
+   "Hoo-ee! Roger dodger, {mate}!",
+   "Sure, sure, {mate}! Whatever you say!",
+   "Ha! Nothing I'd rather be doing, {mate}!"
+  ]
+ },
+ {
+  "name": "crazy.reply_combat_partner_warm",
+  "lines": [
+   "Back atcha, {mate}! Every last word!",
+   "Ditto, {mate}. Every bit of it. Swear on my lucky socks.",
+   "For keeps, {mate}! You hear me? For keeps!",
+   "Heh. You're all right, {mate}. You know that?",
+   "Aw, {mate}, cut it out! Same deal, okay?"
+  ]
+ },
+ {
+  "name": "silent.combat_partner",
+  "lines": [
+   "[gun] Your sector, {mate}.",
+   "[gun] {mate}. Aim higher.",
+   "[gun] {mate}. Target left.",
+   "[warm] Not leaving you, {mate}.",
+   "[warm] We {why}, {mate}. Stay with me.",
+   "Hit the deck, {mate}.",
+   "{mate}. Eyes up.",
+   "More coming, {mate}.",
+   "Getting hot, {mate}."
+  ]
+ },
+ {
+  "name": "silent.reply_combat_partner",
+  "lines": [
+   "With you, {mate}.",
+   "Aye, {mate}.",
+   "Careful, {mate}.",
+   "Mm. Sure, {mate}.",
+   "Hm. Fine, {mate}.",
+   "Yep.",
+   "...Okay."
+  ]
+ },
+ {
+  "name": "silent.reply_combat_partner_warm",
+  "lines": [
+   "Both of us, {mate}.",
+   "...Thank you, {mate}.",
+   "...Glad you're here, {mate}.",
+   "...Means a lot, {mate}.",
+   "Mm. Yeah, {mate}."
+  ]
+ },
+ {
+  "name": "hothead.combat_partner",
+  "lines": [
+   "[gun] {mate}, take the left sector! I'll chew up anything on the right!",
+   "[gun] {mate}! Pour it into the closest one! I'll keep the rest busy!",
+   "[gun] Walk 'em in on my tracers, {mate}! Together, damn it!",
+   "[warm] {mate}, you're the only one here I'd trust with my life. Stay alive!",
+   "[warm] We {why}, {mate}. Damn if I'll lose you!",
+   "{mate}! Keep your fool head down, damn it!",
+   "Hold on, {mate}! They're back for more, damn 'em!",
+   "{mate}! Still in one piece? Good. Stay that way!",
+   "Heads up, {mate}! Nobody gets the best of us today!"
+  ]
+ },
+ {
+  "name": "hothead.reply_combat_partner",
+  "lines": [
+   "Yeah, yeah, {mate}! Keep your shirt on!",
+   "Hell yes, {mate}! Let 'em try!",
+   "I heard you the first time, {mate}!",
+   "You bet, {mate}! They picked the wrong crew to tangle with!",
+   "Damn it all, {mate}! Let's finish these bums!",
+   "Damn right! Let's show 'em who they're messing with!",
+   "Ha! They'll have to go through me first, {mate}!"
+  ]
+ },
+ {
+  "name": "hothead.reply_combat_partner_warm",
+  "lines": [
+   "Right back at you, {mate}. Every damn word.",
+   "And you, {mate}. Don't you forget it.",
+   "That goes for both of us, {mate}.",
+   "Damn straight, {mate}. Same goes for me.",
+   "I'll hold up my end, {mate}. You hold up yours."
+  ]
+ },
+ {
+  "name": "worrier.combat_partner",
+  "lines": [
+   "[gun] {mate}, take the right side! I can't track them all at once!",
+   "[gun] {mate}, hit the one that's shooting at us! Please!",
+   "[gun] Watch our sector, {mate}! I swear something's moving out there!",
+   "[warm] Stay alive, {mate}. I can't do any of this without you.",
+   "[warm] We {why}, {mate}. Please be careful.",
+   "{mate}! Don't wander off on me! Not now!",
+   "{mate}, brace yourself! I've got a bad feeling about this!",
+   "{mate}, get down behind something! Anything!",
+   "{mate}, we've made it through worse. I keep telling myself that."
+  ]
+ },
+ {
+  "name": "worrier.reply_combat_partner",
+  "lines": [
+   "All right, {mate}! Stay close to me!",
+   "I'm with you, {mate}. Knees knocking, but I'm with you.",
+   "Doing my best, {mate}! Lord, I'm doing my best!",
+   "Just don't get hit, {mate}! That's all I ask!",
+   "I hear you, {mate}! Oh Lord, I hear you!",
+   "Hang on! Just hang on a little longer!",
+   "We'll be okay. We have to be, {mate}."
+  ]
+ },
+ {
+  "name": "worrier.reply_combat_partner_warm",
+  "lines": [
+   "You too, {mate}. Please, you too.",
+   "Oh, {mate}. You don't know what that means to me.",
+   "God bless you, {mate}. I mean that.",
+   "I'm praying for us both, {mate}. Every minute.",
+   "Count on me, {mate}. Whatever happens out here."
+  ]
+ },
+ {
+  "name": "professional.combat_partner",
+  "lines": [
+   "[gun] {mate}, you have the forward arc. I have everything aft.",
+   "[gun] Concentrate on the closest target, {mate}. Same point of aim as mine.",
+   "[gun] {mate}, check your elevation. You're falling short.",
+   "[warm] We {why}, {mate}. See that you come through this.",
+   "[warm] Stay beside me, {mate}. There's no one I'd rather have aboard.",
+   "{mate}, keep your head below the coaming. I need you on your feet.",
+   "{mate}, if you're hit, sing out. Don't wait to be asked.",
+   "Rounds incoming, {mate}. Get down and hold fast.",
+   "By the numbers, {mate}. Same drill as always."
+  ]
+ },
+ {
+  "name": "professional.reply_combat_partner",
+  "lines": [
+   "Acknowledged, {mate}.",
+   "Received, {mate}. Keep yourself in one piece.",
+   "Aye, {mate}. Standing by.",
+   "Roger, {mate}. Understood.",
+   "Right beside you, {mate}. All in order here.",
+   "Very well, {mate}. As you say.",
+   "Logged. Don't make me write you up for getting hit, {mate}."
+  ]
+ },
+ {
+  "name": "professional.reply_combat_partner_warm",
+  "lines": [
+   "The same holds for you, {mate}.",
+   "You too, {mate}. That's not a request.",
+   "Means a great deal, {mate}. Thank you.",
+   "Returned in full, {mate}.",
+   "We'll see this through, {mate}."
+  ]
+ },
+ {
+  "name": "cheerful.combat_partner",
+  "lines": [
+   "[gun] Lead it a touch, {mate}! You're this close to a bullseye!",
+   "[gun] Give 'em the full concert, {mate}! I'll handle the brass section!",
+   "[gun] Keep that barrel singing, {mate}! Mine's right there with you!",
+   "[warm] You keep safe, {mate}. I'd miss you something awful!",
+   "[warm] We {why}, {mate}. Don't you dare leave me now!",
+   "Tuck in, {mate}! I want you at chow tonight, not in sick bay!",
+   "Round two, {mate}! Some folks never learn!",
+   "Keep grinning, {mate}! Scuttlebutt says we're winning!",
+   "Stay sharp, {mate}! You holler if you need me!"
+  ]
+ },
+ {
+  "name": "cheerful.reply_combat_partner",
+  "lines": [
+   "Sure thing, {mate}! Smiling all the way!",
+   "Okey-dokey, {mate}! You're a peach!",
+   "Takes more than this to spoil my day, {mate}!",
+   "Ha! We'll laugh about this one later, {mate}.",
+   "Righto, {mate}! We've got 'em right where we want 'em!",
+   "Here we go again, {mate}! Hang on tight!",
+   "Sure as sunrise, {mate}! Two of a kind, us!"
+  ]
+ },
+ {
+  "name": "cheerful.reply_combat_partner_warm",
+  "lines": [
+   "Gee, {mate}. Same to you, with a cherry on top!",
+   "Aw, {mate}. You're the best pal I've got.",
+   "All the way home, {mate}. I promise.",
+   "That does my heart good, {mate}.",
+   "Golly, {mate}. Goes both ways, honest."
+  ]
+ },
+ {
+  "name": "any.station_gun",
+  "lines": [
+   "This was {dead}'s gun.",
+   "{dead} kept this one clean. I'll do the same.",
+   "Still feels like {dead}'s gun.",
+   "{dead} would have had them by now."
+  ]
+ },
+ {
+  "name": "any.station_job",
+  "lines": [
+   "{dead} used to do this.",
+   "Doing {dead}'s share today.",
+   "{dead} made this look easy."
+  ]
+ }
+]

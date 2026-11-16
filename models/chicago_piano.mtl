@@ -1,0 +1,9 @@
+newmtl game.Bofors_Gun_Blue|Dark_MG_Metal
+Kd 0.560 0.620 0.630
+
+newmtl game.Ammo|Metal_Brass|Crew_Bandolier
+Kd 0.780 0.620 0.320
+
+newmtl game.Dark_MG_Metal
+Kd 0.300 0.310 0.330
+

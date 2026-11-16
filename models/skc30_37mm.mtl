@@ -1,0 +1,6 @@
+newmtl game.Bofors_Gun_Blue|Dark_MG_Metal
+Kd 0.560 0.620 0.630
+
+newmtl game.Dark_MG_Metal
+Kd 0.300 0.310 0.330
+

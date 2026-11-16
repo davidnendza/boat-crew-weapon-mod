@@ -1,0 +1,73 @@
+[unique]
+name=Black Sand
+built_from=M2 Stinger
+uses=6
+line=reloads 3x as fast
+line=+100% belt
+line=kills refill all of its ammo
+line=+200% shot size (easier hits)
+flavor=Eight trips back to the beach for ammo.
+mul.reloadCooldown=0.333
+mul.MagSize=2
+mul.MaxAmmo=2
+fx.set.killAmmo=1
+proj.mul.projectileWidth=3
+proj.mul.projectileLength=3
+
+[unique]
+name=The Ping
+built_from=M1 Garand
+uses=6
+line=every 8th shot is a x8 critical hit
+line=+60% fire rate
+line=reloads twice as fast
+flavor=Eight rounds, one ping, one new clip.
+fx.set.nthShot=8
+fx.set.nthMult=8
+mul.roundsPerMinute=1.6
+mul.shotCooldown=0.625
+mul.reloadCooldown=0.5
+
+[unique]
+name=Steady On
+built_from=Bren Mk I
+uses=6
+line=each hit steadies your crew: 10% less chance a hit on your boat throws one overboard (up to 10 hits, fading)
+line=100-round pan magazine
+line=+60% damage
+flavor=Short bursts, lads. Steady.
+fx.set.steady=0.1
+fx.set.steadyCap=10
+fx.set.steadyDecay=3
+set.MagSize=100
+proj.mul.BaseDamage=1.6
+proj.mul.SplashDamageBase=1.6
+
+[unique]
+name=Jack-in-the-Box
+built_from=PIAT
+uses=6
+line=+150% damage
+line=a killing hit spills 150% of its leftover damage onto the nearest enemy
+line=bombs steer onto their target
+flavor=Wound tight. Let go.
+proj.mul.BaseDamage=2.5
+proj.mul.SplashDamageBase=2.5
+fx.set.overkill=1.5
+fx.set.seek=60
+
+[unique]
+name=The Bonesetter
+built_from=Type 89 Knee Mortar
+uses=6
+line=exploding rounds burst into 20 fragments
+line=rounds steer onto their target
+line=reloads twice as fast
+line=+60% blast radius
+flavor=Fire it off the deck. Never the thigh.
+fragment_from=M2 Browning
+proj.set.fragmentInheritSourceVelocity=0.3
+proj.set.fragmentCount=20
+fx.set.seek=60
+mul.reloadCooldown=0.5
+proj.mul.SplashDamageRange=1.6

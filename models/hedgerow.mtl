@@ -1,0 +1,9 @@
+newmtl game.Mousetrap_Mk20|Dark_MG_Metal
+Kd 0.250 0.250 0.250
+
+newmtl game.Dark_MG_Metal
+Kd 0.300 0.310 0.330
+
+newmtl game.Light_Green_Rocket|Gray
+Kd 0.460 0.510 0.420
+

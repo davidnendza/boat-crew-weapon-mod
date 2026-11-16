@@ -1,0 +1,13 @@
+# build output and packaged zips (zips go to GitHub Releases)
+out/
+tools/out/
+release/
+__pycache__/
+*.obj.tmp
+# local backups; git history replaces them
+*.before-*
+# stray / third-party reference images
+tools/--only/
+tools/reference/
+# local battle dumps from play sessions
+tools/battles/

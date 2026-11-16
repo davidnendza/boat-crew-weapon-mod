@@ -1,0 +1,48 @@
+newmtl Beard
+Kd 0.600 0.570 0.530
+
+newmtl BeardDark
+Kd 0.360 0.310 0.270
+
+newmtl Cat
+Kd 0.070 0.070 0.080
+
+newmtl CatEye
+Kd 0.980 0.800 0.150
+
+newmtl Denim
+Kd 0.300 0.420 0.650
+
+newmtl Eye
+Kd 0.080 0.080 0.100
+
+newmtl Hair
+Kd 0.340 0.300 0.260
+
+newmtl HairGrey
+Kd 0.560 0.540 0.510
+
+newmtl Jeans
+Kd 0.200 0.310 0.520
+
+newmtl Lip
+Kd 0.720 0.450 0.420
+
+newmtl Nose
+Kd 0.900 0.500 0.600
+
+newmtl Shirt
+Kd 0.750 0.770 0.800
+
+newmtl Skin
+Kd 0.930 0.740 0.620
+
+newmtl Sock
+Kd 0.620 0.630 0.650
+
+newmtl SockToe
+Kd 0.950 0.800 0.200
+
+newmtl White
+Kd 0.950 0.950 0.950
+

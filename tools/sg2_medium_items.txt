@@ -1,0 +1,158 @@
+# Second side-grade batch, Medium and Tub Turret slots (models from tools/sg2_medium.py). Plain ini text for kSideGrades /
+# kTurretGuns and the loot templates. Stock numbers (Dump 2026-11-15): Oerlikon 320 rpm, 30/60, reload 4, acc 90, 1200 m,
+# price 4500; Twin Oerlikon 640 rpm, 60/120, reload 6, acc 90, 1200 m; Lewis 1200 rpm, 60/180, reload 2, acc 87, 700 m,
+# price 500; M2 1100 rpm, 60/120, reload 2, acc 91, 1200 m, price 2500. Range = MuzzleVelocity x FrameLifeTime.
+
+# ---- Medium (on the Twin Oerlikon) ----
+[item]
+name=MG 151/20 Drilling
+family=Medium Weapon
+base=20 mm Oerlikon Twin
+model=mg151_drilling
+model_keep=Mount,Stand,ArmRest
+sound_from=20 mm Cannon AIR (JAP)
+description=German MG 151/20 Drilling: three surplus Luftwaffe cannon on one naval pedestal, from 1944. Fires much faster than the twin Oerlikon with a bigger burst from each shell, but it scatters, reaches less far and empties its belts fast, then reloads slowly.
+mul.price=1.2
+mul.roundsPerMinute=1.4
+mul.shotCooldown=0.714
+set.MagSize=48
+set.reloadCooldown=9
+set.Accuracy=81
+set.engagementDistance=900
+set.burstNumberOfShots=12
+proj.mul.BaseDamage=0.95
+proj.mul.SplashDamageBase=1.4
+proj.mul.MuzzleVelocity=0.9
+proj.mul.MuzzleVelocityRealistic=0.9
+proj.mul.FrameLifeTime=0.83
+
+# ---- Tub Turret (on the single Oerlikon) ----
+[item]
+name=Breda 20/65 Mod. 40
+family=Tub Turret
+base=20 mm Oerlikon
+price=4000
+model=breda_20mm
+model_keep=Mount,Mount3_Holder,ArmRest
+description=Italian Breda 20/65, the Regia Marina's standard 20 mm on corvettes and MAS boats. Fed from 12-round strips, so it fires far fewer shells than the Oerlikon, but it aims truer, hits a little harder and reaches further.
+mul.roundsPerMinute=0.6
+mul.shotCooldown=1.667
+set.MagSize=12
+set.reloadCooldown=1.8
+set.Accuracy=96
+set.engagementDistance=1500
+set.burstNumberOfShots=6
+proj.mul.BaseDamage=1.1
+proj.mul.SplashDamageBase=1.1
+proj.mul.FrameLifeTime=1.25
+
+[item]
+name=Madsen 20 mm
+family=Tub Turret
+base=20 mm Oerlikon
+price=4000
+model=madsen_20mm
+model_keep=Mount,Mount3_Holder,ArmRest
+description=Danish Madsen 20 mm, the Finnish Navy's light AA gun on its torpedo boats, fed from a 40-round drum. Slower than the Oerlikon, but more accurate, with faster shells and a longer reach.
+mul.roundsPerMinute=0.8
+mul.shotCooldown=1.25
+set.MagSize=40
+set.MaxAmmo=80
+set.Accuracy=93
+set.engagementDistance=1320
+proj.mul.MuzzleVelocity=1.05
+proj.mul.MuzzleVelocityRealistic=1.05
+proj.mul.FrameLifeTime=1.05
+
+[item]
+name=Polsten 20 mm
+family=Tub Turret
+base=20 mm Oerlikon
+price=1800
+model=polsten_20mm
+model_keep=Mount,Mount3_Holder,ArmRest,Oerlikon Barrel,Oerlikon Recoil,Oerlikon Spring,Oerlikon Sights
+description=Polish-British Polsten, the Oerlikon simplified to a fraction of its parts and cost, with a 30-round box. Far cheaper than the Oerlikon, but a little less accurate and slower to reload.
+set.Accuracy=87
+set.reloadCooldown=4.5
+
+# ---- Tub Turret (on the Lewis ring mount) ----
+[item]
+name=Twin MG 34
+family=Tub Turret
+base=30 Cal Dual MG (Lewis)
+price=1200
+model=twin_mg34
+model_keep=Mount
+sound_from=30-06 Cal Single MG AIR (USA)
+description=German twin MG 34 on the standard twin AA mount, with 75-round saddle drums. Fires faster than the Lewis and reaches further with full-power rounds, but it is less accurate and changing both drums takes a long time.
+mul.roundsPerMinute=1.3
+mul.shotCooldown=0.77
+set.MagSize=150
+set.MaxAmmo=300
+set.ammoPerFill=150
+set.reloadCooldown=5
+set.Accuracy=84
+set.engagementDistance=800
+set.burstNumberOfShots=12
+proj.mul.FrameLifeTime=1.15
+
+# ---- Tub Turret (on the M2 ring mount) ----
+[item]
+name=Twin DShK
+family=Tub Turret
+base=M2 Browning
+price=2000
+model=twin_dshk
+model_keep=Mount,Bullets
+sound_from=12.7 mm MG AIR (JAP)
+description=Soviet twin DShK 12.7 mm, as on the Soviet Navy's patrol and torpedo boats. Cheaper than the M2 and each round hits a little harder, but its short 30-round belts mean frequent reloads, and it is less accurate.
+set.MagSize=30
+set.reloadCooldown=1.6
+set.Accuracy=84
+proj.mul.BaseDamage=1.1
+proj.mul.SplashDamageBase=1.1
+proj.mul.MuzzleVelocity=0.95
+proj.mul.MuzzleVelocityRealistic=0.95
+
+# ---- loot templates: one per slot family, weight 0.3 ----
+[template]
+label=Drilling
+family=Medium Weapon
+base=20 mm Oerlikon Twin
+built_from=MG 151/20 Drilling
+weight=0.3
+
+[template]
+label=Breda 20mm
+family=Tub Turret
+base=20 mm Oerlikon
+built_from=Breda 20/65 Mod. 40
+weight=0.3
+
+[template]
+label=Madsen 20mm
+family=Tub Turret
+base=20 mm Oerlikon
+built_from=Madsen 20 mm
+weight=0.3
+
+[template]
+label=Polsten
+family=Tub Turret
+base=20 mm Oerlikon
+built_from=Polsten 20 mm
+weight=0.3
+
+[template]
+label=MG 34
+family=Tub Turret
+base=30 Cal Dual MG (Lewis)
+built_from=Twin MG 34
+weight=0.3
+
+[template]
+label=DShK
+family=Tub Turret
+base=M2 Browning
+built_from=Twin DShK
+weight=0.3

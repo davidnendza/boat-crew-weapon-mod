@@ -1,0 +1,111 @@
+# Crew-weapon side-grades, batch 2 (2026-11-15). Models: tools/sg2_crew.py. Stock for scale (Dump/Guns):
+# M1919 Browning Handheld 600 rpm, burst 6, 60 rounds, reload 10, accuracy 98; M1918 BAR 650 rpm, burst 4, 20 rounds,
+# reload 5, accuracy 92; Bazooka 1 round, reload 6, accuracy 99; M7 Grenade Launcher 1 round, reload 8, accuracy 70,
+# Rifle Grenade 0 / 300 splash over 10 m. Crew only fire within 270 m, so no range changes. Ammo is infinite for crew.
+
+[item]
+name=M2 Stinger
+family=Crew Weapons
+base=M1919 Browning Handheld
+model=stinger_anm2
+sound_from=30-06 Cal Single MG AIR (USA)
+description=The Stinger: an AN/M2 .30 aircraft gun from a wrecked plane, made hand-held by Marines of the 28th Regiment and carried by Cpl. Tony Stein on Iwo Jima. Twice the M1919's rate from a 100-round belt, but it sprays wide and is slow to reload.
+mul.price=1.3
+mul.roundsPerMinute=2
+mul.shotCooldown=0.5
+set.MagSize=100
+set.reloadCooldown=16
+set.Accuracy=72
+set.burstNumberOfShots=12
+
+[item]
+name=M1 Garand
+family=Crew Weapons
+base=M1918 BAR
+model=m1_garand
+description=US M1 Garand rifle with its 8-round clip, the standard US rifle from 1936. Cheap and very accurate, with aimed single shots that hit a little harder, but it fires far fewer of them than the BAR.
+mul.price=0.6
+mul.roundsPerMinute=0.3
+mul.shotCooldown=3.33
+set.MagSize=8
+set.reloadCooldown=2.5
+set.Accuracy=99
+set.burstNumberOfShots=0
+set.burstCooldown=0
+proj.mul.BaseDamage=1.2
+proj.mul.SplashDamageBase=1.2
+
+[item]
+name=Bren Mk I
+family=Crew Weapons
+base=M1918 BAR
+model=bren_mk1
+description=British Bren Mk I light machine gun, carried on Coastal Forces boats and landing craft. Fires slower than the BAR but steadier, in longer bursts from 28-round magazines, and takes longer to change them.
+mul.price=1.2
+mul.roundsPerMinute=0.8
+mul.shotCooldown=1.25
+set.MagSize=28
+set.reloadCooldown=6.5
+set.Accuracy=95
+set.burstNumberOfShots=6
+
+[item]
+name=PIAT
+family=Crew Weapons
+base=Bazooka
+model=piat_mk1
+description=British PIAT, a spring-and-spigot launcher with no backblast that re-cocks on its own recoil. Cheaper and quicker to reload than the Bazooka, but its slower bomb flies less true and bursts a little smaller.
+mul.price=0.9
+set.reloadCooldown=4.5
+set.Accuracy=85
+proj.mul.SplashDamageBase=0.9
+proj.mul.MuzzleVelocity=0.8
+proj.mul.MuzzleVelocityRealistic=0.8
+
+[item]
+name=Type 89 Knee Mortar
+family=Crew Weapons
+base=M7 Grenade Launcher
+model=type89_discharger
+sound_from=M2 60 mm Mortar
+description=Captured Japanese Type 89 50 mm grenade discharger, the 'knee mortar': a mistranslated name, as firing it off the thigh broke bones. Reloads faster than the rifle grenade with a bigger burst, but scatters far wider.
+mul.price=1.1
+set.reloadCooldown=6
+set.Accuracy=55
+proj.mul.SplashDamageBase=1.15
+proj.mul.SplashDamageRange=1.1
+
+[template]
+label=Stinger
+family=Crew Weapons
+base=M1919 Browning Handheld
+built_from=M2 Stinger
+weight=0.3
+
+[template]
+label=Garand
+family=Crew Weapons
+base=M1918 BAR
+built_from=M1 Garand
+weight=0.3
+
+[template]
+label=Bren
+family=Crew Weapons
+base=M1918 BAR
+built_from=Bren Mk I
+weight=0.3
+
+[template]
+label=PIAT
+family=Crew Weapons
+base=Bazooka
+built_from=PIAT
+weight=0.3
+
+[template]
+label=Type 89
+family=Crew Weapons
+base=M7 Grenade Launcher
+built_from=Type 89 Knee Mortar
+weight=0.3

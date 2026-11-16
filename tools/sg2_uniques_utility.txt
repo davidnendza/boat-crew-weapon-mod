@@ -1,0 +1,148 @@
+# Uniques for the batch 2 Utility and Rocket side-grades (2026-11-15). Existing effect keys only.
+# The UQ_FRAG lines (fragment_from + fragmentInheritSourceVelocity) are written out in full here; in kDefaultDrops use the macro.
+
+[unique]
+name=Spud Gun
+built_from=Holman Projector
+uses=6
+line=each bomb bursts into 20 fragments
+line=50% chance a shot uses no ammo
+line=+100% damage
+flavor=Officially for Mills bombs. Mostly for potatoes.
+fragment_from=M2 Browning
+proj.set.fragmentInheritSourceVelocity=0.3
+proj.set.fragmentCount=20
+fx.set.saveAmmo=0.5
+proj.mul.BaseDamage=2
+proj.mul.SplashDamageBase=2
+
+[unique]
+name=Panzerknacker
+built_from=7.5 cm Pak 40
+uses=6
+line=+150% damage to Rare and Elite ships
+line=35% chance of a x3 critical hit
+line=reloads twice as fast
+flavor=Armour is only a suggestion.
+fx.set.giantSlayer=2.5
+fx.set.critChance=0.35
+fx.set.critMult=3
+mul.reloadCooldown=0.5
+
+[unique]
+name=Okhotnik
+built_from=45 mm 21-K
+uses=6
+line=hits mark a ship for 10 s: all your guns do +50% damage to it
+line=+100% blast radius
+line=reloads twice as fast
+flavor=The small hunter finds them. The rest of you finish them.
+fx.set.mark=0.5
+fx.set.markTime=10
+proj.mul.SplashDamageRange=2
+mul.reloadCooldown=0.5
+
+[unique]
+name=Machibuse
+built_from=Type 1 47 mm AT
+uses=6
+line=+120% damage on hits within 400 m
+line=+100% damage for its first magazine (at least 6 shots) each battle
+line=+50% damage
+flavor=Wait. Wait. Now.
+fx.set.closeBonus=2.2
+fx.set.closeDist=400
+fx.set.salvo=2
+proj.mul.BaseDamage=1.5
+proj.mul.SplashDamageBase=1.5
+
+[unique]
+name=Last Ditch
+built_from=Blacker Bombard
+uses=6
+line=bombs steer onto their target
+line=kills give your downed crew 20 s more before they bleed out
+line=+100% damage
+flavor=We shall never surrender. We shall improvise.
+fx.set.seek=60
+fx.set.rally=20
+proj.mul.BaseDamage=2
+proj.mul.SplashDamageBase=2
+
+[unique]
+name=Big Bada Boom
+built_from=380mm RW 61
+uses=6
+line=ship kills pay +1000 RP
+line=a killing hit spills 150% of its leftover damage onto the nearest enemy
+line=+100% damage to Rare and Elite ships
+flavor=Big bada boom.
+fx.set.killRP=1000
+fx.set.overkill=1.5
+fx.set.giantSlayer=2
+
+[unique]
+name=Stalin's Organ
+built_from=16-M-8 Katyusha
+uses=6
+line=+200% damage for its first magazine (at least 6 shots) each battle
+line=+100% rockets carried
+line=+50% damage
+flavor=You hear it before you see it. Then you see nothing.
+fx.set.salvo=3
+mul.MagSize=2
+mul.MaxAmmo=2
+proj.mul.BaseDamage=1.5
+proj.mul.SplashDamageBase=1.5
+
+[unique]
+name=Raisa Sergeyevna
+built_from=M-13 Katyusha
+uses=6
+line=+100% damage on hits beyond 1000 m
+line=reloads twice as fast
+flavor=She writes from very far away.
+fx.set.longBonus=2
+fx.set.longDist=1000
+mul.reloadCooldown=0.5
+
+[unique]
+name=Mighty Midget
+built_from=4.5-inch Beach Barrage Rocket
+uses=6
+line=+120% damage on hits within 400 m
+line=+100% rockets carried
+line=reloads twice as fast
+flavor=Small ship. Big ripple.
+fx.set.closeBonus=2.2
+fx.set.closeDist=400
+mul.MagSize=2
+mul.MaxAmmo=2
+mul.reloadCooldown=0.5
+
+[unique]
+name=Ikazuchi
+built_from=20 cm Naval Rocket
+uses=6
+line=rockets steer onto their target
+line=40% chance of a x3 critical hit
+line=+100% blast radius
+flavor=The thunder chooses where it falls.
+fx.set.seek=60
+fx.set.critChance=0.4
+fx.set.critMult=3
+proj.mul.SplashDamageRange=2
+
+[unique]
+name=Bocage
+built_from=Hedgerow
+uses=6
+line=hits mark a ship for 10 s: all your guns do +50% damage to it
+line=+100% damage
+line=+100% blast radius
+flavor=Clear a path. The rest will follow.
+fx.set.mark=0.5
+fx.set.markTime=10
+proj.mul.BaseDamage=2
+proj.mul.SplashDamageBase=2
+proj.mul.SplashDamageRange=2

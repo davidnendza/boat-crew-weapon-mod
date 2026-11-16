@@ -1,0 +1,9 @@
+newmtl Float
+Kd 0.970 0.660 0.100
+
+newmtl Rope
+Kd 0.780 0.660 0.440
+
+newmtl Wood
+Kd 0.500 0.330 0.170
+
