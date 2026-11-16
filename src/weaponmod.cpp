@@ -2061,6 +2061,15 @@ static void* AddCloneMount(void* wsObj, void* mounts, void* source, const Item& 
       else Log("  '%s': elevation MISSING PIECES: GunMount gunSad/gunHappy not found; stock limits kept", it.name.c_str());
     }
   }
+  // fillCasters blocks a target (code 2) via GunMount.isBlockedByDepression unless GunMount.barrage is set: the straight-line
+  // angle to it must lie in gunSad..gunHappy. Player mortars have both 0, so nothing below the tube passes; the game's AI
+  // mortars set barrage instead (90/150 mm, disassembly + prefab bytes 2026-11-16), so a crewless copy does the same.
+  if (crewless && NumField(mount2, "gunSad") == 0 && NumField(mount2, "gunHappy") == 0) {
+    Op o; o.mount = true; o.mul = false; o.field = "barrage"; o.value = 1;
+    bool ok = ApplyOp(mount2, o);
+    static std::set<std::string> told;
+    if (told.insert(it.name).second) Log("  '%s': crewless with 0/0 elevation limits: barrage %s (fire control skips the elevation check, as on AI mortars)", it.name.c_str(), ok ? "set" : "NOT FOUND");
+  }
   ApplyCrewOffset(mount2, it);
   ApplyPivotOffset(mount2, it);
   if (anySphere) {
