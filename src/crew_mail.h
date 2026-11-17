@@ -221,7 +221,7 @@ inline MailLetter Deliver(MailCrew& c, int battle, int kind, const LifeTables& t
   MailLetter l; l.battle = battle; l.kind = kind;
   const Thread* th = FindThread(c.st->thread);
   if (!th) return l;
-  int step = c.st->step < (int)th->steps.size() ? c.st->step : (int)th->steps.size() - 1;
+  int step = c.st->step < 0 ? 0 : c.st->step < (int)th->steps.size() ? c.st->step : (int)th->steps.size() - 1;   // a hand-edited file may hold any number
   l.thread = th->id; l.who = th->who; l.step = step;
   l.sender = c.st->sender;
   std::map<std::string, std::string> v; Pronouns(v, c.female);

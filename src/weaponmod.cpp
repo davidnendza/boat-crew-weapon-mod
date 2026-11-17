@@ -34,6 +34,7 @@
 #include <map>
 #include <set>
 #include <random>
+#include <array>
 #include "crew_report.h"
 #include "crew_talk.h"                                             // includes crew_mail.h and crew_life.h
 #include "crew_bonds.h"
@@ -6242,6 +6243,8 @@ static void OptionsWindow(int type, Vec2 mouse) {
   Rect4 P = OptPanel(960, 620), S = { P.x, P.y + 38, 960, 582 };       // 620 fits a 720-high screen
   int tab = g_optTab;                                                  // a tab clicked below switches from the next event on
   float colX = S.x + 52, colW = S.w - 52 - 26 - 250 - 52, top = S.y + 86, rowH = 52;
+  { int rows = 0; for (const ModOpt& o : opts) if (o.tab == tab) rows++;   // 416 px between the first row and the footer: 8 rows of 52, more get closer
+    if (rows > 8) rowH = (std::max)(44.0f, 416.0f / rows); }
   // the note card's subject: the row last hovered on this tab (it stays after the mouse leaves), else the tab's first row
   if (g_optHot < 0 || g_optHot >= (int)opts.size() || opts[g_optHot].tab != tab) {
     g_optHot = -1; for (size_t k = 0; k < opts.size(); k++) if (opts[k].tab == tab) { g_optHot = (int)k; break; }
@@ -6773,7 +6776,7 @@ static void CrewFilesRead() {
       v.resize(9);                                                     // mail= has 8 fields, ml= 9
       MailState& ms = g_crewFiles.back().mail;
       if (st) {
-        ms.thread = v[0]; ms.step = atoi(v[1].c_str()); ms.last = atoi(v[2].c_str()); ms.returned = v[3] == "1"; ms.used.clear(); ms.sender = v[5]; ms.facts = v[6]; ms.told = atoi(v[7].c_str());
+        ms.thread = v[0]; ms.step = (std::max)(0, atoi(v[1].c_str())); ms.last = atoi(v[2].c_str()); ms.returned = v[3] == "1"; ms.used.clear(); ms.sender = v[5]; ms.facts = v[6]; ms.told = atoi(v[7].c_str());
         for (size_t b = 0; b < v[4].size();) { size_t c = v[4].find(',', b); std::string u = v[4].substr(b, c == std::string::npos ? std::string::npos : c - b); if (!u.empty()) ms.used.push_back(u); if (c == std::string::npos) break; b = c + 1; }
       } else {
         MailLetter m; m.battle = atoi(v[0].c_str()); m.kind = atoi(v[1].c_str()); m.thread = v[2]; m.step = atoi(v[3].c_str());
@@ -7134,10 +7137,10 @@ static bool CabScreenUp(int act) {
 static void* CabCardCharacter() { void* inst = CabCard(); return inst && g_cabOffLast > 0 ? *(void**)((char*)inst + g_cabOffLast) : nullptr; }
 static std::string CabTimes(int n, const char* what) { return std::string(what) + (n == 1 ? " once" : n == 2 ? " twice" : " " + std::to_string(n) + " times"); }
 static const std::vector<AarLine>& CabLines(int width, int file) {     // wrapped once per width, file and change
-  static std::vector<AarLine> lines; static int madeW = -1, madeSeq = -1; static uint32_t madeId = 0xFFFFFFFF;
+  static std::vector<AarLine> lines; static int madeW = -1, madeSeq = -1; static uint32_t madeId = 0xFFFFFFFF; static bool madeLetters = true;
   uint32_t id = file >= 0 ? g_crewFiles[file].id : 0;
-  if (madeW == width && madeSeq == g_crewFilesSeq && madeId == id) return lines;
-  madeW = width; madeSeq = g_crewFilesSeq; madeId = id; lines.clear();
+  if (madeW == width && madeSeq == g_crewFilesSeq && madeId == id && madeLetters == g_lettersOn) return lines;
+  madeW = width; madeSeq = g_crewFilesSeq; madeId = id; madeLetters = g_lettersOn; lines.clear();
   if (file < 0) return lines;
   const CrewFile& cf = g_crewFiles[file];
   auto block = [&](const std::string& head, const std::vector<std::string>& ps, bool tight) {
@@ -7152,7 +7155,8 @@ static const std::vector<AarLine>& CabLines(int width, int file) {     // wrappe
   };
   if (cf.fate.battle) {
     block(cf.fate.kind == 'c' ? "PRISONER OF WAR" : "IN MEMORY", MemorialText(cf.name, cf.female, cf.id, cf.facts, LifeServiceOf(cf), cf.fate, LifeTabs()), false);
-    if (cf.letter) block(std::string("LETTER HOME, SIGNED") + (cf.fate.kind == 'c' ? "" : cf.truth ? " (THE TRUTH)" : " (TO SPARE THEM)"), cf.letterText, true);
+    if (!g_lettersOn) {}                                               // crew_letters=0: no letters in the files either
+    else if (cf.letter) block(std::string("LETTER HOME, SIGNED") + (cf.fate.kind == 'c' ? "" : cf.truth ? " (THE TRUTH)" : " (TO SPARE THEM)"), cf.letterText, true);
     else block("LETTER HOME", { "Not written yet: WRITE THE LETTER below drafts it from this file." }, false);
   } else {
     std::vector<std::string> ps = LifeFileText(cf.name, cf.female, cf.facts, LifeTabs());
@@ -7163,7 +7167,7 @@ static const std::vector<AarLine>& CabLines(int width, int file) {     // wrappe
                    ". They " + BondWhy(*b, LostAtSea(&o->fate)) + ".");
     block("PERSONAL", ps, false);
   }
-  if (!cf.mail.got.empty()) {                                          // newest first: a bold line (style 2) and the letter under it
+  if (g_lettersOn && !cf.mail.got.empty()) {                           // newest first: a bold line (style 2) and the letter under it
     if (!lines.empty()) lines.push_back({ "", 0, true });
     lines.push_back({ cf.mail.got.size() == 1 ? "A LETTER FROM HOME" : "LETTERS FROM HOME", 1, false });
     for (size_t i = cf.mail.got.size(); i-- > 0;) {
@@ -7860,7 +7864,17 @@ static void SkyRemember(void* mount, void* tgt) {
   g_skyTarget[mount] = { tgt, Pin(tgt) };
 }
 static void SkyForgetAll() { for (auto& kv : g_skyTarget) Unpin(kv.second.second); g_skyTarget.clear(); }
-static long long g_skySrc[3] = {};                                    // frames aimed by: 0 aim point, 1 forceTarget, 2 last shell's ship
+// Frames aimed by: 0 aim point, 1 forceTarget, 2 last shell's ship; per mount, for that gun's battle summary line.
+static std::unordered_map<void*, std::array<long long, 3>> g_skySrcBy;
+// Scatter (review 2026-11-16: a shell dropped on the ship's centre never missed, at any range, with no crew): each
+// automated sky shell lands at a random point in a disk of radius kSkyScatter x range x (1 + (100 - Accuracy) / 50),
+// so Inaccuracy affixes widen it; a new point is rolled after every shot (SkyShotFired), not every frame.
+static const float kSkyScatter = 0.04f;
+static std::unordered_map<void*, std::pair<float, float>> g_skyDisk;  // mount -> unit-disk point for its next shell
+static void SkyShotFired(void* mount) {
+  float r = sqrtf((float)Rand01()), a = (float)(Rand01() * 6.2831853);
+  g_skyDisk[mount] = { r * cosf(a), r * sinf(a) };
+}
 static void AutoSkyAim() {
   static int offSky = -2, offLastT = -1, offSkyPos = -1, offForce = -1, offAlive = -1;
   if (offSky == -2) {
@@ -7869,9 +7883,15 @@ static void AutoSkyAim() {
     offForce = fo("GunMount", "forceTarget"); offAlive = fo("LiveEntity", "_alive");
     if (offSky < 0 || offLastT < 0 || offSkyPos < 0) Log("auto utility: sky aim MISSING PIECES (skyShot +0x%X lastTarget +0x%X skyShotPosition +0x%X)", offSky, offLastT, offSkyPos);
   }
-  if (offSky < 0 || offLastT < 0 || offSkyPos < 0) return;
-  for (auto& kv : g_autoFollowOrig) {                                  // the slots switched to automated this battle
-    void* mount = kv.first ? *(void**)((char*)kv.first + g_offWsSelected) : nullptr; if (!mount) continue;
+  if (offSky < 0 || offLastT < 0 || offSkyPos < 0 || g_autoFollowOrig.empty()) return;
+  void* craft = PlayerCraft(); if (!craft) return;                      // only systems on the boat right now (review: a sunk or rebuilt boat)
+  void* wm = *(void**)((char*)craft + g_offCraftWM);
+  void* systems = wm ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
+  int nSys = systems ? *(int*)((char*)systems + 0x18) : 0;
+  for (int i = 0; i < nSys && i < 32; i++) {
+    void* ws = *(void**)((char*)systems + 0x20 + 8 * (size_t)i);
+    if (!ws || !g_autoFollowOrig.count(ws)) continue;                   // the slots switched to automated this battle
+    void* mount = *(void**)((char*)ws + g_offWsSelected); if (!mount || !Alive(mount)) continue;
     void* gt = *(void**)((char*)mount + g_offGunType);
     if (!gt || !*(bool*)((char*)gt + offSky)) continue;
     // the fire control's target (forceTarget, set when aimAt gets one), else the ship the last shell went at; the shell
@@ -7885,9 +7905,17 @@ static void AutoSkyAim() {
       if (tgt && Alive(tgt) && (offAlive < 0 || *(bool*)((char*)tgt + offAlive))) src = 2; else tgt = nullptr;
     }
     V3 p = tgt ? PosOf(tgt) : V3{ 0, -10000, 0 };
-    if (tgt && p.y > -9000) { p.y += 20; memcpy((char*)mount + offSkyPos, &p, 12); }
+    if (tgt && p.y > -9000) {
+      V3 me = PosOf(mount);
+      float range = sqrtf((p.x - me.x) * (p.x - me.x) + (p.z - me.z) * (p.z - me.z));
+      double acc = NumField(gt, "Accuracy"); if (acc < 0) acc = 0; if (acc > 100) acc = 100;
+      float rad = kSkyScatter * range * (float)(1 + (100 - acc) / 50);
+      auto d = g_skyDisk.find(mount); if (d == g_skyDisk.end()) { SkyShotFired(mount); d = g_skyDisk.find(mount); }
+      p.x += d->second.first * rad; p.z += d->second.second * rad; p.y += 20;
+      memcpy((char*)mount + offSkyPos, &p, 12);
+    }
     else { memcpy((char*)mount + offSkyPos, (char*)mount + offLastT, 12); src = 0; }
-    g_skySrc[src]++;
+    g_skySrcBy[mount][src]++;
   }
 }
 static void AutoUtilityTick() {
@@ -8070,6 +8098,7 @@ static void AutoShotInfo(void* pj, TurretStats* ts) {
   if (dead) ts->atDead++;
   void* from = g_offPjFrom >= 0 ? *(void**)((char*)pj + g_offPjFrom) : nullptr;
   if (from && !dead) SkyRemember(from, tgt);
+  if (from) SkyShotFired(from);                                        // the next sky shell lands somewhere else in the disk
   float* v = (float*)((char*)pj + offVel);
   if (offPos >= 0 && v[1] < 0 && fabsf(v[0]) < 0.5f && fabsf(v[2]) < 0.5f) {   // falling straight down: a sky shot; how far off it lands
     const float* ps = (const float*)((char*)pj + offPos); V3 tp = PosOf(tgt);
@@ -8112,15 +8141,22 @@ static void TurretKill(void* mount, void* killed) {
   s->kills++;
   if (s->kills <= 5) Log("%s '%s' kill: %s '%s'", s->automated ? "automated gun" : s->sideGrade ? "side-grade" : "turret gun", s->name.c_str(), il2cpp_class_get_name(il2cpp_object_get_class(killed)), NameOf(killed).c_str());
 }
+static std::string SkySummary(void* mount, const TurretStats& s) {   // only for guns that dropped sky shells
+  auto it = g_skySrcBy.find(mount);
+  if (!s.skyMoved && it == g_skySrcBy.end()) return "";
+  long long f[3] = { 0, 0, 0 }; if (it != g_skySrcBy.end()) for (int i = 0; i < 3; i++) f[i] = it->second[i];
+  char b[256]; snprintf(b, sizeof b, "; %d sky shells came down %.0f m from their target on average (sky aim frames: %lld fire-control target, %lld last shell's ship, %lld aim point)",
+                        s.skyMoved, s.skyMoved ? s.skyLeadSum / s.skyMoved : 0.0, f[1], f[2], f[0]);
+  return b;
+}
 static void TurretSummary() {
   for (auto& e : g_turretStats) {
     const TurretStats& s = e.second;
-    if (s.automated) Log("automated guns, last battle: '%s' fired %d shots (%d at a target the game picked, %d without one, %d at a target already dead), %d kills; launched %.0f deg up on average, about %.0f s in the air; %d sky shells came down %.0f m from their target on average (sky aim frames: %lld fire-control target, %lld last shell's ship, %lld aim point)", s.name.c_str(), s.shots, s.aimed, s.shots - s.aimed, s.atDead, s.kills,
-                         s.lobN ? s.lobSum / s.lobN : 0.0, s.lobN ? s.flightSum / s.lobN : 0.0, s.skyMoved, s.skyMoved ? s.skyLeadSum / s.skyMoved : 0.0, g_skySrc[1], g_skySrc[2], g_skySrc[0]);
+    if (s.automated) Log("automated guns, last battle: '%s' fired %d shots (%d at a target the game picked, %d without one, %d at a target already dead), %d kills; launched %.0f deg up on average, about %.0f s in the air%s", s.name.c_str(), s.shots, s.aimed, s.shots - s.aimed, s.atDead, s.kills, s.lobN ? s.lobSum / s.lobN : 0.0, s.lobN ? s.flightSum / s.lobN : 0.0, SkySummary(e.first, s).c_str());
     else if (s.shots || s.kills) Log("%s, last battle: '%s' fired %d shots, %d kills", s.sideGrade ? "side-grades" : "turret guns", s.name.c_str(), s.shots, s.kills);
   }
   g_turretStats.clear(); g_isTurret.clear();
-  g_skySrc[0] = g_skySrc[1] = g_skySrc[2] = 0; SkyForgetAll();       // sky aim: a new battle, new ships
+  g_skySrcBy.clear(); g_skyDisk.clear(); SkyForgetAll();             // sky aim: a new battle, new ships
 }
 
 // ---- Smoking barrels (barrel_smoke, 2026-11-05) ---------------------------------------------------------------------
@@ -12350,7 +12386,7 @@ static void UnusualTick() {
           s.name.c_str(), s.spawned[2], s.gullSteered, s.gullHits, s.expired[2], s.lost[2], s.minionKills[2], s.gullMissed, s.gullSea, s.gullTerrain, s.capped[2], s.gullNearN ? s.gullNearSum / s.gullNearN : 0.0f);
     }
     g_gullsDressed = g_looksBack = 0; g_gullFull = 0; g_gullBlasts.clear();
-    g_minions.clear(); g_spawnQueue.clear(); g_unuCfg.clear(); g_orbit.clear(); g_orbitEnemySeen = 0; g_orbitReleases = 0; g_boomer.clear(); g_magnet.clear(); g_magnetEnded.clear(); g_fireworkTypes.clear(); g_unuEng = eng;
+    g_minions.clear(); g_spawnQueue.clear(); g_unuCfg.clear(); g_orbit.clear(); g_orbitEnemySeen = 0; g_orbitReleases = 0; g_boomer.clear(); g_magnet.clear(); g_magnetEnded.clear(); g_fireworkTypes.clear(); g_unuEng = eng;   // shortcut: up to 7 pinned colored copies per fired type are left each battle (keys can be stale next battle); free them if Fireworks sees heavy use
     g_unuStats.clear(); g_unuStatsNew = false; g_unuStatsAt = GetTickCount();
   }
   if (!eng) return;
@@ -12852,9 +12888,11 @@ static int CrateGate(void* self, int value) {                         // the val
   CrateCount& c = g_crateCounts[self];
   if (c.per != x.cratesPerRound) { c = CrateCount(); c.name = x.name; c.per = x.cratesPerRound; }
   int n = ++c.crates % c.per;
-  if (n) { Log("%s: crate %d of %d for the next round", c.name.c_str(), n, c.per); return cur; }
+  bool full = c.crates <= 2 * c.per;                                    // the first two rounds in full, the rest with debug=1 (the battle summary has the totals)
+  if (n) { if (full) Log("%s: crate %d of %d for the next round", c.name.c_str(), n, c.per); else DLog("%s: crate %d of %d for the next round", c.name.c_str(), n, c.per); return cur; }
   c.rounds++;
-  Log("%s: crate %d of %d: a round is ready (%d this battle)", c.name.c_str(), c.per, c.per, c.rounds);
+  if (full) Log("%s: crate %d of %d: a round is ready (%d this battle)", c.name.c_str(), c.per, c.per, c.rounds);
+  else DLog("%s: crate %d of %d: a round is ready (%d this battle)", c.name.c_str(), c.per, c.per, c.rounds);
   return value;
 }
 static int CrateFilter(EXCEPTION_POINTERS* ep) { g_crateFaults = -1; return FaultFilter("crates per round", ep); }
@@ -13475,7 +13513,7 @@ static void TalkQuiet() {
   for (const CrewFile& f : g_crewFiles)
     if (f.fate.battle >= last - 1 && f.fate.battle > 0 && f.fate.kind != 'c' && !aboard.count(f.id)) dead.push_back(TalkCrewOfFile(f));
   const MailLetter* back = nullptr; TalkCrew backOf;                    // a letter to one of the dead came back at the last mail call
-  if (!g_talkReturned && g_mailLast > 0 && g_mailLast >= last)
+  if (g_lettersOn && !g_talkReturned && g_mailLast > 0 && g_mailLast >= last)   // crew_letters=0: no talk of letters at all
     for (const CrewFile& f : g_crewFiles) for (const MailLetter& m : f.mail.got)
       if (m.kind == 1 && m.battle == g_mailLast && !aboard.count(f.id)) { back = &m; backOf = TalkCrewOfFile(f); }
   auto knowers = [&](const TalkCrew& d) { std::vector<CrewRec*> k; for (CrewRec* r : can) if (TalkKnew(*r, d)) k.push_back(r); return k; };
@@ -13554,6 +13592,7 @@ static void TalkQuiet() {
   }
 }
 static void TalkTick() {
+  if (!g_talkOn) { g_talkQ.clear(); return; }                          // switched off mid-battle: queued roll calls and replies go too
   float now = CrewLogNow();
   for (size_t i = 0; i < g_talkQ.size();) {                            // queued lines: roll calls and replies
     if (g_talkQ[i].at > now) { i++; continue; }
@@ -14175,7 +14214,8 @@ static void CrewFilesRecord(const std::vector<RepPara>& paras, const SYSTEMTIME&
     {                                                                  // a nickname earned (crew_nick.h): offered on the after-battle screen
       std::set<std::string> taken;
       for (const CrewFile& o : g_crewFiles) if (&o != cf) for (const NickRec& r : o.nicks) if (r.state == 'k' || r.state == 'p') taken.insert(r.nick);
-      if (const char* nk = NickEarned(cf->entries, cf->fate.battle, cf->nicks, taken)) {
+      // crew_stories=0: offers could never be answered (KEEP/VETO live on the report), so none are made
+      if (const char* nk = g_storiesOn ? NickEarned(cf->entries, cf->fate.battle, cf->nicks, taken) : nullptr) {
         if (nickWaiting >= 3) {
           if (!nickCapSaid) { if (nickNew) Log("crew nicknames: %d offered this battle, more held back by the cap of 3 waiting", nickNew); else Log("crew nicknames: %d offer(s) waiting; no new offers this battle", nickWaiting); }
           nickCapSaid = true;
@@ -14214,7 +14254,7 @@ static void CrewFilesRecord(const std::vector<RepPara>& paras, const SYSTEMTIME&
   g_crewBattleNo = bn; g_crewFilesSeq++;
   bool ok = CrewFilesWrite();
   Log("crew files: battle %d added to %d crew file(s) (%d on file)%s", bn, n, (int)g_crewFiles.size(), ok ? "" : "; crew-files.ini could NOT be written");
-  if (lost) Log("crew lives: %d crew lost in battle %d; their letters home wait on the after-battle screen", lost, bn);
+  if (lost && g_lettersOn) Log("crew lives: %d crew lost in battle %d; their letters home wait on the after-battle screen", lost, bn);
   if (ok && !g_lettersOn) Log("crew lives: no mail call after battle %d (crew_letters=0)", bn);
   if (ok && g_lettersOn) {                                             // mail call: decided and written after the battle is on file
     std::vector<MailCrew> mc;
@@ -15534,6 +15574,7 @@ static void* MakeTier(void* src, const Item& it, int owner = -1, unsigned long l
   // list never highlighted a found torpedo (David 2026-11-04: 'it doesn't get highlighted but it does go on the boat')
   return t;
 }
+static std::unordered_map<void*, std::pair<void*, void*>> g_torpOrderOwner;   // pinned, so its address stays this launcher           // order copy -> its launcher's GC handle, so copies of gone launchers can be let go
 static std::unordered_map<void*, void*> g_torpOrders;                // SelectionOrder copies made for launchers -> their GC handle (pinned,
                                                                      // so the address never comes back as another object)
 static void InjectTorpedoes(void* launcher) {
@@ -15564,7 +15605,7 @@ static void InjectTorpedoes(void* launcher) {
   std::vector<std::string> names = *registered;
   void* orderClone = g_torpOrders.count(order) ? order : nullptr;
   auto listIt = [&](const std::string& name, int index) {
-    if (!orderClone) { orderClone = CloneObject(order); if (orderClone) { SetRef(launcher, (char*)launcher + g_offOrder, orderClone); g_torpOrders[orderClone] = Pin(orderClone); } }
+    if (!orderClone) { orderClone = CloneObject(order); if (orderClone) { SetRef(launcher, (char*)launcher + g_offOrder, orderClone); g_torpOrders[orderClone] = Pin(orderClone); g_torpOrderOwner[orderClone] = { launcher, Pin(launcher) }; } }
     return orderClone && AddOrderEntry(orderClone, name.c_str(), index);
   };
   int added = 0, realized = 0;
@@ -16543,7 +16584,7 @@ static void* FmodPlay(void* sound, V3 p, float vol) {
 // The model a found torpedo shows in place of its own (TorpRun.look): 1 Chomper, 2 Chompette (two jaws), 3 the Sneaking
 // Eel's commando (six parts), 4 the Flying Fish's fish (four parts). Each part is a model copy under the torpedo's root
 // with its pivot at its origin.
-struct TorpLook { std::vector<void*> parts, ph; void *th = nullptr, *ch = nullptr; int kind = 0; bool shown = false; std::vector<void*> stock; };
+struct TorpLook { std::vector<void*> parts, ph; void *th = nullptr, *ch = nullptr; int kind = 0; bool shown = false; std::vector<void*> stock, sh; };   // sh: GC handles of stock (review 2026-11-16)
 static std::unordered_map<void*, TorpLook> g_torpLooks;               // Torpedo -> its look (kept on the pooled torpedo once made)
 static const float kChompR = 1.3f;                                    // the ball's radius in the .obj files
 static const char* const kCrawlParts[] = { "commando_body", "commando_arm_l", "commando_arm_r", "commando_leg_l", "commando_leg_r", "commando_tails" };
@@ -16588,7 +16629,7 @@ static bool TorpLookOn(void* t, TorpLook& L, int kind) {
         return false;
       }
     }
-    if (L.stock.empty()) for (void* r : RenderersUnder(tT)) if (IsMeshRenderer(r)) L.stock.push_back(r);   // before the parts are under it
+    if (L.stock.empty()) for (void* r : RenderersUnder(tT)) if (IsMeshRenderer(r)) { L.stock.push_back(r); L.sh.push_back(Pin(r)); }   // before the parts are under it; pinned, held across battles
     std::vector<void*> got;
     for (const std::string& f : files) { void* j = LoadModelCopy(f, TorpLookModel(kind)); if (!j) break; got.push_back(j); }
     if (got.size() != files.size()) { for (void* j : got) if (g_mapi.destroy) { void* a[1] = { j }; Invoke(g_mapi.destroy, nullptr, a); } return false; }
@@ -16924,9 +16965,16 @@ static void TorpBattleTick() {
     if (it->second.handle && !it->second.ended) { ++it; continue; }
     Unpin(it->second.handle); it = g_torpRuns.erase(it);
   }
+  for (auto it = g_torpOrders.begin(); it != g_torpOrders.end(); ) {   // review 2026-11-16: one copy per launcher Awake, pinned for good
+    auto ow = g_torpOrderOwner.find(it->first);
+    void* launcher = ow != g_torpOrderOwner.end() ? ow->second.first : nullptr;
+    if (ow == g_torpOrderOwner.end() || (launcher && Alive(launcher) && *(void**)((char*)launcher + g_offOrder) == it->first)) { ++it; continue; }
+    Unpin(ow->second.second); g_torpOrderOwner.erase(ow); Unpin(it->second); it = g_torpOrders.erase(it);
+  }
   for (auto it = g_torpLooks.begin(); it != g_torpLooks.end(); ) {
     if (Alive(it->first)) { if (it->second.shown && !g_torpRuns.count(it->first)) TorpLookOff(it->first, it->second); ++it; continue; }
     for (void* h : it->second.ph) Unpin(h);
+    for (void* h : it->second.sh) Unpin(h);
     Unpin(it->second.th); it = g_torpLooks.erase(it);                 // destroyed with its scene, its look too
   }
   for (auto it = g_torpLeaps.begin(); it != g_torpLeaps.end(); ) {
