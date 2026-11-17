@@ -11587,6 +11587,7 @@ static void TryInstallFemale() {
 //   fireworks=1  every shot (and fragment) gets a random tracer color
 //   orbital=R    shells circle the boat at R metres and streak off at enemy ships and ground targets within kOrbitReach
 //   magnet=V     a hit pulls the enemy ship toward you by V m/s
+//   homerun=H    a ship the gun kills is thrown about H m (+-14%) into the air with a spin (HomeRunLaunch)
 // Spawning uses the path the game's own console command takes (SpawnEntityCommand.Spawn, verified in the disassembly):
 // EntitySpawn.spawnFrom(pos, euler, spawner null, prefab, GameManager.instance.entityPooler), prefab from the pooler's
 // ObjType list (+0x28: name +0x10, prefab +0x18). A plane gets its speed like PlaneCatapult gives it:
@@ -11600,9 +11601,10 @@ const char* kUnusualDefs =
   "[unique]\nname=Fireworks\nmodel=fireworks\nmodel_material=own\nbase=40 mm Dual Bofors\nuses=6\nline=shells burst near the target into a shower of colored sparks\nflavor=Happy Fourth of July.\nfx.set.fireworks=1\nproj.set.proximity=1\nproj.set.proximityMaxErrorSeconds=0.03\nproj.set.proximityOffsetSeconds=0\nproj.set.SplashDamage=1\nproj.mul.SplashDamageRange=1.5\nproj.set.fragmentCount=10\nproj.set.fragmentInheritSourceVelocity=0.3\nfragment_from=M2 Browning\n\n"
   "[unique]\nname=Orbital\nmodel=orbital\nmodel_material=own\nbase=20 mm Elco Thunderbolt\nuses=6\nline=shells circle your boat, then streak off at enemy boats and shore guns within 1.5 km\nflavor=Personal space, enforced.\nfx.set.orbital=25\nproj.mul.FrameLifeTime=25\n\n"
   // Magnet: weight 0 = out of the drop pool (back burner, David 2026-10-27: works, but not noticeable at fighting range)
-  "[unique]\nname=Magnet\nmodel=magnet\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nweight=0\nline=shells home in gently, and every hit pulls the enemy ship toward you\nflavor=Get over here.\nfx.set.magnet=6\nfx.set.seek=45\n";
+  "[unique]\nname=Magnet\nmodel=magnet\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nweight=0\nline=shells home in gently, and every hit pulls the enemy ship toward you\nflavor=Get over here.\nfx.set.magnet=6\nfx.set.seek=45\n\n"
+  "[unique]\nname=Home Run\nmodel=home_run\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nline=ships it kills are knocked 60-80 m into the air\nflavor=Swing for the fences.\nfx.set.homerun=70\n";
 
-struct UnusualCfg { int hangar, duck, gull; bool boomerang, fireworks; float orbital, magnet; int shots; };
+struct UnusualCfg { int hangar, duck, gull; bool boomerang, fireworks; float orbital, magnet; int shots; float homerun; };
 static std::unordered_map<void*, UnusualCfg> g_unuCfg;               // mount -> its powers, per battle
 static void* g_unuEng = nullptr;
 static int g_unuFaults = 0;
@@ -11649,7 +11651,7 @@ static const UnusualCfg& UnuCfgOf(void* mount) {
   if (it) {
     u.hangar = (int)ItemFx(*it, "hangar"); u.duck = (int)ItemFx(*it, "duck"); u.gull = (int)ItemFx(*it, "gull");
     u.boomerang = ItemFx(*it, "boomerang") > 0; u.fireworks = ItemFx(*it, "fireworks") > 0;
-    u.orbital = (float)ItemFx(*it, "orbital"); u.magnet = (float)ItemFx(*it, "magnet");
+    u.orbital = (float)ItemFx(*it, "orbital"); u.magnet = (float)ItemFx(*it, "magnet"); u.homerun = (float)ItemFx(*it, "homerun");
   }
   return g_unuCfg.emplace(mount, u).first->second;
 }
@@ -11854,6 +11856,7 @@ struct UnuStats {
   int gullHits = 0, gullSteered = 0, gullMissed = 0, gullTerrain = 0, gullSea = 0, gullNearN = 0; float gullNearSum = 0;   // Kamikaze Gull
   int turned = 0, noTarget = 0, orbitJoined = 0, orbitFull = 0, orbitLaunched = 0, orbitDropped = 0;
   int sparks = 0, bursts = 0, magnetPulls = 0;
+  int homeRuns = 0, homeLanded = 0, homeSkipped = 0; float homeBest = 0;   // Home Run
   DWORD sparkAt = 0; V3 sparkPos{};
 };
 static std::unordered_map<void*, UnuStats> g_unuStats;
@@ -11886,6 +11889,7 @@ static void UnusualSummary(const char* when) {
     if (c.fireworks) Append(t, "; %d bursts (%d sparks)", s.bursts, s.sparks);
     if (c.orbital > 0) Append(t, "; %d shells joined the ring (%d not, ring full), %d launched at ships, %d dropped into the sea", s.orbitJoined, s.orbitFull, s.orbitLaunched, s.orbitDropped);
     if (c.magnet > 0) Append(t, "; %d ships pulled", s.magnetPulls);
+    if (c.homerun > 0) Append(t, "; %d ships launched (%d landed, %d kills not launched), best %.0f m", s.homeRuns, s.homeLanded, s.homeSkipped, s.homeBest);
     Append(t, "; %d kills credited to the gun", s.kills);
     DLog("extra effects summary (%s): %s", when, t.c_str());
   }
@@ -11915,7 +11919,7 @@ static void FireworksColor(void* pj) {
 static void UnusualOnShot(void* pj, void* mount) {
   if (g_offPjVel < 0 || g_offPjPos < 0 || g_offPjTarget < 0) return;  // SeekScan looks these up on its first frame
   const UnusualCfg& cfg = UnuCfgOf(mount);
-  if (!cfg.hangar && !cfg.duck && !cfg.gull && !cfg.boomerang && !cfg.fireworks && cfg.orbital <= 0 && cfg.magnet <= 0) return;
+  if (!cfg.hangar && !cfg.duck && !cfg.gull && !cfg.boomerang && !cfg.fireworks && cfg.orbital <= 0 && cfg.magnet <= 0 && cfg.homerun <= 0) return;
   if (IsCopyShot(pj)) {                                               // co-op: another player's shot. Only the colors show here: their
     if (cfg.fireworks) FireworksColor(pj);                            // helpers come from the host, and the ring, turns and pulls
     return;                                                           // need targets only the shooter's machine has
@@ -12417,6 +12421,103 @@ static int GullSteer(Minion& m, UnuStats& st, V3 p, float now, DWORD tick) {
   float vel[3] = { m.vel.x, m.vel.y, m.vel.z }; void* va[1] = { vel }; Invoke(mReset, m.fo, va);
   return 0;
 }
+// ---- Home Run: a ship the gun kills is thrown into the air with a spin and lands with a triple splash ----------------
+// Checked in the disassembly (2026-11-16): set_isKinematic is only called by LiveEntity's spawn freeze coroutine
+// (true for one frame, then false), torpedoes and FishNet's RigidbodyPauser, nothing on death; Ship.FixedUpdateMe only
+// sleeps the body while its spawn 'sleep' timer runs; FloatBehaviour damps vertical speed only while _inWater; ship
+// damping is the prefab's (no set_linearDamping caller for ships). ReplaceObjectOnSink swaps in the wreck only below a
+// depth, so a hull in the air keeps its model. The first launch logs isKinematic, damping and mass anyway.
+static bool TorpSetup(); static void TorpSplash(V3 at);
+struct HomeRun { void* ship; void* h; void* mount; float y0, top, t0, vUp; V3 dir, at; bool told; };
+static std::vector<HomeRun> g_homeRuns;                               // one per gun at a time
+static int g_homeRunLogs = 0;                                         // per battle, the first 3 landings in full
+static void *g_hrBody = nullptr, *g_hrForce = nullptr, *g_hrTorque = nullptr, *g_hrKin = nullptr, *g_hrDamp = nullptr, *g_hrMass = nullptr;
+static float HrFloat(void* m, void* o) { void* r = m && o ? Invoke(m, o) : nullptr; return r ? *(float*)((char*)r + 0x10) : -1.0f; }
+static void HrPush(void* body, V3 v, bool spin) {
+  int mode = 2;                                                       // ForceMode.VelocityChange: no mass, no frame time
+  void* a[2] = { &v, &mode }; Invoke(spin ? g_hrTorque : g_hrForce, body, a);
+}
+// Launch speed for apex h under the body's linear damping d: h(v) = v/d - g/d^2 ln(1 + d v/g), solved by bisection.
+static float HomeRunSpeed(float h, float d) {
+  const float g = 9.81f;
+  if (d < 0.01f) return sqrtf(2 * g * h);
+  float lo = 0, hi = 150;
+  for (int i = 0; i < 30; i++) { float v = (lo + hi) / 2; ((v / d - g / (d * d) * logf(1 + d * v / g)) < h ? lo : hi) = v; }
+  return hi;
+}
+static void HomeRunLaunch(void* mount, void* ship, UnuStats& st) {
+  if (!IsShip(ship)) return;                                          // shore guns and planes stay put
+  if (g_coopRole == 2) { if (!st.homeSkipped++) Log("home run: '%s' kill on a co-op client; the host moves the ships, so no launch", st.name.c_str()); return; }
+  for (auto& h : g_homeRuns) if (h.mount == mount || h.ship == ship) { st.homeSkipped++; DLog("home run: '%s' kill not launched, one already in the air", st.name.c_str()); return; }
+  static bool tried = false;
+  if (!tried) {
+    tried = true; void* le = FindClass("Core", "LiveEntity"); void* rb = FindClass("UnityEngine", "Rigidbody");
+    g_hrBody = le ? FindMethod(le, "get_Body", 0) : nullptr;
+    g_hrForce = rb ? FindMethod(rb, "AddForce", 2, "UnityEngine.Vector3", "UnityEngine.ForceMode") : nullptr;
+    g_hrTorque = rb ? FindMethod(rb, "AddTorque", 2, "UnityEngine.Vector3", "UnityEngine.ForceMode") : nullptr;
+    g_hrKin = rb ? FindMethod(rb, "get_isKinematic", 0) : nullptr; g_hrDamp = rb ? FindMethod(rb, "get_linearDamping", 0) : nullptr; g_hrMass = rb ? FindMethod(rb, "get_mass", 0) : nullptr;
+    if (!g_hrBody || !g_hrForce || !g_hrTorque) Log("home run: a lookup failed (get_Body %p AddForce %p AddTorque %p); kills are not launched", g_hrBody, g_hrForce, g_hrTorque);
+  }
+  void* body = g_hrBody && g_hrForce && g_hrTorque ? Invoke(g_hrBody, ship) : nullptr;
+  if (!body) { st.homeSkipped++; DLog("home run: '%s' killed '%s' but it has no Rigidbody", st.name.c_str(), NameOf(ship).c_str()); return; }
+  void* k = g_hrKin ? Invoke(g_hrKin, body) : nullptr; bool kin = k && *(bool*)((char*)k + 0x10);
+  float damp = HrFloat(g_hrDamp, body);
+  static bool toldBody = false;
+  if (!toldBody) { toldBody = true; Log("home run: a just-killed ship's Rigidbody: isKinematic %d (read %d), linearDamping %.3f, mass %.0f", kin, k != nullptr, damp, HrFloat(g_hrMass, body)); }
+  if (kin) { st.homeSkipped++; DLog("home run: '%s' is kinematic, not launched", NameOf(ship).c_str()); return; }
+  float want = st.cfg.homerun * (0.86f + 0.28f * (float)Rand01()), vUp = HomeRunSpeed(want, damp > 0 ? damp : 0);
+  V3 g = PosOf(mount), p = PosOf(ship); float dx = p.x - g.x, dz = p.z - g.z, dl = sqrtf(dx * dx + dz * dz);
+  V3 dir = dl > 1 && g.y > -5000 ? V3{ dx / dl, 0, dz / dl } : V3{ 0, 0, 0 };   // along the shot, flat
+  V3 ax{ (float)Rand01() * 2 - 1, (float)Rand01() * 2 - 1, (float)Rand01() * 2 - 1 }; float al = sqrtf(ax.x * ax.x + ax.y * ax.y + ax.z * ax.z);
+  if (al < 0.1f) ax = { 1, 0, 0 }, al = 1;
+  float spin = 1.5f + 1.5f * (float)Rand01();
+  HrPush(body, V3{ dir.x * 6, vUp, dir.z * 6 }, false);
+  HrPush(body, V3{ ax.x / al * spin, ax.y / al * spin, ax.z / al * spin }, true);
+  g_homeRuns.push_back({ ship, Pin(ship), mount, p.y, p.y, CrewLogNow(), vUp, dir, p, false });
+  st.homeRuns++;
+  if (st.homeRuns <= 3) Log("home run: '%s' knocked %s up at %.1f m/s (aiming for %.0f m), cartwheeling at %.1f rad/s", st.name.c_str(), ShipTitle(ship).c_str(), vUp, want, spin);
+  else DLog("home run: '%s' knocked %s up at %.1f m/s (aiming for %.0f m)", st.name.c_str(), ShipTitle(ship).c_str(), vUp, want);
+}
+static void HomeRunEnd(size_t i) { Unpin(g_homeRuns[i].h); g_homeRuns.erase(g_homeRuns.begin() + i); }
+static void HomeRunTick() {
+  if (g_homeRuns.empty()) return;
+  TorpSetup();                                                        // the splash prefab
+  static void* goActive = nullptr; if (!goActive) { void* gc = FindClass("UnityEngine", "GameObject"); goActive = gc ? FindMethod(gc, "get_activeSelf", 0) : nullptr; }
+  float now = CrewLogNow();
+  for (size_t i = g_homeRuns.size(); i-- > 0; ) {
+    HomeRun& h = g_homeRuns[i];
+    auto si = g_unuStats.find(h.mount); if (si == g_unuStats.end()) { HomeRunEnd(i); continue; }
+    UnuStats& st = si->second; std::string who = ShipTitle(h.ship);
+    void* go = goActive && Alive(h.ship) ? Invoke(m_getGameObject, h.ship) : nullptr; void* act = go ? Invoke(goActive, go) : nullptr;
+    if (!Alive(h.ship) || (act && !*(bool*)((char*)act + 0x10))) {    // repooled while flying
+      DLog("home run: %s left the battle in the air", who.c_str()); HomeRunEnd(i); continue; }
+    V3 p = PosOf(h.ship); float t = now - h.t0;
+    if (p.y > h.top) h.top = p.y;
+    float up = h.top - h.y0;
+    if (!h.told && p.y < h.top - 1 && up > 5) {                         // past the top: the kill feed line
+      h.told = true; if (up > st.homeBest) st.homeBest = up;
+      char b[32]; snprintf(b, sizeof b, " - %.0f m", up);
+      ShowMessage(Colored("Home Run! " + who + b, "#ff5fc8"));
+    }
+    if (!h.told && t > 2 * h.vUp / 9.81f + 2) {                        // still rising: no gravity on this body, push it down once
+      h.told = true; if (void* b = Invoke(g_hrBody, h.ship)) HrPush(b, V3{ 0, -2 * h.vUp, 0 }, false);
+      Log("home run: %s was still rising after %.1f s (%.0f m up); pushed down (no gravity on it?)", who.c_str(), t, up);
+    }
+    if (h.told && p.y <= h.y0 + 2) {                                    // back on the water: three splashes along the flight
+      V3 d = h.dir.x == 0 && h.dir.z == 0 ? V3{ 1, 0, 0 } : h.dir;
+      for (int k = -1; k <= 1; k++) TorpSplash(V3{ p.x + d.x * 12 * k, h.y0, p.z + d.z * 12 * k });
+      st.homeLanded++;
+      if (++g_homeRunLogs <= 3) Log("home run: %s came down after %.1f s, %.0f m up at the top, landed %.0f m from where it was hit", who.c_str(), t, up, Dist3(V3{ p.x, 0, p.z }, V3{ h.at.x, 0, h.at.z }));
+      else DLog("home run: %s came down after %.1f s, %.0f m up", who.c_str(), t, up);
+      HomeRunEnd(i); continue;
+    }
+    if (t > 25 || (!h.told && t > 3 && up < 3)) {                      // never left the water, or lost track of it
+      Log("home run: %s %s after %.1f s (%.0f m up); stopped watching it", who.c_str(), up < 3 ? "did not lift off" : "had not come down", t, up);
+      HomeRunEnd(i);
+    }
+  }
+}
+
 static void UnusualTick() {
   void* eng = EngagementInstance();
   if (eng != g_unuEng) {
@@ -12429,11 +12530,18 @@ static void UnusualTick() {
       Log("kamikaze gull, last battle: '%s' launched %d, steered %d, blew up on a target %d, no target %d, shot down %d, kills credited %d (also %d ran out of time, %d hit the sea, %d hit the ground; %d not launched, cap of 4 out; closest to the aim point %.0f m on average)",
           s.name.c_str(), s.spawned[2], s.gullSteered, s.gullHits, s.expired[2], s.lost[2], s.minionKills[2], s.gullMissed, s.gullSea, s.gullTerrain, s.capped[2], s.gullNearN ? s.gullNearSum / s.gullNearN : 0.0f);
     }
+    for (auto& e : g_unuStats) {                                       // always logged, like the gulls
+      const UnuStats& s = e.second; if (s.cfg.homerun <= 0 || !(s.homeRuns + s.homeSkipped)) continue;
+      Log("home run, last battle: '%s' launched %d ships, %d came down, best %.0f m; %d kills not launched (one in the air already, no body, or co-op client)", s.name.c_str(), s.homeRuns, s.homeLanded, s.homeBest, s.homeSkipped);
+    }
+    for (auto& h : g_homeRuns) Unpin(h.h);
+    g_homeRuns.clear(); g_homeRunLogs = 0;
     g_gullsDressed = g_looksBack = 0; g_gullFull = 0; g_gullBlasts.clear();
     g_minions.clear(); g_spawnQueue.clear(); g_unuCfg.clear(); g_orbit.clear(); g_orbitEnemySeen = 0; g_orbitReleases = 0; g_boomer.clear(); g_magnet.clear(); g_magnetEnded.clear(); g_fireworkTypes.clear(); g_unuEng = eng;   // shortcut: up to 7 pinned colored copies per fired type are left each battle (keys can be stale next battle); free them if Fireworks sees heavy use
     g_unuStats.clear(); g_unuStatsNew = false; g_unuStatsAt = GetTickCount();
   }
   if (!eng) return;
+  HomeRunTick();
   if (g_unuStatsNew && GetTickCount() - g_unuStatsAt > 120000) { g_unuStatsAt = GetTickCount(); UnusualSummary("so far"); }
   if (!EliteLookups()) return;                                         // shares the entity field offsets
   void* craft = PlayerCraft();
@@ -12572,7 +12680,7 @@ static void UnusualKill(void* ws, void* mount, void* killed) {
   const char* what = il2cpp_class_get_name(il2cpp_object_get_class(killed));
   if (kind == 2 && st.minionKills[2] < 5) Log("kamikaze gull: '%s' gull's blast got a kill: %s '%s'", st.name.c_str(), what, NameOf(killed).c_str());
   if (kind >= 0) { st.minionKills[kind]++; DLog("extra effects: '%s' %s got a kill: %s '%s'", st.name.c_str(), kMinionWord[kind], what, NameOf(killed).c_str()); }
-  else { st.kills++; DLog("extra effects: '%s' kill: %s '%s'", st.name.c_str(), what, NameOf(killed).c_str()); }
+  else { st.kills++; DLog("extra effects: '%s' kill: %s '%s'", st.name.c_str(), what, NameOf(killed).c_str()); if (st.cfg.homerun > 0) HomeRunLaunch(by, killed, st); }
 }
 
 static void SafeUnusualOnShot(void* pj, void* mount) {

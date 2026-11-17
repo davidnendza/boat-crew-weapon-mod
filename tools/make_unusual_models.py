@@ -577,7 +577,34 @@ def magnet():
     return m
 
 
-MODELS = [hangar, mother_duck, kamikaze_gull, gull_bomber, boomerang, fireworks, orbital, magnet]
+def home_run():
+    """Home Run (37 mm Autocannon, kills fly 60-80 m up): home plate on a dirt mound, a catcher's mitt, a bat for a barrel."""
+    m = Model('home_run', 'autocannon')
+    s = m.stand()
+    cyl(s, 'Ochre', (0, -1.12, 0), (0, -1.05, 0), 0.55, 0.5, seg=24)              # the dirt
+    prism(s, 'White', [(-0.22, -0.12), (0.22, -0.12), (0.22, 0.08), (0, 0.26), (-0.22, 0.08)], 0.03, c=(0, -1.035, 0))
+    cyl(s, 'Gunmetal', (0, -1.04, 0), (0, -0.32, 0), 0.2, seg=16)
+    cyl(s, 'Gunmetal', (0, -0.32, 0), (0, -0.22, 0), 0.3, seg=20)
+    t = m.turret()
+    y = 0.05
+    ellipsoid(t, 'Leather', (0, y, -0.25), (0.32, 0.27, 0.62), rings=10, seg=18)  # the mitt round the breech
+    for k in range(4):                                                             # its fingers, up the back
+        x = -0.2 + 0.133 * k
+        ellipsoid(t, 'Leather', (x, y + 0.24, -0.45), (0.065, 0.2, 0.08), r=(-20, 0, 0), rings=6, seg=10)
+    torus(t, 'Gold', (0, y, 0.3), 0.18, 0.025, r=(90, 0, 0), seg=20, tube=6)      # laces round the barrel hole
+    sphere(t, 'White', (0.16, y + 0.3, -0.05), 0.12)                               # a ball in the glove
+    torus(t, 'Red', (0.16, y + 0.3, -0.05), 0.12, 0.012, r=(0, 0, 70), seg=20, tube=4)
+    torus(t, 'Pink', (0, y, -0.25), 0.33, 0.03, r=(90, 0, 0), seg=24, tube=6)     # the pink stripe of the tier
+    b = m.barrel_from_pivot()
+    cyl(b, 'Wood', (0, y, 0.3), (0, y, 0.33), 0.06, seg=14)                        # the knob
+    cyl(b, 'Black', (0, y, 0.33), (0, y, 0.7), 0.04, seg=14, caps=False)           # grip tape
+    cyl(b, 'Wood', (0, y, 0.7), (0, y, 1.35), 0.04, 0.085, seg=14, caps=False)
+    cyl(b, 'Wood', (0, y, 1.35), (0, y, 1.8), 0.085, 0.09, seg=14)
+    cyl(b, 'Pink', (0, y, 1.5), (0, y, 1.56), 0.093, seg=14, caps=False)
+    return m
+
+
+MODELS = [hangar, mother_duck, kamikaze_gull, gull_bomber, boomerang, fireworks, orbital, magnet, home_run]
 
 
 # ---- previews: flat-shaded painter's renders from three sides, seats red and stock shoot points cyan -------------------
