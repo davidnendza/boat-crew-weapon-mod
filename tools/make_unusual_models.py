@@ -56,6 +56,10 @@ RIGS = {
     # 3"/50 (3-inch Gun Player), read 2026-11-16: the barrel faces -z; its bore runs at x -0.04, y 0.22 in the pivot frame
     'us3': dict(stand=((0, -1.147, 0), 0), pivot=(0.037, 0.128, -0.053), barrels=[((-0.039, -1.409, 0.036), (0, 180, 0))],
                 seats=[], shoot=[(-0.04, 0.22, 2.87)]),
+    # Browning .30 Cal (M1919 Browning), read 2026-11-16: no stand; the twin guns share one barrel transform turned 90 deg,
+    # so the guns are turret parts. Bores at x -0.30 and 0.02 in the pivot frame, along +z
+    'm1919': dict(stand=None, pivot=(0.139, 0.052, 0.101), barrels=[((-0.051, 0, -0.125), (0, 90, 0))],
+                  seats=[(0, -1.5, -0.376)], shoot=[(-0.302, 0, 0.95), (0.024, 0, 0.95)]),
 }
 
 
@@ -642,7 +646,39 @@ def fire_mission():
     return m
 
 
-MODELS = [hangar, mother_duck, kamikaze_gull, gull_bomber, boomerang, fireworks, orbital, magnet, home_run, fire_mission]
+def up_up_away():
+    """Up, Up and Away (twin .30 Cal, hits swell ships until they float off): a wicker balloon basket, helium tanks,
+    nozzle muzzles and three balloons tied to the guns."""
+    m = Model('up_up_away', 'm1919')
+    s = m.stand()                                                                  # no stand: the root turns with the gun
+    n = 18
+    for i in range(n):                                                             # the wicker basket
+        a = 2 * math.pi * (i + 0.5) / n
+        box(s, 'Ochre' if i % 2 else 'Wood', (0.6 * math.cos(a), -0.48, 0.6 * math.sin(a)), (0.06, 0.74, 2 * math.pi * 0.6 / n * 1.06), (0, -math.degrees(a), 0))
+    torus(s, 'Wood', (0, -0.1, 0), 0.6, 0.045, seg=36, tube=6)
+    torus(s, 'Pink', (0, -0.45, 0), 0.62, 0.025, seg=36, tube=6)
+    torus(s, 'Wood', (0, -0.85, 0), 0.6, 0.04, seg=36, tube=6)
+    cyl(s, 'Gunmetal', (0.14, -0.85, 0.1), (0.14, -0.02, 0.1), 0.06)
+    t = m.turret()
+    for x in (-0.30, 0.02):                                                        # the guns, with nozzle muzzles
+        box(t, 'Gunmetal', (x, 0.0, -0.15), (0.12, 0.18, 0.6))
+        cyl(t, 'Steel', (x, 0.0, 0.15), (x, 0.0, 0.85), 0.025, seg=10)
+        cyl(t, 'Pink', (x, 0.0, 0.85), (x, 0.0, 0.97), 0.03, 0.055, seg=12)
+        cyl(t, 'Black', (x, 0.0, -0.45), (x, 0.0, -0.55), 0.03, seg=8)
+    cyl(t, 'White', (-0.14, -0.1, -0.45), (-0.14, -0.1, 0.25), 0.07, seg=14)      # the helium tank between them
+    sphere(t, 'White', (-0.14, -0.1, 0.25), 0.07, rings=6, seg=14)
+    cyl(t, 'Pink', (-0.14, -0.1, -0.1), (-0.14, -0.1, -0.05), 0.073, seg=14, caps=False)
+    cyl(t, 'Steel', (-0.14, -0.1, 0.32), (-0.14, -0.1, 0.38), 0.02, seg=8)
+    knot = (-0.14, 0.12, -0.35)
+    box(t, 'Gunmetal', (-0.14, 0.1, -0.35), (0.06, 0.06, 0.06))
+    for col, c in (('Pink', (-0.55, 1.05, -0.65)), ('Cyan', (-0.1, 1.25, -0.8)), ('Yellow', (0.3, 1.0, -0.6))):
+        cyl(t, 'White', knot, (c[0], c[1] - 0.24, c[2]), 0.006, seg=4, caps=False)   # the string
+        ellipsoid(t, col, c, (0.17, 0.21, 0.17), rings=8, seg=12)
+        cyl(t, col, (c[0], c[1] - 0.2, c[2]), (c[0], c[1] - 0.25, c[2]), 0.02, 0.03, seg=6)   # the tied neck
+    return m
+
+
+MODELS = [hangar, mother_duck, kamikaze_gull, gull_bomber, boomerang, fireworks, orbital, magnet, home_run, fire_mission, up_up_away]
 
 
 # ---- previews: flat-shaded painter's renders from three sides, seats red and stock shoot points cyan -------------------

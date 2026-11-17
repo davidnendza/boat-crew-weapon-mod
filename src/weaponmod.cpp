@@ -11589,6 +11589,7 @@ static void TryInstallFemale() {
 //   magnet=V     a hit pulls the enemy ship toward you by V m/s
 //   homerun=H    a ship the gun kills is thrown about H m (+-14%) into the air with a spin (HomeRunLaunch)
 //   firemission=N every Nth direct hit marks the target with smoke; 4 s later a barrage of 6 splashes walks across it
+//   upup=N       direct hits swell a ship 1.08x each (to 1.5x); after N it lifts off, then pops (BalloonHit / BalloonTick)
 // Spawning uses the path the game's own console command takes (SpawnEntityCommand.Spawn, verified in the disassembly):
 // EntitySpawn.spawnFrom(pos, euler, spawner null, prefab, GameManager.instance.entityPooler), prefab from the pooler's
 // ObjType list (+0x28: name +0x10, prefab +0x18). A plane gets its speed like PlaneCatapult gives it:
@@ -11604,9 +11605,10 @@ const char* kUnusualDefs =
   // Magnet: weight 0 = out of the drop pool (back burner, David 2026-10-27: works, but not noticeable at fighting range)
   "[unique]\nname=Magnet\nmodel=magnet\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nweight=0\nline=shells home in gently, and every hit pulls the enemy ship toward you\nflavor=Get over here.\nfx.set.magnet=6\nfx.set.seek=45\n\n"
   "[unique]\nname=Home Run\nmodel=home_run\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nline=ships it kills are knocked 60-80 m into the air\nflavor=Swing for the fences.\nfx.set.homerun=70\n\n"
-  "[unique]\nname=Fire Mission\nmodel=fire_mission\nmodel_material=own\nbase=3-inch Gun Player\nuses=6\nline=every 6th hit marks the target with smoke, and a barrage walks across it 4 s later\nflavor=Fire for effect.\nfx.set.firemission=6\n";
+  "[unique]\nname=Fire Mission\nmodel=fire_mission\nmodel_material=own\nbase=3-inch Gun Player\nuses=6\nline=every 6th hit marks the target with smoke, and a barrage walks across it 4 s later\nflavor=Fire for effect.\nfx.set.firemission=6\n\n"
+  "[unique]\nname=Up, Up and Away\nmodel=up_up_away\nmodel_material=own\nbase=M1919 Browning\nuses=6\nline=hits pump enemy boats up like balloons: after 5 they float off and pop\nflavor=Lighter than air. Briefly.\nfx.set.upup=5\n";
 
-struct UnusualCfg { int hangar, duck, gull; bool boomerang, fireworks; float orbital, magnet; int shots; float homerun; int firemission; };
+struct UnusualCfg { int hangar, duck, gull; bool boomerang, fireworks; float orbital, magnet; int shots; float homerun; int firemission, upup; };
 static std::unordered_map<void*, UnusualCfg> g_unuCfg;               // mount -> its powers, per battle
 static void* g_unuEng = nullptr;
 static int g_unuFaults = 0;
@@ -11653,7 +11655,7 @@ static const UnusualCfg& UnuCfgOf(void* mount) {
   if (it) {
     u.hangar = (int)ItemFx(*it, "hangar"); u.duck = (int)ItemFx(*it, "duck"); u.gull = (int)ItemFx(*it, "gull");
     u.boomerang = ItemFx(*it, "boomerang") > 0; u.fireworks = ItemFx(*it, "fireworks") > 0;
-    u.orbital = (float)ItemFx(*it, "orbital"); u.magnet = (float)ItemFx(*it, "magnet"); u.homerun = (float)ItemFx(*it, "homerun"); u.firemission = (int)ItemFx(*it, "firemission");
+    u.orbital = (float)ItemFx(*it, "orbital"); u.magnet = (float)ItemFx(*it, "magnet"); u.homerun = (float)ItemFx(*it, "homerun"); u.firemission = (int)ItemFx(*it, "firemission"); u.upup = (int)ItemFx(*it, "upup");
   }
   return g_unuCfg.emplace(mount, u).first->second;
 }
@@ -11860,6 +11862,7 @@ struct UnuStats {
   int sparks = 0, bursts = 0, magnetPulls = 0;
   int homeRuns = 0, homeLanded = 0, homeSkipped = 0; float homeBest = 0;   // Home Run
   int fmHits = 0, fmCount = 0, fmCalled = 0, fmCooling = 0, fmSmoke = 0, fmBarrages = 0, fmShells = 0, fmNotQueued = 0, fmKills = 0, fmClient = 0;   // Fire Mission
+  int upHits = 0, upPuffs = 0, upLifts = 0, upPops = 0, upDowned = 0, upLost = 0, upClient = 0; float upBest = 0;   // Up, Up and Away
   DWORD sparkAt = 0; V3 sparkPos{};
 };
 static std::unordered_map<void*, UnuStats> g_unuStats;
@@ -11894,6 +11897,7 @@ static void UnusualSummary(const char* when) {
     if (c.magnet > 0) Append(t, "; %d ships pulled", s.magnetPulls);
     if (c.homerun > 0) Append(t, "; %d ships launched (%d landed, %d kills not launched), best %.0f m", s.homeRuns, s.homeLanded, s.homeSkipped, s.homeBest);
     if (c.firemission > 0) Append(t, "; %d hits, %d fire missions (%d marked with smoke), %d barrages, %d kills during one", s.fmHits, s.fmCalled, s.fmSmoke, s.fmBarrages, s.fmKills);
+    if (c.upup > 0) Append(t, "; %d hits, %d puffs, %d ships lifted off, %d popped, %d shot down while swollen, best %.0f m up", s.upHits, s.upPuffs, s.upLifts, s.upPops, s.upDowned, s.upBest);
     Append(t, "; %d kills credited to the gun", s.kills);
     DLog("extra effects summary (%s): %s", when, t.c_str());
   }
@@ -11923,7 +11927,7 @@ static void FireworksColor(void* pj) {
 static void UnusualOnShot(void* pj, void* mount) {
   if (g_offPjVel < 0 || g_offPjPos < 0 || g_offPjTarget < 0) return;  // SeekScan looks these up on its first frame
   const UnusualCfg& cfg = UnuCfgOf(mount);
-  if (!cfg.hangar && !cfg.duck && !cfg.gull && !cfg.boomerang && !cfg.fireworks && cfg.orbital <= 0 && cfg.magnet <= 0 && cfg.homerun <= 0 && cfg.firemission <= 0) return;
+  if (!cfg.hangar && !cfg.duck && !cfg.gull && !cfg.boomerang && !cfg.fireworks && cfg.orbital <= 0 && cfg.magnet <= 0 && cfg.homerun <= 0 && cfg.firemission <= 0 && cfg.upup <= 0) return;
   if (IsCopyShot(pj)) {                                               // co-op: another player's shot. Only the colors show here: their
     if (cfg.fireworks) FireworksColor(pj);                            // helpers come from the host, and the ring, turns and pulls
     return;                                                           // need targets only the shooter's machine has
@@ -12523,6 +12527,7 @@ static void HomeRunTick() {
 }
 
 static void FireMissionTick(); static void FireMissionBattleOver(); static void FireMissionKill(UnuStats& st, void* by, void* killed);
+static void BalloonTick(); static void BalloonBattleOver(); static void SafeBalloonRestoreAll();
 static void UnusualTick() {
   void* eng = EngagementInstance();
   if (eng != g_unuEng) {
@@ -12541,7 +12546,7 @@ static void UnusualTick() {
     }
     for (auto& h : g_homeRuns) Unpin(h.h);
     g_homeRuns.clear(); g_homeRunLogs = 0;
-    FireMissionBattleOver();
+    FireMissionBattleOver(); BalloonBattleOver();
     g_gullsDressed = g_looksBack = 0; g_gullFull = 0; g_gullBlasts.clear();
     g_minions.clear(); g_spawnQueue.clear(); g_unuCfg.clear(); g_orbit.clear(); g_orbitEnemySeen = 0; g_orbitReleases = 0; g_boomer.clear(); g_magnet.clear(); g_magnetEnded.clear(); g_fireworkTypes.clear(); g_unuEng = eng;   // shortcut: up to 7 pinned colored copies per fired type are left each battle (keys can be stale next battle); free them if Fireworks sees heavy use
     g_unuStats.clear(); g_unuStatsNew = false; g_unuStatsAt = GetTickCount();
@@ -12549,6 +12554,7 @@ static void UnusualTick() {
   if (!eng) return;
   HomeRunTick();
   FireMissionTick();
+  BalloonTick();
   if (g_unuStatsNew && GetTickCount() - g_unuStatsAt > 120000) { g_unuStatsAt = GetTickCount(); UnusualSummary("so far"); }
   if (!EliteLookups()) return;                                         // shares the entity field offsets
   void* craft = PlayerCraft();
@@ -13272,6 +13278,172 @@ static void FireMissionBattleOver() {
   g_fireMissions.clear(); g_fmReady.clear(); g_fmLogs = 0;
 }
 
+// ---- Up, Up and Away: direct hits swell an enemy ship like a balloon; after N it lifts off, then pops ------------------
+// The hits come from the hitFlash hook (GfxBefore, direct hits of the player's own shells on ships). Each puff scales the
+// ship's localScale by 1.08 (to 1.5x) as the Elite size traits do at spawn; rescaling a LIVE ship is new, so the first
+// balloon of a battle logs its height, vertical speed, scale and FloatBehaviour._inWater every second. Lift = an upward
+// Rigidbody.AddForce(VelocityChange) of 1.15 g x dt each frame while vertical speed is under 6 m/s. It pops after 12 s of
+// lift or 60 m up: QueueSplash credited to the gun's WeaponSystem, a water splash below, size back. The size goes back
+// on every path: pop, death, back in the pool (inactive), battle end and an UnusualTick fault. Elite-resized ships are
+// left to RestoreAllShips at battle end (it runs first and puts their spawn size back). Host only in co-op.
+struct Balloon { void* ship; void* h; void* mount; V3 scale0; int puffs; float factor, lastPuff, y0, yPuff, top, tLift, tPop, lastT, nextLog; bool lifting, popped, elite, loud, pushed; void* fb; std::string who; };
+static std::vector<Balloon> g_balloons;
+static std::unordered_set<void*> g_balloonDone;                       // popped this battle: never pumped up again
+static int g_balloonLogs = 0, g_balloonLoud = 0;                      // per battle: first 3 lift-offs/pops in full; samples for the first balloon
+static const float kUpPuff = 1.08f, kUpMax = 1.5f, kUpGap = 0.4f, kUpLiftG = 1.15f, kUpVyCap = 6, kUpSecs = 12, kUpHeight = 60, kUpDamage = 400, kUpRadius = 15;
+static void *g_upVel = nullptr, *g_upGrav = nullptr, *g_upFbReg = nullptr; static int g_upFbEnt = -1, g_upFbIn = -1;
+static void BalloonLookups() {
+  static bool tried = false; if (tried) return; tried = true;
+  void* le = FindClass("Core", "LiveEntity"); void* rb = FindClass("UnityEngine", "Rigidbody"); void* fb = FindClass("Core", "FloatBehaviour");
+  if (!g_hrBody) g_hrBody = le ? FindMethod(le, "get_Body", 0) : nullptr;
+  if (!g_hrForce) g_hrForce = rb ? FindMethod(rb, "AddForce", 2, "UnityEngine.Vector3", "UnityEngine.ForceMode") : nullptr;
+  g_upVel = rb ? FindMethod(rb, "get_linearVelocity", 0) : nullptr; g_upGrav = rb ? FindMethod(rb, "get_useGravity", 0) : nullptr;
+  g_upFbReg = fb ? il2cpp_class_get_field_from_name(fb, "register") : nullptr;
+  void* fe = fb ? il2cpp_class_get_field_from_name(fb, "entity") : nullptr; void* fi = fb ? il2cpp_class_get_field_from_name(fb, "_inWater") : nullptr;
+  g_upFbEnt = fe ? (int)il2cpp_field_get_offset(fe) : -1; g_upFbIn = fi ? (int)il2cpp_field_get_offset(fi) : -1;
+  if (!g_hrBody || !g_hrForce || !g_upVel) Log("up, up and away: a lookup failed (get_Body %p AddForce %p get_linearVelocity %p); ships swell but do not lift", g_hrBody, g_hrForce, g_upVel);
+  if (!g_upFbReg || g_upFbEnt < 0 || g_upFbIn < 0) Log("up, up and away: FloatBehaviour register/entity/_inWater not found (%p %d %d); in-water state not logged", g_upFbReg, g_upFbEnt, g_upFbIn);
+}
+static void* BalloonFloat(void* ship) {                               // the ship's FloatBehaviour (only for the log)
+  void* reg = nullptr; if (!g_upFbReg || g_upFbEnt < 0) return nullptr;
+  il2cpp_field_static_get_value(g_upFbReg, &reg);
+  for (int i = 0; i < ListCount(reg); i++) { void* f = ListAt(reg, i); if (f && *(void**)((char*)f + g_upFbEnt) == ship) return f; }
+  return nullptr;
+}
+static int BalloonInWater(const Balloon& b) { return b.fb && Alive(b.fb) && g_upFbIn >= 0 ? *(bool*)((char*)b.fb + g_upFbIn) : -1; }
+static float BalloonVy(void* ship) {
+  void* body = g_hrBody ? Invoke(g_hrBody, ship) : nullptr; void* v = body && g_upVel ? Invoke(g_upVel, body) : nullptr;
+  return v ? ((V3*)((char*)v + 0x10))->y : 0;
+}
+static void BalloonScale(void* ship, V3 s) { void* tr = Invoke(m_getTransform, ship); if (tr) { void* a[1] = { &s }; Invoke(m_setLocalScale, tr, a); } }
+static void BalloonDeflate(Balloon& b) {                               // size back (once); the record stays for the fall log
+  if (b.factor != 1 && Alive(b.ship)) BalloonScale(b.ship, b.scale0);
+  b.factor = 1;
+}
+static void BalloonEnd(size_t i) { BalloonDeflate(g_balloons[i]); Unpin(g_balloons[i].h); g_balloons.erase(g_balloons.begin() + i); }
+static void BalloonHit(void* mount, void* ship) {
+  const UnusualCfg& c = UnuCfgOf(mount); if (c.upup <= 0) return;
+  UnuStats& st = StatsOf(mount);
+  st.upHits++;
+  if (g_coopRole == 2) { if (!st.upClient++) Log("up, up and away: '%s' hit on a co-op client; the host moves the ships, so no balloons here", st.name.c_str()); return; }
+  if (g_balloonDone.count(ship) || !IsShip(ship)) return;
+  float now = CrewLogNow();
+  Balloon* b = nullptr;
+  for (auto& x : g_balloons) if (x.ship == ship) { b = &x; break; }
+  if (b && (b->popped || now - b->lastPuff < kUpGap)) return;         // a machine gun's burst counts as one puff per 0.4 s
+  if (!b) {
+    void* tr = Invoke(m_getTransform, ship); void* sb = tr ? Invoke(m_getLocalScale, tr) : nullptr; if (!sb) return;
+    BalloonLookups();
+    V3 p = PosOf(ship);
+    Balloon n{ ship, Pin(ship), mount, *(V3*)((char*)sb + 0x10), 0, 1, 0, p.y, p.y, p.y, 0, 0, now, 0, false, false, false, false, false, BalloonFloat(ship), ShipTitle(ship) };
+    auto er = g_eliteRestore.find(ship); n.elite = er != g_eliteRestore.end() && er->second.scaled;
+    n.loud = g_balloonLoud++ == 0;
+    g_balloons.push_back(n); b = &g_balloons.back();
+  }
+  b->puffs++; b->lastPuff = now; st.upPuffs++;
+  float f = b->factor * kUpPuff; if (f > kUpMax) f = kUpMax;
+  if (f != b->factor) { b->factor = f; BalloonScale(ship, V3{ b->scale0.x * f, b->scale0.y * f, b->scale0.z * f }); }
+  void* tr = Invoke(m_getTransform, ship); void* sb = tr ? Invoke(m_getLocalScale, tr) : nullptr; V3 s = sb ? *(V3*)((char*)sb + 0x10) : V3{ 0, 0, 0 };
+  float y = PosOf(ship).y;
+  if (st.upPuffs <= 3) Log("up, up and away: '%s' puff %d on %s: scale x%.2f (localScale %.2f,%.2f,%.2f, was %.2f,%.2f,%.2f%s), y %.1f (%.1f before the first puff), in water %d",
+                           st.name.c_str(), b->puffs, b->who.c_str(), b->factor, s.x, s.y, s.z, b->scale0.x, b->scale0.y, b->scale0.z, b->elite ? ", Elite size" : "", y, b->y0, BalloonInWater(*b));
+  else DLog("up, up and away: '%s' puff %d on %s, scale x%.2f, y %.1f", st.name.c_str(), b->puffs, b->who.c_str(), b->factor, y);
+  if (!b->lifting && b->puffs >= c.upup) {
+    b->lifting = true; b->tLift = now; b->lastT = now; b->y0 = y; b->top = y; st.upLifts++;
+    if (g_upGrav && g_hrBody) { static bool told = false; void* body = Invoke(g_hrBody, ship); void* g = body ? Invoke(g_upGrav, body) : nullptr;
+      if (!told && g) { told = true; Log("up, up and away: a swollen ship's Rigidbody useGravity %d", *(bool*)((char*)g + 0x10)); } }
+    if (++g_balloonLogs <= 3) Log("up, up and away: '%s' %s lifts off after %d puffs (scale x%.2f, y %.1f; it sat %+.1f m from where it floated unswollen)", st.name.c_str(), b->who.c_str(), b->puffs, b->factor, y, y - b->yPuff);
+    else DLog("up, up and away: '%s' %s lifts off", st.name.c_str(), b->who.c_str());
+    ShowMessage(Colored("Up, up and away: " + b->who, "#ff5fc8"));
+  }
+}
+static void SafeBalloonHit(void* mount, void* ship) {
+  if (g_unuFaults < 0) return;
+  __try { BalloonHit(mount, ship); }
+  __except (FaultFilter("extra effects (balloon hit)", GetExceptionInformation())) { g_unuFaults = -1; SafeBalloonRestoreAll(); }
+}
+static void BalloonPop(Balloon& b, UnuStats& st, V3 p, float t) {
+  b.popped = true; b.tPop = CrewLogNow(); st.upPops++; g_balloonDone.insert(b.ship);
+  BalloonDeflate(b);
+  void* ws = Alive(b.mount) && g_oGmWs >= 0 ? *(void**)((char*)b.mount + g_oGmWs) : nullptr;
+  bool ok = ws && QueueSplash(p, kUpRadius, kUpDamage, ws, g_gfxEntityCode, g_gfxTeam);
+  TorpSetup(); TorpSplash(V3{ p.x, b.y0, p.z });                     // the splash on the water below
+  if (void* body = g_hrBody ? Invoke(g_hrBody, b.ship) : nullptr) { V3 v{ 0, -BalloonVy(b.ship) - 2, 0 }; int mode = 2; void* a[2] = { &v, &mode }; Invoke(g_hrForce, body, a); }   // stop climbing
+  float up = p.y - b.y0;
+  if (st.upPops <= 3) Log("up, up and away: '%s' %s popped %.0f m up after %.1f s of lift (blast %s, %.0f damage / %.0f m); size back", st.name.c_str(), b.who.c_str(), up, t, ok ? "queued" : "NOT queued", kUpDamage, kUpRadius);
+  else DLog("up, up and away: '%s' %s popped %.0f m up", st.name.c_str(), b.who.c_str(), up);
+  ShowMessage(Colored("Pop! " + b.who, "#ff5fc8"));
+}
+static void BalloonTick() {
+  if (g_balloons.empty()) return;
+  static void* goActive = nullptr; if (!goActive) { void* gc = FindClass("UnityEngine", "GameObject"); goActive = gc ? FindMethod(gc, "get_activeSelf", 0) : nullptr; }
+  float now = CrewLogNow();
+  for (size_t i = g_balloons.size(); i-- > 0; ) {
+    Balloon& b = g_balloons[i];
+    auto si = g_unuStats.find(b.mount); if (si == g_unuStats.end()) { BalloonEnd(i); continue; }
+    UnuStats& st = si->second;
+    void* go = goActive && Alive(b.ship) ? Invoke(m_getGameObject, b.ship) : nullptr; void* act = go ? Invoke(goActive, go) : nullptr;
+    if (!Alive(b.ship) || (act && !*(bool*)((char*)act + 0x10))) {    // back in the pool (or destroyed): size back before it is reused
+      st.upLost++; DLog("up, up and away: %s left the battle (puffs %d, %s); size back", b.who.c_str(), b.puffs, b.popped ? "popped" : b.lifting ? "in the air" : "swollen");
+      BalloonEnd(i); continue; }
+    V3 p = PosOf(b.ship);
+    bool alive = g_offLeAlive >= 0 && *(bool*)((char*)b.ship + g_offLeAlive);
+    float up = p.y - b.y0, dt = now - b.lastT; b.lastT = now;
+    if (b.lifting && p.y > b.top) { b.top = p.y; if (up > st.upBest) st.upBest = up; }
+    if (!alive && !b.popped) {                                        // shot down while swollen: it falls (or sinks) at its own size
+      st.upDowned++; b.popped = true; b.tPop = now; g_balloonDone.insert(b.ship); BalloonDeflate(b);
+      if (st.upDowned <= 3) Log("up, up and away: %s was sunk while swollen (%d puffs, %s, %.0f m up); size back", b.who.c_str(), b.puffs, b.lifting ? "in the air" : "still on the water", b.lifting ? up : 0.0f);
+      else DLog("up, up and away: %s sunk while swollen", b.who.c_str());
+      if (!b.lifting) { BalloonEnd(i); continue; }
+    }
+    if (b.lifting && !b.popped) {
+      float t = now - b.tLift;
+      if (b.loud && now >= b.nextLog) {                               // the first balloon: how a scaled ship floats and rises
+        b.nextLog = now + 1;
+        Log("up, up and away: %s %.1f s into the lift: %.1f m up, vertical speed %.1f m/s, scale x%.2f, in water %d", b.who.c_str(), t, up, BalloonVy(b.ship), b.factor, BalloonInWater(b));
+      }
+      if (t >= kUpSecs || up >= kUpHeight) { BalloonPop(b, st, p, t); continue; }
+      void* body = g_hrBody && g_hrForce && g_upVel ? Invoke(g_hrBody, b.ship) : nullptr;
+      if (body && dt > 0 && dt < 0.5f) {
+        float vy = BalloonVy(b.ship), dv = kUpLiftG * 9.81f * dt;
+        if (vy + dv > kUpVyCap) dv = kUpVyCap - vy;
+        if (dv > 0) { V3 v{ 0, dv, 0 }; int mode = 2; void* a[2] = { &v, &mode }; Invoke(g_hrForce, body, a); }   // ForceMode.VelocityChange
+      }
+      continue;
+    }
+    if (b.popped) {                                                   // falling: log the landing, push it down once if it hangs
+      float t = now - b.tPop;
+      if (p.y <= b.y0 + 2) {
+        if (g_balloonLogs <= 3 || b.loud) Log("up, up and away: %s came down %.1f s after the pop (top %.0f m)", b.who.c_str(), t, b.top - b.y0);
+        BalloonEnd(i); continue;
+      }
+      if (!b.pushed && t > 4 && p.y > b.top - 3) {
+        b.pushed = true; void* body = Invoke(g_hrBody, b.ship);
+        if (body) { V3 v{ 0, -15, 0 }; int mode = 2; void* a[2] = { &v, &mode }; Invoke(g_hrForce, body, a); }
+        Log("up, up and away: %s still hung %.0f m up %.0f s after the pop; pushed down (no gravity on it?)", b.who.c_str(), up, t);
+      }
+      if (t > 25) { Log("up, up and away: %s had not come down 25 s after the pop (%.0f m up); stopped watching it", b.who.c_str(), up); BalloonEnd(i); }
+      continue;
+    }
+    if (now - b.lastPuff > 60) { DLog("up, up and away: %s not hit for 60 s, %d puffs; size back", b.who.c_str(), b.puffs); BalloonEnd(i); }   // swollen but not lifted
+  }
+}
+static void BalloonRestoreAll(bool battleEnd) {
+  for (auto& b : g_balloons) { if (!(battleEnd && b.elite)) BalloonDeflate(b); Unpin(b.h); }   // Elite-sized: RestoreAllShips already put the spawn size back
+  g_balloons.clear();
+}
+static void SafeBalloonRestoreAll() { __try { BalloonRestoreAll(false); } __except (EXCEPTION_EXECUTE_HANDLER) { Log("up, up and away: ships could not be restored after the fault"); } }
+static void BalloonBattleOver() {
+  for (auto& e : g_unuStats) {                                       // always logged, like the gulls
+    const UnuStats& s = e.second; if (s.cfg.upup <= 0 || !s.upHits) continue;
+    Log("up, up and away, last battle: '%s' %d direct hits on ships, %d puffs, %d ships lifted off, %d popped, %d sunk while swollen, %d left while swollen, best %.0f m up",
+        s.name.c_str(), s.upHits, s.upPuffs, s.upLifts, s.upPops, s.upDowned, s.upLost, s.upBest);
+  }
+  if (!g_balloons.empty()) Log("up, up and away: %d swollen ships put back to size at the battle change", (int)g_balloons.size());
+  BalloonRestoreAll(true);
+  g_balloonDone.clear(); g_balloonLogs = g_balloonLoud = 0;
+}
+
 struct HitCtx { bool post; void* mount; void* ce; const GunFx* fx; float hpBefore; bool client; bool direct; };
 // Before the game's hitFlash: the damage to apply. ctx->post asks for GfxAfter.
 static float GfxBefore(void* self, bool direct, char* crsp, float dmg, HitCtx* ctx) {
@@ -13302,6 +13474,7 @@ static float GfxBefore(void* self, bool direct, char* crsp, float dmg, HitCtx* c
   if (*(int*)((char*)self + g_oHpTeam) == g_gfxTeam) return dmg;
   void* ce = *(void**)((char*)self + g_oHpCe); if (!ce) return dmg;
   if (direct && KindOf(ce).surface) SafeFireMissionHit(mount, ce);     // one call per shell that hits (blasts never count)
+  if (direct && KindOf(ce).ship) SafeBalloonHit(mount, ce);
   bool ship = KindOf(ce).ship;
   const GunFx& gx = GfxOf(mount);
   float f = 1.0f;
@@ -17553,7 +17726,7 @@ static void Hooked_PMLateUpdate(void* self, void* method) {
   }
   if (g_ready && g_unuFaults >= 0) {
     __try { UnusualTick(); }
-    __except (FaultFilter("extra effects (spawns)", GetExceptionInformation())) { g_unuFaults = -1; SafeRestoreAllHelperLooks(); }
+    __except (FaultFilter("extra effects (spawns)", GetExceptionInformation())) { g_unuFaults = -1; SafeRestoreAllHelperLooks(); SafeBalloonRestoreAll(); }
   }
   if (g_ready && g_autoUtility && g_autoFaults >= 0) {
     __try { AutoUtilityTick(); }

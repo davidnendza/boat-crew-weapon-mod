@@ -1,0 +1,27 @@
+newmtl Black
+Kd 0.040 0.040 0.050
+
+newmtl Cyan
+Kd 0.200 0.850 0.950
+
+newmtl Gunmetal
+Kd 0.200 0.220 0.250
+
+newmtl Ochre
+Kd 0.820 0.450 0.180
+
+newmtl Pink
+Kd 1.000 0.370 0.780
+
+newmtl Steel
+Kd 0.580 0.600 0.640
+
+newmtl White
+Kd 0.950 0.950 0.950
+
+newmtl Wood
+Kd 0.500 0.320 0.160
+
+newmtl Yellow
+Kd 1.000 0.820 0.100
+
