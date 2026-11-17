@@ -60,6 +60,10 @@ RIGS = {
     # so the guns are turret parts. Bores at x -0.30 and 0.02 in the pivot frame, along +z
     'm1919': dict(stand=None, pivot=(0.139, 0.052, 0.101), barrels=[((-0.051, 0, -0.125), (0, 90, 0))],
                   seats=[(0, -1.5, -0.376)], shoot=[(-0.302, 0, 0.95), (0.024, 0, 0.95)]),
+    # 5"/25 (5-inch 25 Gun Player), read 2026-11-16: Stand at the root (deck y -1.32), the barrel transform sits on the
+    # pivot unturned; bore on the axis, muzzle z 2.85 in the pivot frame
+    'us5': dict(stand=((0, 0, 0), 0), pivot=(0, 0.072, -0.068), barrels=[((0, 0, 0), (0, 0, 0))],
+                seats=[(-0.956, -0.761, -0.14), (0.956, -0.761, -0.14)], shoot=[(0, 0, 2.85)]),
 }
 
 
@@ -678,7 +682,50 @@ def up_up_away():
     return m
 
 
-MODELS = [hangar, mother_duck, kamikaze_gull, gull_bomber, boomerang, fireworks, orbital, magnet, home_run, fire_mission, up_up_away]
+def big_brother():
+    """Big Brother (5-inch, every 40th shot calls in a Fletcher): a destroyer's enclosed gun house with a watching eye on
+    the roof and a mini Fletcher steaming round the pedestal."""
+    m = Model('big_brother', 'us5')
+    s = m.stand()
+    cyl(s, 'Grey', (0, -1.317, 0), (0, -1.2, 0), 0.85, 0.8, seg=24)
+    cyl(s, 'Navy', (0, -1.2, 0), (0, -0.62, 0), 0.4, 0.34, seg=18)
+    cyl(s, 'Pink', (0, -0.95, 0), (0, -0.9, 0), 0.405, seg=18, caps=False)
+    box(s, 'Water', (0, -1.26, 1.15), (1.9, 0.11, 0.44))                          # a strip of sea for the little brother
+    hull = [(-0.82, 0), (-0.62, -0.11), (0.55, -0.11), (0.84, 0), (0.55, 0.11), (-0.62, 0.11)]
+    prism(s, 'Hull', hull, 0.14, c=(0, -1.13, 1.15))
+    box(s, 'Pink', (0, -1.13, 1.15), (1.2, 0.025, 0.225))                          # the tier's stripe at the waterline
+    box(s, 'Deck', (0, -1.055, 1.15), (1.3, 0.012, 0.18))
+    box(s, 'Hull', (0.36, -0.99, 1.15), (0.34, 0.12, 0.15))                        # forward superstructure and bridge
+    box(s, 'Grey', (0.44, -0.9, 1.15), (0.14, 0.08, 0.13))
+    box(s, 'Black', (0.51, -0.9, 1.15), (0.01, 0.025, 0.12))
+    cyl(s, 'Steel', (0.36, -0.93, 1.15), (0.36, -0.68, 1.15), 0.01, seg=5)
+    for x in (0.08, -0.1):                                                         # the two stacks
+        cyl(s, 'Grey', (x, -1.05, 1.15), (x, -0.86, 1.15), 0.04, seg=10)
+        cyl(s, 'Black', (x, -0.861, 1.15), (x, -0.85, 1.15), 0.034, seg=10)
+    for x, d in ((0.66, 1), (0.53, 1), (-0.42, -1), (-0.56, -1), (-0.7, -1)):     # five 5-inch mounts
+        cyl(s, 'Grey', (x, -1.05, 1.15), (x, -1.0, 1.15), 0.045, seg=10)
+        cyl(s, 'Steel', (x, -1.025, 1.15), (x + 0.12 * d, -1.02, 1.15), 0.007, seg=5)
+    t = m.turret()
+    side = [(-0.45, -1.3), (0.45, -1.3), (0.55, -0.3), (0.3, 1.0), (-0.45, 1.0)]   # the gun house, side on (y, z)
+    prism(t, 'Hull', side, 1.7, r=(0, 0, 90))
+    for x in (-0.86, 0.86):
+        box(t, 'Pink', (x, 0.1, -0.15), (0.012, 0.08, 2.1))
+    box(t, 'Black', (0, 0.0, 1.005), (0.36, 0.5, 0.02))                            # the gun port
+    box(t, 'Grey', (0, 0.6, -0.8), (0.5, 0.12, 0.4))                               # the pointer's hood
+    sphere(t, 'White', (0, 0.62, -0.1), 0.24, rings=10, seg=16)                    # Big Brother is watching
+    cyl(t, 'Pink', (0, 0.62, 0.1), (0, 0.62, 0.14), 0.13, seg=16)
+    cyl(t, 'Black', (0, 0.62, 0.135), (0, 0.62, 0.15), 0.06, seg=12)
+    cyl(t, 'Steel', (0.5, 0.55, -1.1), (0.5, 1.25, -1.1), 0.015, seg=6)           # a pennant at the back
+    box(t, 'Pink', (0.5, 1.15, -1.28), (0.01, 0.12, 0.34))
+    b = m.barrel_from_pivot()
+    cyl(b, 'Grey', (0, 0, 0.95), (0, 0, 1.25), 0.17, 0.12, seg=16)                 # the blast bag
+    cyl(b, 'Steel', (0, 0, 1.25), (0, 0, 2.85), 0.085, 0.075, seg=16)
+    cyl(b, 'Pink', (0, 0, 2.55), (0, 0, 2.65), 0.088, seg=16, caps=False)
+    cyl(b, 'Black', (0, 0, 2.845), (0, 0, 2.86), 0.07, seg=14)
+    return m
+
+
+MODELS = [hangar, mother_duck, kamikaze_gull, gull_bomber, boomerang, fireworks, orbital, magnet, home_run, fire_mission, up_up_away, big_brother]
 
 
 # ---- previews: flat-shaded painter's renders from three sides, seats red and stock shoot points cyan -------------------

@@ -11590,6 +11590,7 @@ static void TryInstallFemale() {
 //   homerun=H    a ship the gun kills is thrown about H m (+-14%) into the air with a spin (HomeRunLaunch)
 //   firemission=N every Nth direct hit marks the target with smoke; 4 s later a barrage of 6 splashes walks across it
 //   upup=N       direct hits swell a ship 1.08x each (to 1.5x); after N it lifts off, then pops (BalloonHit / BalloonTick)
+//   bigbrother=N every Nth shot a full-size friendly Fletcher comes as a call-in for 45 s (one at a time; BigBrotherCall)
 // Spawning uses the path the game's own console command takes (SpawnEntityCommand.Spawn, verified in the disassembly):
 // EntitySpawn.spawnFrom(pos, euler, spawner null, prefab, GameManager.instance.entityPooler), prefab from the pooler's
 // ObjType list (+0x28: name +0x10, prefab +0x18). A plane gets its speed like PlaneCatapult gives it:
@@ -11606,13 +11607,14 @@ const char* kUnusualDefs =
   "[unique]\nname=Magnet\nmodel=magnet\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nweight=0\nline=shells home in gently, and every hit pulls the enemy ship toward you\nflavor=Get over here.\nfx.set.magnet=6\nfx.set.seek=45\n\n"
   "[unique]\nname=Home Run\nmodel=home_run\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nline=ships it kills are knocked 60-80 m into the air\nflavor=Swing for the fences.\nfx.set.homerun=70\n\n"
   "[unique]\nname=Fire Mission\nmodel=fire_mission\nmodel_material=own\nbase=3-inch Gun Player\nuses=6\nline=every 6th hit marks the target with smoke, and a barrage walks across it 4 s later\nflavor=Fire for effect.\nfx.set.firemission=6\n\n"
-  "[unique]\nname=Up, Up and Away\nmodel=up_up_away\nmodel_material=own\nbase=M1919 Browning\nuses=6\nline=hits pump enemy boats up like balloons: after 5 they float off and pop\nflavor=Lighter than air. Briefly.\nfx.set.upup=5\n";
+  "[unique]\nname=Up, Up and Away\nmodel=up_up_away\nmodel_material=own\nbase=M1919 Browning\nuses=6\nline=hits pump enemy boats up like balloons: after 5 they float off and pop\nflavor=Lighter than air. Briefly.\nfx.set.upup=5\n\n"
+  "[unique]\nname=Big Brother\nmodel=big_brother\nmodel_material=own\nbase=5-inch 25 Gun Player\nuses=6\nline=every 40th shot a full-size Fletcher destroyer steams in to fight beside you for 45 s\nflavor=Don\'t make me come over there.\nfx.set.bigbrother=40\n";
 
-struct UnusualCfg { int hangar, duck, gull; bool boomerang, fireworks; float orbital, magnet; int shots; float homerun; int firemission, upup; };
+struct UnusualCfg { int hangar, duck, gull; bool boomerang, fireworks; float orbital, magnet; int shots; float homerun; int firemission, upup, bigbro; };
 static std::unordered_map<void*, UnusualCfg> g_unuCfg;               // mount -> its powers, per battle
 static void* g_unuEng = nullptr;
 static int g_unuFaults = 0;
-// kind 0 plane, 1 boat, 2 gull. owner >= 0: asked for by that co-op player (the host spawns it; boat is where their boat is)
+// kind 0 plane, 1 boat, 2 gull, 3 Big Brother's destroyer. owner >= 0: asked for by that co-op player (the host spawns it; boat is where their boat is)
 struct SpawnReq { int kind; void* mount; V3 pos, dir; int shot; int owner = -1; V3 boat = { 0, 0, 0 }; };
 static std::vector<SpawnReq> g_spawnQueue;
 static bool CoopAskHelper(const SpawnReq& r);
@@ -11621,7 +11623,7 @@ struct Minion { void* ent; void* handle; void* mount; int kind; DWORD born, life
   // a Kamikaze Gull steered by the mod (GullSteer): its target (pinned), the plane's AI it switched off, its velocity
   void* target = nullptr; void* tHandle = nullptr; void* ai = nullptr; void* fo = nullptr; V3 vel{}, lastPos{}, aim{};
   float lastT = -1, speed = 0, nearest = 1e30f, lastD = 1e30f, fromD = 0; DWORD lastTry = 0; bool steered = false, full = false;
-  float age = 0, ageT = -1; };                                         // a gull's age in game time (s): pauses and slow motion don't eat its life
+  float age = 0, ageT = -1, hp0 = -1; };                              // hp0: a destroyer's hull HP when it came (damage taken)                                         // a gull's age in game time (s): pauses and slow motion don't eat its life
 static std::vector<Minion> g_minions;
 struct OrbitShot { float angle; bool released; };
 static std::unordered_map<void*, OrbitShot> g_orbit;                 // shot -> its place in the ring
@@ -11655,7 +11657,7 @@ static const UnusualCfg& UnuCfgOf(void* mount) {
   if (it) {
     u.hangar = (int)ItemFx(*it, "hangar"); u.duck = (int)ItemFx(*it, "duck"); u.gull = (int)ItemFx(*it, "gull");
     u.boomerang = ItemFx(*it, "boomerang") > 0; u.fireworks = ItemFx(*it, "fireworks") > 0;
-    u.orbital = (float)ItemFx(*it, "orbital"); u.magnet = (float)ItemFx(*it, "magnet"); u.homerun = (float)ItemFx(*it, "homerun"); u.firemission = (int)ItemFx(*it, "firemission"); u.upup = (int)ItemFx(*it, "upup");
+    u.orbital = (float)ItemFx(*it, "orbital"); u.magnet = (float)ItemFx(*it, "magnet"); u.homerun = (float)ItemFx(*it, "homerun"); u.firemission = (int)ItemFx(*it, "firemission"); u.upup = (int)ItemFx(*it, "upup"); u.bigbro = (int)ItemFx(*it, "bigbrother");
   }
   return g_unuCfg.emplace(mount, u).first->second;
 }
@@ -11856,18 +11858,19 @@ static void SafeChainStreak(const ChainState& cs, void* next, const V3& np) {
 // every 2 minutes while something happens and when the battle ends.
 struct UnuStats {
   std::string name; UnusualCfg cfg{};
-  int shots = 0, spawned[3] = {}, capped[3] = {}, lost[3] = {}, expired[3] = {}, minionKills[3] = {}, kills = 0;
+  int shots = 0, spawned[4] = {}, capped[4] = {}, lost[4] = {}, expired[4] = {}, minionKills[4] = {}, kills = 0;
   int gullHits = 0, gullSteered = 0, gullMissed = 0, gullTerrain = 0, gullSea = 0, gullNearN = 0; float gullNearSum = 0;   // Kamikaze Gull
   int turned = 0, noTarget = 0, orbitJoined = 0, orbitFull = 0, orbitLaunched = 0, orbitDropped = 0;
   int sparks = 0, bursts = 0, magnetPulls = 0;
   int homeRuns = 0, homeLanded = 0, homeSkipped = 0; float homeBest = 0;   // Home Run
   int fmHits = 0, fmCount = 0, fmCalled = 0, fmCooling = 0, fmSmoke = 0, fmBarrages = 0, fmShells = 0, fmNotQueued = 0, fmKills = 0, fmClient = 0;   // Fire Mission
   int upHits = 0, upPuffs = 0, upLifts = 0, upPops = 0, upDowned = 0, upLost = 0, upClient = 0; float upBest = 0;   // Up, Up and Away
+  int bbCallin = 0, bbFallback = 0; float bbDamage = 0;                // Big Brother: how each destroyer came, hull HP it lost
   DWORD sparkAt = 0; V3 sparkPos{};
 };
 static std::unordered_map<void*, UnuStats> g_unuStats;
 static bool g_unuStatsNew = false; static DWORD g_unuStatsAt = 0;
-static const char* kMinionWord[3] = { "fighter", "PT boat", "gull" };
+static const char* kMinionWord[4] = { "fighter", "PT boat", "gull", "destroyer" };
 static UnuStats& StatsOf(void* mount) {
   g_unuStatsNew = true;
   auto s = g_unuStats.find(mount);
@@ -11879,17 +11882,18 @@ static void Append(std::string& t, const char* fmt, ...) {
   char b[256]; va_list a; va_start(a, fmt); vsnprintf(b, sizeof b, fmt, a); va_end(a); t += b;
 }
 static void UnusualSummary(const char* when) {
-  static const char* gone[3] = { "lost", "sunk", "lost" };
-  static const char* home[3] = { "flew home", "sailed home", "found no target in time" };
+  static const char* gone[4] = { "lost", "sunk", "lost", "sunk" };
+  static const char* home[4] = { "flew home", "sailed home", "found no target in time", "steamed home" };
   for (auto& e : g_unuStats) {
     const UnuStats& s = e.second; const UnusualCfg& c = s.cfg; std::string t;
     Append(t, "'%s': %d shots", s.name.c_str(), s.shots);
-    int every[3] = { c.hangar, c.duck, c.gull };
-    for (int k = 0; k < 3; k++) {
+    int every[4] = { c.hangar, c.duck, c.gull, c.bigbro };
+    for (int k = 0; k < 4; k++) {
       if (every[k] <= 0) continue;
       Append(t, "; %d %ss launched (%d more skipped, cap reached), %d %s, %d %s", s.spawned[k], kMinionWord[k], s.capped[k], s.lost[k], gone[k], s.expired[k], home[k]);
       if (k == 2) Append(t, ", %d blew up next to a ship", s.gullHits);
       else Append(t, ", %d kills by them", s.minionKills[k]);
+      if (k == 3) Append(t, " (%d as call-ins, %d placed by the mod; %.0f hull HP lost)", s.bbCallin, s.bbFallback, s.bbDamage);
     }
     if (c.boomerang) Append(t, "; %d shots turned round for a second pass, %d had no target to turn to", s.turned, s.noTarget);
     if (c.fireworks) Append(t, "; %d bursts (%d sparks)", s.bursts, s.sparks);
@@ -11927,7 +11931,7 @@ static void FireworksColor(void* pj) {
 static void UnusualOnShot(void* pj, void* mount) {
   if (g_offPjVel < 0 || g_offPjPos < 0 || g_offPjTarget < 0) return;  // SeekScan looks these up on its first frame
   const UnusualCfg& cfg = UnuCfgOf(mount);
-  if (!cfg.hangar && !cfg.duck && !cfg.gull && !cfg.boomerang && !cfg.fireworks && cfg.orbital <= 0 && cfg.magnet <= 0 && cfg.homerun <= 0 && cfg.firemission <= 0 && cfg.upup <= 0) return;
+  if (!cfg.hangar && !cfg.duck && !cfg.gull && !cfg.boomerang && !cfg.fireworks && cfg.orbital <= 0 && cfg.magnet <= 0 && cfg.homerun <= 0 && cfg.firemission <= 0 && cfg.upup <= 0 && cfg.bigbro <= 0) return;
   if (IsCopyShot(pj)) {                                               // co-op: another player's shot. Only the colors show here: their
     if (cfg.fireworks) FireworksColor(pj);                            // helpers come from the host, and the ring, turns and pulls
     return;                                                           // need targets only the shooter's machine has
@@ -11941,6 +11945,7 @@ static void UnusualOnShot(void* pj, void* mount) {
   if (c.hangar > 0 && c.shots % c.hangar == 0) g_spawnQueue.push_back({ 0, mount, pos, dir, c.shots });
   if (c.duck > 0 && c.shots % c.duck == 0) g_spawnQueue.push_back({ 1, mount, pos, dir, c.shots });
   if (c.gull > 0 && c.shots % c.gull == 0) g_spawnQueue.push_back({ 2, mount, pos, dir, c.shots });
+  if (c.bigbro > 0 && c.shots % c.bigbro == 0) g_spawnQueue.push_back({ 3, mount, pos, dir, c.shots });
   if (c.boomerang) g_boomer[pj] = { mount, 0 };
   if (c.magnet > 0) g_magnet[pj] = { nullptr, pos, c.magnet, mount };
   if (c.orbital > 0) {
@@ -12152,7 +12157,7 @@ static void* FindEntityPrefab(void* pooler, const char* want) {
     if (!listed) all += s + "; ";
     if (!hit && pf && s.find(want) != std::string::npos) hit = pf;
   }
-  if (!listed) { listed = true; DLog("spawner: %d spawnable entities: %s", n, all.c_str()); }
+  if (!listed) { listed = true; Log("spawner: %d spawnable entities: %s", n, all.c_str()); }   // always: Big Brother needs a Fletcher in it
   if (!hit) Log("spawner: no spawnable entity named like '%s'", want);
   cache[want] = hit;                                                   // prefabs are assets: they live for the whole game
   return hit;
@@ -12183,6 +12188,52 @@ static void* SpawnFriendly(const char* want, V3 pos, V3 dir, float scale, float 
   }
   DLog("spawner: spawned '%s' %p (team %d -> %d) at %.0f,%.0f,%.0f", want, ent, team, myTeam, pos.x, pos.y, pos.z);
   return ent;
+}
+// ---- Big Brother (2026-11-16) -----------------------------------------------------------------------------------------
+// The Fletcher comes the way the game's own boat call-ins do (FactionCallinSpawner's coroutine, read in the disassembly
+// 2026-11-16): CallinMethods.setSurfaceSpawnBySearch(team, distance) puts its spawnCenter on free sea that far from the
+// player boat, then callInBoat(prefab, team) (0x180945630) takes the ship from GameManager.entityPooler, sets its team,
+// rangeOfInfluence 10000 and spawnedFrom = that CallinMethods (whose getPath is an empty path, as for real call-ins) and
+// puts its Rigidbody at the spawnCenter. The CallinMethods is CallInManager.instance.callinMethods. Without one (or if
+// the call fails) the mod places it with SpawnFriendly, kBigBrotherDist to the right of the gun's line of fire.
+static const float kBigBrotherDist = 300.0f;
+static int g_bbLogs = 0;                                              // destroyer events logged in full this battle (first 3)
+static float HullHp(void* ent) {                                     // the sum of a CombatEntity's hull HealthPart HP
+  static void* mGetHp = nullptr; if (!mGetHp) { void* hp = FindClass("Core", "HealthPart"); mGetHp = hp ? FindMethod(hp, "get_HP", 0) : nullptr; }
+  void* hull = ent && g_offCeHull >= 0 ? *(void**)((char*)ent + g_offCeHull) : nullptr; float sum = 0;
+  for (int i = 0; i < ListCount(hull) && mGetHp; i++) { void* part = ListAt(hull, i); void* h = part ? Invoke(mGetHp, part) : nullptr; if (h) sum += *(float*)((char*)h + 0x10); }
+  return sum;
+}
+static void* BigBrotherCall(V3 boat, V3 flat, bool forOther, bool* asCallin) {
+  *asCallin = false;
+  void* pooler = EntityPooler(); if (!pooler) return nullptr;
+  const char* want = "Fletcher Callin";                                // the call-in card's own prefab first, then any Fletcher
+  void* prefab = FindEntityPrefab(pooler, want); if (!prefab) prefab = FindEntityPrefab(pooler, want = "Fletcher");
+  if (!prefab) return nullptr;
+  static void *mgrInst = nullptr, *mSearch = nullptr, *mCall = nullptr; static int offCm = -2, offCenter = -1;
+  if (offCm == -2) {
+    void* cmK = FindClass("Core", "CallInManager"); void* cmM = FindClass("Core", "CallinMethods");
+    mgrInst = cmK ? il2cpp_class_get_field_from_name(cmK, "instance") : nullptr;
+    void* f = cmK ? il2cpp_class_get_field_from_name(cmK, "callinMethods") : nullptr; offCm = f ? (int)il2cpp_field_get_offset(f) : -1;
+    void* fc = cmM ? il2cpp_class_get_field_from_name(cmM, "spawnCenter") : nullptr; offCenter = fc ? (int)il2cpp_field_get_offset(fc) : -1;
+    mSearch = cmM ? FindMethod(cmM, "setSurfaceSpawnBySearch", 2) : nullptr; mCall = cmM ? FindMethod(cmM, "callInBoat", 2) : nullptr;
+    Log("big brother: CallInManager.instance %p callinMethods +0x%X spawnCenter +0x%X setSurfaceSpawnBySearch %p callInBoat %p", mgrInst, offCm, offCenter, mSearch, mCall);
+  }
+  void* craft = PlayerCraft();
+  int team = craft && g_offLeTeam >= 0 ? *(int*)((char*)craft + g_offLeTeam) : 0;
+  void* mgr = nullptr; if (mgrInst) il2cpp_field_static_get_value(mgrInst, &mgr);
+  void* cm = mgr && offCm >= 0 ? *(void**)((char*)mgr + offCm) : nullptr;
+  if (!forOther && cm && mSearch && mCall && offCenter >= 0 && *(void**)((char*)cm + offCenter)) {   // the host's own call: its boat is the player craft
+    float d = kBigBrotherDist; void* sa[2] = { &team, &d };
+    void* exc = nullptr; il2cpp_runtime_invoke(mSearch, cm, sa, &exc);
+    void* ent = nullptr;
+    if (!exc) { void* ca[2] = { prefab, &team }; ent = Invoke(mCall, cm, ca); }
+    if (ent) { *asCallin = true; return ent; }
+    Log("big brother: the call-in route failed (%s); placing the destroyer by hand", exc ? "setSurfaceSpawnBySearch threw" : "callInBoat gave nothing");
+  }
+  V3 side{ flat.z, 0, -flat.x };                                       // to the right of where the gun is firing
+  V3 p{ boat.x + side.x * kBigBrotherDist, boat.y, boat.z + side.z * kBigBrotherDist };
+  return SpawnFriendly(want, p, flat, 1.0f, 0);
 }
 // ---- helpers' looks (2026-10-30) -------------------------------------------------------------------------------------
 // A helper is a pooled game entity: the game hands the same object out again later (a Dauntless call-in, say), and
@@ -12544,6 +12595,12 @@ static void UnusualTick() {
       const UnuStats& s = e.second; if (s.cfg.homerun <= 0 || !(s.homeRuns + s.homeSkipped)) continue;
       Log("home run, last battle: '%s' launched %d ships, %d came down, best %.0f m; %d kills not launched (one in the air already, no body, or co-op client)", s.name.c_str(), s.homeRuns, s.homeLanded, s.homeBest, s.homeSkipped);
     }
+    for (auto& e : g_unuStats) {                                       // always logged, like the gulls
+      const UnuStats& s = e.second; if (s.cfg.bigbro <= 0 || !(s.spawned[3] + s.capped[3])) continue;
+      Log("big brother, last battle: '%s' %d shots, %d destroyers came (%d as call-ins, %d placed by the mod; %d skipped, one already out), %d sunk, %d steamed home, %d kills by them, %.0f hull HP lost",
+          s.name.c_str(), s.shots, s.spawned[3], s.bbCallin, s.bbFallback, s.capped[3], s.lost[3], s.expired[3], s.minionKills[3], s.bbDamage);
+    }
+    g_bbLogs = 0;
     for (auto& h : g_homeRuns) Unpin(h.h);
     g_homeRuns.clear(); g_homeRunLogs = 0;
     FireMissionBattleOver(); BalloonBattleOver();
@@ -12559,8 +12616,8 @@ static void UnusualTick() {
   if (!EliteLookups()) return;                                         // shares the entity field offsets
   void* craft = PlayerCraft();
   for (SpawnReq& r : g_spawnQueue) {
-    static const int cap[3] = { 3, 2, 4 };
-    static const char* says[3] = { "Fighter launched!", "A duckling joins you!", "Gull away!" };
+    static const int cap[4] = { 3, 2, 4, 1 };
+    static const char* says[4] = { "Fighter launched!", "A duckling joins you!", "Gull away!", "Big Brother is here!" };
     if (r.owner < 0 && g_coopRole == 2 && g_coopHelpers) {             // co-op client: the host spawns it, so everyone sees it
       if (CoopAskHelper(r)) ShowMessage(Colored(says[r.kind], "#ff5fc8"));
       continue;
@@ -12579,9 +12636,20 @@ static void UnusualTick() {
       V3 p{ c.x + side.x * 40, c.y, c.z + side.z * 40 };
       ent = SpawnFriendly("PT-109", p, flat, 0.6f, 0, &s0); life = 120000;
     }
+    else if (r.kind == 3 && (craft || r.owner >= 0)) {               // full size: nothing to restore
+      V3 c = r.owner >= 0 ? r.boat : PosOf(craft); bool callin = false;
+      ent = BigBrotherCall(c, flat, r.owner >= 0, &callin); life = 45000;
+      if (ent) {
+        UnuStats& st = StatsOf(r.mount); (callin ? st.bbCallin : st.bbFallback)++;
+        float hp = HullHp(ent); V3 at = PosOf(ent);
+        if (g_bbLogs < 3) { g_bbLogs++; Log("big brother: '%s' shot %d: %s '%s' arrived %s, %.0f m from your boat (hull %.0f HP, team %d)", st.name.c_str(), r.shot, ClassOf(ent), NameOf(ent).c_str(),
+                                             callin ? "as a call-in" : "placed by the mod", Dist3(at, c), hp, g_offLeTeam >= 0 ? *(int*)((char*)ent + g_offLeTeam) : -1); }
+      } else Log("big brother: '%s' shot %d: no destroyer (no Fletcher in the entity pool, or no boat)", StatsOf(r.mount).name.c_str(), r.shot);
+    }
     if (ent) {
       AddHelperLook(ent, s0, s0.x != 0, r.kind == 2);
       g_minions.push_back({ ent, Pin(ent), r.mount, r.kind, GetTickCount(), life, r.owner });
+      if (r.kind == 3) g_minions.back().hp0 = HullHp(ent);
       if (r.kind == 2) { g_minions.back().vel = V3{ flat.x * 90, 0, flat.z * 90 }; g_minions.back().lastPos = PosOf(ent); }   // its launch, for GullSteer
       if (r.owner < 0) ShowMessage(Colored(says[r.kind], "#ff5fc8"));
       UnuStats& st = StatsOf(r.mount); st.spawned[r.kind]++;
@@ -12624,7 +12692,9 @@ static void UnusualTick() {
         else if ((boom = NearestOtherEnemyShip(at, m.target, 35.0f, &q, true)) != nullptr) boomAt = AimPointOn(boom);   // boats and shore guns (David 2026-10-28)
       }
     }
-    bool expired = m.kind == 2 ? m.age * 1000 > m.life : tick - m.born > m.life;   // after GullSteer: a steered gull gets time to get there; gulls in game time
+    bool expired = m.kind == 2 ? m.age * 1000 > m.life : tick - m.born > m.life;
+    if (expired && m.kind == 3 && craft && tick - m.born < m.life + 30000 && Dist3(PosOf(m.ent), PosOf(craft)) < 700) expired = false;   // not under your nose
+   // after GullSteer: a steered gull gets time to get there; gulls in game time
     if (alive && !boom && !sea && !expired) { i++; continue; }
     unsigned secs = m.kind == 2 ? (unsigned)m.age : (tick - m.born) / 1000;
     if (m.kind == 2) {
@@ -12634,7 +12704,8 @@ static void UnusualTick() {
     std::string tn = m.target ? NameOf(m.target) : std::string();
     if (!alive) {
       st.lost[m.kind]++;
-      DLog("extra effects: '%s' %s %s after %u s", st.name.c_str(), kMinionWord[m.kind], m.kind == 1 ? "sunk" : "lost (shot down or crashed)", secs);
+      DLog("extra effects: '%s' %s %s after %u s", st.name.c_str(), kMinionWord[m.kind], m.kind == 1 || m.kind == 3 ? "sunk" : "lost (shot down or crashed)", secs);
+      if (m.kind == 3) { st.bbDamage += m.hp0 > 0 ? m.hp0 : 0; if (g_bbLogs < 6) { g_bbLogs++; Log("big brother: '%s' destroyer was sunk after %u s (%d kills by it this battle)", st.name.c_str(), secs, st.minionKills[3]); } }
       if (m.kind == 2 && m.full) {
         if (m.target) Log("kamikaze gull: '%s' gull was shot down after %u s, %.0f m short of '%s'", st.name.c_str(), secs, m.lastD < 1e29f ? m.lastD : -1.0f, tn.c_str());
         else Log("kamikaze gull: '%s' gull was shot down after %u s", st.name.c_str(), secs);
@@ -12662,7 +12733,11 @@ static void UnusualTick() {
         st.expired[m.kind]++;
         if (m.kind == 2 && m.full) Log("kamikaze gull: '%s' gull found no target in %u s and was removed", st.name.c_str(), secs);
       }
-      DLog("extra effects: '%s' %s %s after %u s", st.name.c_str(), kMinionWord[m.kind], m.kind == 2 ? "found no target and was removed" : (m.kind == 1 ? "sailed home" : "flew home"), secs);
+      DLog("extra effects: '%s' %s %s after %u s", st.name.c_str(), kMinionWord[m.kind], m.kind == 2 ? "found no target and was removed" : (m.kind == 1 ? "sailed home" : m.kind == 3 ? "steamed home" : "flew home"), secs);
+      if (m.kind == 3) {
+        float lost = m.hp0 > 0 ? m.hp0 - HullHp(m.ent) : 0; if (lost > 0) st.bbDamage += lost;
+        if (g_bbLogs < 6) { g_bbLogs++; Log("big brother: '%s' destroyer steamed home after %u s, %.0f m from your boat, %.0f hull HP lost (%d kills by it this battle)", st.name.c_str(), secs, craft ? Dist3(PosOf(m.ent), PosOf(craft)) : -1.0f, lost, st.minionKills[3]); }
+      }
       Despawn(m, m.kind == 2);
     }
     g_minions.erase(g_minions.begin() + i);
@@ -12691,6 +12766,7 @@ static void UnusualKill(void* ws, void* mount, void* killed) {
   seen[seenPos][0] = killed; seen[seenPos][1] = key; seenAt[seenPos] = now; seenPos = (seenPos + 1) % 16;
   UnuStats& st = StatsOf(by);
   const char* what = il2cpp_class_get_name(il2cpp_object_get_class(killed));
+  if (kind == 3 && st.minionKills[3] < 3) Log("big brother: '%s' destroyer got a kill: %s '%s'", st.name.c_str(), what, NameOf(killed).c_str());
   if (kind == 2 && st.minionKills[2] < 5) Log("kamikaze gull: '%s' gull's blast got a kill: %s '%s'", st.name.c_str(), what, NameOf(killed).c_str());
   if (kind >= 0) { st.minionKills[kind]++; DLog("extra effects: '%s' %s got a kill: %s '%s'", st.name.c_str(), kMinionWord[kind], what, NameOf(killed).c_str()); }
   else { st.kills++; DLog("extra effects: '%s' kill: %s '%s'", st.name.c_str(), what, NameOf(killed).c_str()); if (st.cfg.homerun > 0) HomeRunLaunch(by, killed, st); if (st.cfg.firemission > 0) FireMissionKill(st, by, killed); }
@@ -18508,7 +18584,7 @@ static bool CoopAskHelper(const SpawnReq& r) {
 }
 static void CoopSpawnIn(int from, const std::string& body) {
   int kind = -1, sys = -1, pos = -1, shot = 0; V3 p, d, boat;
-  if (sscanf(body.c_str(), "%d %d %d %d %f %f %f %f %f %f %f %f %f", &kind, &sys, &pos, &shot, &p.x, &p.y, &p.z, &d.x, &d.y, &d.z, &boat.x, &boat.y, &boat.z) != 13 || kind < 0 || kind > 2) return;
+  if (sscanf(body.c_str(), "%d %d %d %d %f %f %f %f %f %f %f %f %f", &kind, &sys, &pos, &shot, &p.x, &p.y, &p.z, &d.x, &d.y, &d.z, &boat.x, &boat.y, &boat.z) != 13 || kind < 0 || kind > 3) return;
   for (float v : { p.x, p.y, p.z, d.x, d.y, d.z, boat.x, boat.y, boat.z }) if (!std::isfinite(v) || fabsf(v) > 1e6f) return;
   if (!EngagementInstance()) { DLog("co-op helpers: player %d asked for a %s outside a battle; ignored", from, kMinionWord[kind]); return; }
   void* mount = nullptr;
