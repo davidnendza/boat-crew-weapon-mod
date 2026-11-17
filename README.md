@@ -2,7 +2,7 @@
 
 **Random gun loot, new WW2 guns, tougher enemies and a crew with a story, for Boat Crew.**
 
-This is a fan-made mod for Boat Crew, the WW2 PT boat game on Steam. Picking up RP crates now and then gives you a
+This is a fan-made mod for [Boat Crew](https://store.steampowered.com/app/1633370/Boat_Crew/), the WW2 PT boat game on Steam. Picking up RP crates now and then gives you a
 **found gun**: a copy of a stock gun with random effects, in Common, Uncommon, Rare or, very rarely, Unique. Keep the
 ones you like in a Diablo-style inventory, scrap the rest for materials, and craft crates that open with a slot
 machine. On top of the loot it adds dozens of period guns with their own models, Rare and Elite enemy ships, and a crew
@@ -12,6 +12,9 @@ newest parts none in game yet.
 > **Read the warnings below before installing.** This is a fan-made mod in early testing. It is not made, checked or
 > supported by the developers of Boat Crew. Please do not send them bug reports for problems you have while it is
 > installed.
+>
+> **This is a personal project.** I'm not associated with the developers or the publisher of Boat Crew in any way, and
+> nothing here speaks for them.
 
 ## Highlights
 
@@ -72,6 +75,12 @@ Enemy traits are in `BoatCrewMod\enemies.ini`, and you can write your own guns i
 Co-op works when everyone in the session has the same version of the mod. Found guns, side-grades, torpedoes and Rare
 and Elite enemies are then shared. It has seen the least testing of anything here, and the crew attachments are
 untested in co-op. Each part can be switched off; see the co-op warning below.
+
+## Links
+
+- [Boat Crew on Steam](https://store.steampowered.com/app/1633370/Boat_Crew/)
+- [Boat Crew Discord](https://discord.gg/HXPHYXZjcv), run by the game's developers: news, the community, and where ideas for this mod come from
+- [Releases](https://github.com/davidnendza/boat-crew-weapon-mod/releases) and [issues](https://github.com/davidnendza/boat-crew-weapon-mod/issues) for this mod
 
 ## Contents
 
@@ -868,8 +877,9 @@ model_material=own
 
 ## Reporting problems
 
-Send `BoatCrewMod\weaponmod.log` and a description of what happened to the mod author, not to the game's developers.
-For a more detailed log, set `debug=1` in `drops.ini`, restart the game and reproduce the problem.
+Open an [issue on GitHub](https://github.com/davidnendza/boat-crew-weapon-mod/issues) with `BoatCrewMod\weaponmod.log`
+and a description of what happened. Please don't report mod problems to the game's developers as game bugs. For a more detailed log, set `debug=1` in `drops.ini`,
+restart the game and reproduce the problem.
 
 ## Source and license
 
@@ -883,3 +893,5 @@ with a link back to this repository) somewhere people will see it. It would make
 
 Pull requests are welcome too: bug fixes, new guns, effects, models, translations, anything. Open an issue first for
 bigger changes so we can talk it over, and include what you tested in game (the `weaponmod.log` lines help).
+[CONTRIBUTING.md](CONTRIBUTING.md) has the build steps and the rules that keep players' saves working, and
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains how the code is laid out.
