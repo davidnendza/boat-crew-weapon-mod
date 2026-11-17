@@ -1,7 +1,7 @@
-// Battle newsreel (2026-11-14): a second camera, never shown on screen, films enemy planes going down (chase camera),
+// Battle newsreel: a second camera, never shown on screen, films enemy planes going down (chase camera),
 // enemy ships sinking (orbit), planes or ships coming close (from the deck) and our own crew at work; at the battle's end the shots are written
 // as a black-and-white GIF to BoatCrewMod\newsreels\.
-// Included from weaponmod.cpp after the kill cam (uses its helpers). Research: memory note boat-crew-highlight-camera-research.
+// Included from weaponmod.cpp after the kill cam (uses its helpers).
 // Planes: PlaneControllerAI.FixedUpdate is hooked to collect the live controllers; flightState 2 = Dive, 6 = Decease.
 // Camera: a disabled Camera with a 320x180 RenderTexture, drawn with Camera.Render() 10 times a second during a shot and
 // read back with Texture2D.ReadPixels (the texture overloads of AsyncGPUReadback are stripped from this build).

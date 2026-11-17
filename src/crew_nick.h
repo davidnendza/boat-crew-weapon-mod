@@ -1,4 +1,4 @@
-// crew_nick.h: nicknames the crew earn from their battles on file (crew files, 2026-11-15). The rules read only the
+// crew_nick.h: nicknames the crew earn from their battles on file (crew files). The rules read only the
 // battle= rows already in crew-files.ini; the player keeps or vetoes each offer on the after-battle screen. Pure C++17
 // like crew_report.h, so the offline test can check the rules. Every nickname is one or two plain words: no "|", no
 // " - " (the crew file splits headings on " - ").

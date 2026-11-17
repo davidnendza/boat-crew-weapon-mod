@@ -1,4 +1,4 @@
-// crew_mail.h: mail call (crew attachment batch 2, 2026-11-12; vault note crew-attachment-ideas). Every few battles a
+// crew_mail.h: mail call. Every few battles a
 // few crew members get a letter from home. Each follows a thread: one sender's story told across 3-5 letters, one per
 // mail call, so the people at home move on between battles. A crew member lost before his next letter arrives still
 // gets it, stamped returned to sender. Pure C++17 like crew_life.h; the letters are in mail_threads.h.

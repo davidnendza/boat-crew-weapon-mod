@@ -605,8 +605,8 @@ static int ParseItemsFile(const char* path, const char* label, bool inv) {
   return ParseItemsText(text, label, inv);
 }
 
-// ---- the mod's own turret guns (David 2026-10-28: "the turret slots need more grades and sidegrades, there's only
-// like 4 types"). Period guns for the PT boat's Tub Turret slots, each a copy of the stock gun it is closest to, with a
+// ---- the mod's own turret guns ----
+// Period guns for the PT boat's Tub Turret slots, each a copy of the stock gun it is closest to, with a
 // model from tools/make_turret_models.py. model_keep leaves the stock ring mount, belts, pedestal, cradle and shoulder
 // rests in place, so only the gun itself is new. Stock prices for scale: Lewis 500, M1919 1500, M2 2500, Oerlikon 4500.
 // Ladder: Vickers K sits beside the M1919 (more bullets, shorter reach), Vickers .50 beside the M2 (faster, softer),
@@ -662,8 +662,8 @@ static const char* kTurretGuns =
   "proj.mul.BaseDamage=1.1\nproj.mul.SplashDamageBase=1.1\nproj.mul.MuzzleVelocity=0.95\nproj.mul.MuzzleVelocityRealistic=0.95\n";
 static bool g_turretGuns = true;                                    // drops.ini turret_guns: 0 hides them (positions kept)
 
-// ---- side-grades for the other slots (David 2026-11-01: "lets just go ahead with these side grades"). The same idea as
-// the turret guns: each a copy of the stock gun it trades against, with a model from tools/make_sidegrade_models.py
+// ---- side-grades for the other slots ----
+// Like the turret guns: each a copy of the stock gun it trades against, with a model from tools/make_sidegrade_models.py
 // that keeps the base gun's carriage, stand and cranks. family= may list several slot families: the gun is copied into
 // each (LoadItems), as a Bofors sits in both Heavy and Heavy+ slots. Prices are mul.price on the base gun's.
 // Pom-pom and 4.7-inch follow Discord feedback (2026-11-01): the pom-pom has a bigger belt and twice the Bofors' rate
@@ -854,7 +854,7 @@ static const char* kSideGrades =
   "description=Captured Japanese Type 89 50 mm grenade discharger, the 'knee mortar': a mistranslated name, as firing it off the thigh broke bones. Fast but light: it reloads faster than the rifle grenade, but its burst is smaller and it scatters far wider.\n"
   "mul.price=1.1\nset.reloadCooldown=6\nset.Accuracy=55\n"
   "proj.mul.SplashDamageBase=0.8\n";
-// ---- utility gear for the depth charge launchers (Reiver's idea on Discord, David 2026-11-08) -------------------------
+// ---- utility gear for the depth charge launchers ----------------------------------------------------------------------
 // Smoke pots and life rafts, always in the depth charge slots' lists like stock gear. Each is a copy of a stock depth
 // charge tier (so it rolls off the side or the stern rack the same way); when it lands on the water the mod takes the
 // charge away before it sinks and leaves a smoke cloud or a raft there (UtilLanded). Names carry the count, because an
@@ -1280,7 +1280,7 @@ static void RemoveSeats(void* mount, int n) {
   DLog("  seats: %d -> %d", have, keep);
 }
 
-// ---- custom gun models (proof of concept, David 2026-10-26) ---------------------------------------------------------
+// ---- custom gun models ----------------------------------------------------------------------------------------------
 // The game ships the Dummiesman runtime OBJ importer: OBJLoader.Load(path) builds a GameObject with one child per OBJ
 // object (MeshFilter + MeshRenderer each, materials from the .mtl). model=<file> on an item swaps the copied gun's look
 // for it: objects named stand* or base* go under GunMount.stand, barrel* under every Barrel.transform (recoil moves
@@ -1597,7 +1597,7 @@ static void ApplyModelGuarded(void* mount, const Item& it) {
   __except (FaultFilter("gun model", GetExceptionInformation())) { g_modelsOff = true; Log("  '%s': the model could not be applied", it.name.c_str()); }
 }
 
-// ---- paint schemes on found guns (David 2026-11-04: 'for random drops, can we also have them have random color schemes?')
+// ---- paint schemes on found guns ----
 // The player guns are drawn by segmentation shaders (Custom/StandardColor5, StandardColor3, LambertColor5): _MainTex is
 // a mask whose five key colours pick _Color1.._Color5, so a gun's colours are material properties, not texture pixels.
 // Custom/PbrBC (3-inch, 5-inch, Oerlikon, Thunderbolt) tints a baked albedo by mask region the same way. A painted gun
@@ -3895,7 +3895,7 @@ static void PurgeRetired() {
   if (changed) SaveInventory();
 }
 
-// ---- inventory grid (Diablo 2 style): the grid is the inventory limit (David, 2026-10-24) ---------------------------
+// ---- inventory grid (Diablo 2 style): the grid is the inventory limit -----------------------------------------------
 // Each found gun covers a rectangle of cells by gun type. A drop goes to the first free spot, row by row; if there is
 // none it is left behind. Retired guns free their cells. Guns from weapons.ini are not in the grid.
 static void ItemSize(const Item& it, int* w, int* h) {
@@ -4860,7 +4860,7 @@ static std::vector<void*> SlotSystems() {
 }
 static void InjectBoats() { for (void* ws : SlotSystems()) SafeInject(ws); InjectTorpBoats(); }
 
-// ---- per-save inventory (David 2026-10-29: "separate inventory for saves") ------------------------------------------
+// ---- per-save inventory ---------------------------------------------------------------------------------------------
 // The game keeps a campaign in .BCS files: named saves in GameSaves/Campaign/<name>_<id>.BCS and 12 rolling autosaves in
 // Campaign/SaveSlot0 that are renamed as they age. Whenever it writes a campaign save, the mod copies inventory.ini to
 // BoatCrewMod/saves/<FNV-1a 64 of the save file>.ini, so the copy follows the file through those renames. Loading a save
@@ -4962,7 +4962,8 @@ static void AfterCampaignSave(void* state) {
   std::string crew = g_folder + "\\crew-files.ini";                    // the crew files go with the save the same way
   if (FileExists(crew) && !CopyAtomic(crew, CrewSidecar(h))) Log("crew files: could not write %s (error %lu)", CrewSidecar(h).c_str(), GetLastError());
 }
-// ---- stall watch (David 2026-11-01). Loading a save from the main menu sometimes sits on a black screen for minutes
+// ---- stall watch ----
+// Loading a save from the main menu sometimes sits on a black screen for minutes
 // (the menu sound still playing); the devs know it and not why. For 10 minutes after a save load a watchdog thread
 // (StallWatchThread) checks that the game still runs frames. When none ran for 5 s it samples the main thread's stack
 // every 2 s and logs where it is, so the log names the code the load hangs in. Heartbeats: ProjectileManager.LateUpdate
@@ -5164,7 +5165,7 @@ static void DropDragged(const InvLayout& L, Vec2 m) {
 static void* g_white = nullptr;                                        // Texture2D.whiteTexture, for plain fills
 static void Fill(Rect4 r) { if (!g_white) return; void* d[2] = { &r, g_white }; Invoke(m_guiDrawTex, nullptr, d); }
 
-// ---- the window's look: design 1c "Armory stencil" (David's pick from the Inventory Styles design, 2026-10-27) -------
+// ---- the window's look: "Armory stencil" -----------------------------------------------------------------------------
 // Flat dark panels, uppercase headers, rarity as a corner triangle on each gun, a hazard-striped scrap zone. Triangles,
 // gradients and stripes are small textures made once at run time (GUI.DrawTextureWithTexCoords is stripped, so nothing
 // tiles). Text goes through GUI.skin.label with its alignment set per call (the GUIStyle copy constructor and its font
@@ -5317,7 +5318,7 @@ static bool StyledButton(Rect4 r, const std::string& label, int type, Vec2 mouse
   }
   return click;
 }
-// ---- the Field Manual kit (2026-11-05): paper, ink, stamps and the PNGs behind them ----
+// ---- the Field Manual kit: paper, ink, stamps and the PNGs behind them ----
 // (moved above the inventory 2026-11-05 so the field crate look can use it; unchanged)
 static const unsigned kTabOn = 0xdccdaf;   // mean of ui_paper.png's darkened top band, so the active tab joins the textured sheet
 static const unsigned kPaper = 0xe8dcc0, kInk = 0x2b2a26, kInkMuted = 0x6b5f45, kStampRed = 0xb3261e, kTabOff = 0xc9b88f, kCard = 0xf6f1e3;
@@ -5419,8 +5420,7 @@ static bool InkButton(Rect4 r, const std::string& label, int type, Vec2 mouse, b
   }
   return click;
 }
-// ---- the field crate look for the inventory (David 2026-11-05: 'maybe like a field crate sort of look', 'make d
-// seperators a bit thinner.. make it look like it's made out of plywood?', then 'Yes, build it'; mockup D) ----
+// ---- the field crate look for the inventory ----
 // Birch plywood with a veneer edge, hairline seams and steel corner brackets; dark compartments for the grids; paper for
 // the buttons, labels and slips; stencilled ink. The ply, brackets, ISSUED stamp, arrow, tile and shade are PNGs in
 // models\ (tools\make_ui_assets.py), each with a flat fallback; the seams and the edge are drawn here so they stay crisp
@@ -6008,8 +6008,7 @@ static void InventoryGuiScaled() {
   GuiThemeEnd();
 }
 
-// ---- mod options, the version and What's New (David 2026-11-02: 'we may need some sort of options menu in game'; 'put
-// the version next to [the MODDED logo], and maybe a button to bring up a change log') ----
+// ---- mod options, the version and What's New ----
 // Opened from buttons under the MODDED banner on the title screen, and from MOD OPTIONS next to INVENTORY on the loadout
 // screen. Drawn in the inventory's 1920x1080 virtual space. Each change is written straight into drops.ini /
 // enemies.ini (only that key's line; comments stay) and, where the mod reads the value as it goes, used at once; the
@@ -6538,8 +6537,8 @@ static void NewsWindow(void* ev, int type, Vec2 mouse) {
   if (InkButton(opt, "MOD OPTIONS", type, mouse, false)) { g_optOpen = true; g_newsOpen = false; }
   if (InkButton(done, "DONE", type, mouse, true)) g_newsOpen = false;
 }
-// ---- the after-action report window (crew personality phase 3, 2026-11-10) ----
-// On the stock after-battle screen (CampaignTriggers.lastActivityRaw == 9, vault note boat-crew-after-battle-screen):
+// ---- the after-action report window ----
+// On the stock after-battle screen (CampaignTriggers.lastActivityRaw == 9):
 // a REPORT tag, and the last battle's prose report (g_aarParas, rendered by crew_report.h at the battle change) in a
 // sheet like What's New. Opens by itself once per new report.
 static float g_aarScroll = 0;
@@ -6642,8 +6641,7 @@ static void* ModGuiBegin(int* type, Vec2* mouse) {
 }
 static void ModGuiEnd() { GuiThemeEnd(); GuiColor({ 1, 1, 1, 1 }); GuiScale(1.0f); }
 
-// ---- MODDED on the title screen (David 2026-10-31: "a dripping red 'modded' thing on the main menu", "under the BOAT
-// CREW on the left") ----
+// ---- MODDED on the title screen ----
 // models\modded_banner.png (made by tools\make_modded_banner.py; any PNG will do) is read once with
 // ImageConversion.LoadImage, which the game kept, and drawn from TitleScreenManagerUI's OnGUI: the game's own method is
 // empty and runs only while the title screen is up. The title screen's left panel scales with the screen height, so the
@@ -6718,7 +6716,7 @@ static int GfxOff(void* k, const char* n);
 static std::string FemUtf8(void* s);
 static std::string FemGShown(void* c);
 static uint32_t CrewIdOf(void* c);
-// ---- crew files (crew personality phase 4, design C:/code/Boat Crew/crew-personality-design.md "File cabinet") ----
+// ---- crew files ----
 // Each crew member's battles, kept by crew id (MOD_CREWID). BoatCrewMod\crew-files.ini is the live file, rewritten
 // after every battle (CrewFilesRecord, from the crew log's summary); every game save gets a copy as
 // saves\<hash of the save>.crew, like the inventory. Loading a save puts its copy back; a save with no copy (made
@@ -6873,7 +6871,7 @@ static void CrewFilesSwitch(const std::string& src, const std::string& why) {
   if (!ok) Log("crew files: %s: could not %s (error %lu); the crew files may be another save's", why.c_str(), src.empty() ? "clear the live file" : "copy the save's crew files", GetLastError());
   else Log("crew files: %s: %s", why.c_str(), src.empty() ? (had ? "no crew files with it, starting empty (the last ones are in saves\\backup)" : "no crew files with it") : "its crew files are back");
 }
-// ---- crew lives (crew_life.h, crew attachment batch 1, 2026-11-12): facts, memorial, letters home ----
+// ---- crew lives (crew_life.h): facts, memorial, letters home ----
 // Facts are rolled once per crew file (at the first battle on file, or when the crew screen first lists an older file)
 // and kept in crew-files.ini; the vanilla traits steer the roll. Nobody's home, job, keepsake or plan repeats aboard.
 static std::string CrewReadText(const std::string& path);
@@ -7069,7 +7067,7 @@ static void SafeAfterActionGui() {
   __except (FaultFilter("after-action report", GetExceptionInformation())) { off = true; g_aarOff = true; g_aarOpen = false; g_mailOpen = false; if (g_letterAct == 9) g_letterOpen = false; GuiScale(1.0f); GuiThemeEnd(); }
   if (off) __try { AarBlockStock(g_fileOpen || g_letterOpen); } __except (EXCEPTION_EXECUTE_HANDLER) {}   // the mail window closed with the fault   // never leave the stock screen dead (the crew files window may hold it)
 }
-// ---- the crew files window on the crew screen (CampaignTriggers.lastActivityRaw 2, crew personality phase 4) ----
+// ---- the crew files window on the crew screen (CampaignTriggers.lastActivityRaw 2) ----
 // A CREW FILES tag top right opens a sheet: the whole roster on the left (the living first, then the dead, then crew on
 // file who are no longer on the roster), the picked crew member's file on the right: portrait, status, lifetime
 // tallies and each battle's report paragraphs, newest first. It opens on the crew member the stock card showed last.
@@ -8189,7 +8187,7 @@ static void TurretSummary() {
   g_skySrcBy.clear(); g_skyDisk.clear(); SkyForgetAll();             // sky aim: a new battle, new ships
 }
 
-// ---- Smoking barrels (barrel_smoke, 2026-11-05) ---------------------------------------------------------------------
+// ---- Smoking barrels (barrel_smoke) ---------------------------------------------------------------------------------
 // A gun of yours that fires steadily for barrel_smoke_after seconds smokes from its muzzle(s) for about
 // barrel_smoke_seconds once it stops. Looks only, on this machine only: nothing is sent and nothing pooled is touched.
 // Shots come from CritScan (SafeSmokeShot): heat is the time spent firing, each gap counted up to three shot cooldowns;
@@ -8595,7 +8593,7 @@ static void CritScan(void* pm) {
     if (now - g_critMsgAt > 20000) { g_critMsgAt = now; ShowMessage("Critical hit! (x" + std::to_string((int)mult) + ")"); }
   }
 }
-// ---- seeking shots (experiment, 2026-10-25) --------------------------------------------------------------------------
+// ---- seeking shots ---------------------------------------------------------------------------------------------------
 // Projectile.iterate (run each physics step by ProjectileManager.projectileSim) moves a shot by reading its managed
 // velocity (+0x38) every step, so an edited velocity sticks. The game's own homing in iterate (ptype.assistFactor +0x60
 // toward Projectile.target +0x30) only acts on targets more than 20 m up, i.e. planes; ships need steering of our own.
@@ -9097,7 +9095,7 @@ static void* NearestOtherEnemyShip(const float* at, void* exclude, float radius,
   return best;
 }
 
-// ---- chaining shots (experiment, 2026-10-26): a shot that hits comes back for more ------------------------------------
+// ---- chaining shots: a shot that hits comes back for more -------------------------------------------------------------
 // fx.set.chain=N: when a shot from such a gun dies within 30 m of its target, a new shot of the same type is fired from
 // the impact point, at 70% of its damage, up to N times. If the gun's shots are also seeking another target, the new
 // shot pierces on toward that one; otherwise it is thrown up and away and its seek steering brings it back around into
@@ -9249,7 +9247,7 @@ static void ChainScan(void* pm) {
   }
 }
 
-// ---- Rare and Elite enemies (David, 2026-10-27) ----------------------------------------------------------------------
+// ---- Rare and Elite enemies ------------------------------------------------------------------------------------------
 // Diablo style: some enemy ships spawn as Rare (one trait) or Elite (more HP and 2-3 traits). Traits are read from
 // enemies.ini: HP, speed, damage of their shots, size (scale_x = width, scale_y = height, scale_z = length), bonus RP.
 // Killing one gives a guaranteed gun (Rare: Uncommon or better, Elite: Rare). Verified in the disassembly first:
@@ -9736,7 +9734,7 @@ static void EliteKilled(void* killed, bool fromPeer = false) {
   if (g_dropMessage) ShowMessage("Found: " + Colored(it.name, RarityHex(rarity)) + " (" + rarity + "), in the loot grid");
 }
 
-// ---- crew weapon looks (David 2026-11-04: 'it is hard to tell whether crew are using them at all') -----------------
+// ---- crew weapon looks ---------------------------------------------------------------------------------------------
 // Core.CrewMemberCombat.LateUpdate (read 2026-11-04) keeps its target in closest and counts aimTime down from 1 while it
 // holds one; below 0 it calls GunMount.shoot every frame and shoot keeps the gun's cooldown. A hook around it sees a shot
 // as a change of the mount's shotCounter (a burst resets the counter, so any change is one shot). Four parts, the last
@@ -10172,9 +10170,8 @@ static void EliteTags() {
   GuiThemeEnd();
 }
 
-// ---- female crew (test, 2026-11-06; David: 'v2 is good, but the hair.. we're going to have to do something about that
-// male widows peak cut.. but otherwise proceed') ---------------------------------------------------------------------
-// Read out of the disassembly first (female-crew notes, NOTES-crew-visual-pipeline.txt): a crew member's look is built on
+// ---- female crew ----
+// Read out of the disassembly first: a crew member's look is built on
 // the portrait rigs only. CrewPortraiter.showUp runs CrewMemberVisual.initVisuals (face parts), CrewMemberGear.initGear
 // (hats; a removeHair hat picks hair[0], Hair_Bald) and then CrewMemberVisual.combineMesh. That merges every active
 // SkinnedMeshRenderer that is a DIRECT child of skinnedMeshHolder (BaseCharacter), on body[0]'s layer and without a
@@ -10422,9 +10419,9 @@ static bool FemNameRule(const std::string& name) {
   return (int)(h % 100) < FemPct();
 }
 
-// ---- female crew, stored gender (David 2026-11-06: crew can be renamed in game, and a rename must NEVER change a crew
-// member's gender) --------------------------------------------------------------------------------------------------
-// Read out of the disassembly first (stored-gender research): a rename (CharacterRename.handleRename) only writes
+// ---- female crew, stored gender ----
+// Crew can be renamed in game, and a rename must never change a crew member's gender.
+// Read out of the disassembly first: a rename (CharacterRename.handleRename) only writes
 // CrewCharacter.nameCustom; the rule reads name (+0x18), so a rename alone never flipped anyone. What the stored flag
 // fixes is a later change of female_crew, peers with another female_crew, and co-op copies that have no name at all.
 //  * The flag is one byte in CrewCharacter's padding at +0x103 (inSinkingBoat +0x100, dirty +0x101, dirtyMesh +0x102,
@@ -11006,9 +11003,9 @@ static void Hooked_Combine(void* cmv, void* method) {
   __try { int paints = g_femLipPaints; FemBraOff(cmv); FemAfter(cmv, c); FemLipKeep(cmv, c, paints); }
   __except (FaultFilter("female crew (reshape)", GetExceptionInformation())) { FemOff(); }
 }
-// ---- the gear flash (David 2026-11-06: 'in the crew loadout, when I change the vests (and maybe others), the crew
-// member in view all kinda flicker and it looks like the default cloths sorta flash in for a sec') ----
-// Read out of the disassembly (wf_892ea0b8-8d6): a gear pick in the loadout runs GearSlot.selectIndex -> selectGear(int)
+// ---- the gear flash ----
+// Changing a vest (or other gear) in the crew loadout made the crew member in view flash the default clothes for a moment.
+// Read out of the disassembly: a gear pick in the loadout runs GearSlot.selectIndex -> selectGear(int)
 // on the crew member ON THE BOAT. selectGear switches the stock gear objects (shirt, vest, hat ...) on and clears
 // CrewMember.lastMesh (+0x250). Nothing hides them until that member's next CrewMember.checkMesh (UpdateMe, next frame),
 // which calls setByMeshByCharacter: the old combined mesh back on body[0], every other part off. refreshCrew's
@@ -11079,8 +11076,8 @@ static void FemGearInstall() {
   g_femGearOn = true;
   Log("female crew: hooked GearSlot.selectIndex (rva 0x%llX, %s); a gear change on a woman hides the stock parts at once", (unsigned long long)((uintptr_t)p - (uintptr_t)g_ga), g_femGearPath);
 }
-// ---- female crew, names of new crew (phase 2, 2026-11-06) ----------------------------------------------------------
-// Read out of the disassembly first (female-crew name path notes): CharacterGenerator.generateCharacter() (static, no
+// ---- female crew, names of new crew --------------------------------------------------------------------------------
+// Read out of the disassembly first: CharacterGenerator.generateCharacter() (static, no
 // parameters; every new crew member comes from it: campaign start crew and recruits, wave mode, challenges, enemy and
 // AI crews via CrewSpawner.spawnCrew / CharacterManager.getCharacter, the co-op client's first connect) builds the name
 // as names[r] + " " + middle[r] + surnames[r] from NameImporter.instance (System.Random draws in that order; middle is
@@ -11290,7 +11287,7 @@ static void Hooked_SetParams(void* c, void* params, void* mi) {
   if (g_femLoadOn) FemLoadReadSafe(c, params);
   if (g_cidLoadOn) CrewIdReadSafe(c, params);
 }
-// ---- crew id (crew files, crew personality phase 4): MOD_CREWID, 8 hex digits, saved with each crew member ----
+// ---- crew id (crew files): MOD_CREWID, 8 hex digits, saved with each crew member ----
 // Kept in the object at CrewCharacter+0x104, the free padding next to the gender byte (0 = none yet; a new object is
 // zeroed, so stale pointers never carry an id). Without a saved key (an old save, a vanilla co-op peer) the id is a
 // hash of name + selectedEye + selectedEyeBrow, the same on every load until a save writes the key. The mouth is left
@@ -11576,7 +11573,7 @@ static void TryInstallFemale() {
   __try { FemInstall(); } __except (FaultFilter("female crew (install)", GetExceptionInformation())) { g_femOn = false; }
 }
 
-// ---- Unusual guns (David, 2026-10-27; kept out of the README on purpose) -----------------------------------------------
+// ---- Unusual guns (kept out of the README on purpose) ------------------------------------------------------------------
 // A tier above Unique, in pink. The guns are built into the DLL (kUnusualDefs, parsed like [unique] blocks) instead of
 // drops.ini, so players only meet them in play. Drop odds: drops.ini unusual_chance (not written to the default file).
 // Their powers are fx values read per gun mount:
@@ -11667,7 +11664,7 @@ static V3 PosOf(void* component) {
 }
 static int MinionsOf(void* mount, int kind) { int n = 0; for (auto& m : g_minions) if (m.mount == mount && m.kind == kind) n++; return n; }
 
-// ---- Heal and chain streaks (effect_streaks, 2026-11-05) -------------------------------------------------------------
+// ---- Heal and chain streaks (effect_streaks) -------------------------------------------------------------------------
 // A green streak arcs from the wreck to your boat when a kill repairs your hull (killRepair: Vampiric, Lazarus,
 // Kurogane, ...), and a short bright one runs along each chain leap to the next target (on top of the leap shell's own
 // tracer). A small pool of LineRenderers built from the crew aim line's lookups (g_cw), on a material of their own.
@@ -12189,7 +12186,7 @@ static void* SpawnFriendly(const char* want, V3 pos, V3 dir, float scale, float 
   DLog("spawner: spawned '%s' %p (team %d -> %d) at %.0f,%.0f,%.0f", want, ent, team, myTeam, pos.x, pos.y, pos.z);
   return ent;
 }
-// ---- Big Brother (2026-11-16) -----------------------------------------------------------------------------------------
+// ---- Big Brother ------------------------------------------------------------------------------------------------------
 // The Fletcher comes the way the game's own boat call-ins do (FactionCallinSpawner's coroutine, read in the disassembly
 // 2026-11-16): CallinMethods.setSurfaceSpawnBySearch(team, distance) puts its spawnCenter on free sea that far from the
 // player boat, then callInBoat(prefab, team) (0x180945630) takes the ship from GameManager.entityPooler, sets its team,
@@ -12235,7 +12232,7 @@ static void* BigBrotherCall(V3 boat, V3 flat, bool forOther, bool* asCallin) {
   V3 p{ boat.x + side.x * kBigBrotherDist, boat.y, boat.z + side.z * kBigBrotherDist };
   return SpawnFriendly(want, p, flat, 1.0f, 0);
 }
-// ---- helpers' looks (2026-10-30) -------------------------------------------------------------------------------------
+// ---- helpers' looks --------------------------------------------------------------------------------------------------
 // A helper is a pooled game entity: the game hands the same object out again later (a Dauntless call-in, say), and
 // nothing in the game resets a transform's scale (see the Elite notes), so a helper gets its own size back when it
 // leaves: when the mod sends it home, once it is back in its pool after being shot down or blowing up, when the game
@@ -12389,7 +12386,7 @@ static void Despawn(Minion& m, bool explode, const V3* splashAt = nullptr, void*
   Unpin(m.handle);
 }
 
-// ---- Kamikaze Gull steering (2026-11-07) ------------------------------------------------------------------------------
+// ---- Kamikaze Gull steering -------------------------------------------------------------------------------------------
 // David 2026-11-07: 'not sure they are actually hitting/exploding on stuff'. They were not: the game's dive bomber AI
 // (PlaneControllerAI) climbs to 550 m, only dives from over 1800 m out, drops its bomb at 550 m and pulls up at 50 m, and
 // rewrites FlightObject.targetCoordinate every physics step (read in the disassembly 2026-11-07), so a 25 s gull never
@@ -12956,7 +12953,7 @@ static void Hooked_CrewCreditKill(void* self, void* killed, float factor, void* 
   __except (FaultFilter("on-kill effects (crew)", GetExceptionInformation())) { g_killFaults = -1; }
 }
 
-// ---- gun effects (0.9.3; David 2026-11-06: 'lets go for Marking, Giant Slayer ... And more gun effects') -------------
+// ---- gun effects -----------------------------------------------------------------------------------------------------
 // Read in the disassembly first (2026-11-06). Every hit on a hull part goes through HealthPart.hitFlash(hit, damage, flash,
 // heat) (rva 0x97E0C0): it applies globalDamageMultiplier and the target's damage control, then lowers the part's HP (or,
 // on a co-op client, sends the damage to the host). Two callers matter: ProjectileManager.endJobs for a shell's direct
@@ -13105,7 +13102,7 @@ static const GunFx& GfxOf(void* mount) {
 static Item* GfxMutItem(const std::string& name) { for (Item& it : g_items) if (it.name == name && it.fromInventory) return &it; return nullptr; }
 
 // Once, on the game thread (ProjectileManager.Update), so neither hitFlash runs while it is patched.
-// ---- crates per round (crates_per_round=, 2026-11-15) ---------------------------------------------------------------
+// ---- crates per round (crates_per_round=) ---------------------------------------------------------------------------
 // The 380mm RW 61 (a Discord player's idea, David wants it): ten ammo crates make one round. Read in the disassembly
 // first: a loader's delivery is CrewAI.TaskHandle.processScore (task kind 3), which inlines GunMount.munitionsFill:
 // set_Munitions(munitions +0x130 + GunType.ammoPerFill +0x58 x multiplier), call at rva 0x992290, then lastAimed = 3 and
@@ -13702,10 +13699,10 @@ static void CrewHitCall(void* self, bool hit, float d, void* mi) {
   __finally { SafeOverboardSet(saved); }                              // also when the game's code throws
 }
 
-// ---- crew battle log (crew personality, phase 1; David 2026-11-09) ------------------------------------------------
+// ---- crew battle log ----------------------------------------------------------------------------------------------
 // What happened to each crew member of the player's boat in a battle, written like a Dwarf Fortress combat log, as the
-// first step to after-action reports, a crew file cabinet, injuries and memories (C:/code/Boat Crew/
-// crew-personality-design.md). Log only: nothing in the game changes. Read in the disassembly first (2026-11-09):
+// first step to after-action reports, a crew file cabinet, injuries and memories.
+// Log only: nothing in the game changes. Read in the disassembly first (2026-11-09):
 // crew damage is ONE HP pool (no body parts); every hit goes through CrewMember.hitFlash(true, d), whose callers tell
 // the kind apart by return address: ProjectileManager.endJobs (rva 0x9F5B22, a shell or bullet) and
 // SplashDamageManager.FixedUpdate (rva 0x983815, a blast). At the blast call that frame holds the splash copy:
@@ -13762,12 +13759,12 @@ static void CrewNote(CrewRec& r, const char* fmt, ...) {
   r.lines++;
   if (g_crewLogLines++ < 12) Log("crew log: %s: %s", r.name.c_str(), line.c_str()); else DLog("crew log: %s: %s", r.name.c_str(), line.c_str());
 }
-// ---- crew speech bubbles (TEST, 2026-11-13; crew personality phase 7 depends on it) ----
+// ---- crew speech bubbles ----
 // CrewMember.headText (CrewMemberText) is the bubble over a crew member's head. Its enqueueText(string) (0x1809B86B0)
 // switches the bubble on, sets a random delay and queues the text; Update dequeues and shows it (triggerText). Only the
 // game's own crew chatter (CrewDialogSequencer) called it so far. The test: a man who is wounded calls out, a gunner
 // who scores a kill says so; at most one line a man every 20 s and one a boat every 4 s, every line logged (held-back
-// ones at debug=1). Shown for 1.25-1.75 s + 0.06 s a letter, no distance or state check (vault crew-attachment-ideas).
+// ones at debug=1). Shown for 1.25-1.75 s + 0.06 s a letter, no distance or state check.
 static int g_saySaid = 0, g_sayFail = 0; static float g_sayLastAny = -100; static std::set<void*> g_sayKills;
 // David 2026-11-13: 8 lines queued, none noticed. Each queued line is looked at again 1 s later (what the bubble shows,
 // whether it is switched on, how far it is from the camera), and a line at the start of the battle, before the chaos.
@@ -13803,7 +13800,7 @@ static std::string SayPick(const CrewRec& r, std::initializer_list<const char*> 
   size_t n = lines.size(), k = (size_t)((uintptr_t)r.ch / 16 + (size_t)g_saySaid * 7) % n;
   return *(lines.begin() + k);
 }
-// ---- the talking crew (crew_talk.h, crew attachment batch 3, 2026-11-13) ----
+// ---- the talking crew (crew_talk.h) ----
 // Lines through CrewSay. Events (CrewEv): a man wounded speaks; a crewmate downed, killed or thrown over the side, or a
 // fire, makes someone else speak. ~6 s in: the opening (a roll call after losses the boat's crew saw, a word about the
 // dead, or a battle-start line). Lulls (nothing hit or killed for 25 s): small talk, home, letters, the dead, a returned
@@ -14239,7 +14236,7 @@ static void CrewLogPre(void* self, CrewHitPre* p) {
   void* ch = *(void**)((char*)self + g_oCmChar); if (!ch) return;
   p->on = true; p->ch = ch; p->hp = *(float*)((char*)self + g_oCmHp); p->state = *(int*)((char*)ch + g_oChHealth);
 }
-// ---- phase 2: where a hit landed and who fired it (traced 2026-11-10, workflow wf_d447bbc6-d06) ----
+// ---- where a hit landed and who fired it ----
 // Direct hit, caller ProjectileManager.endJobs (fixed frame, sub rsp,0x310): [crsp+0xA0] = the CrewMember (== self),
 // [crsp+0x168] = the Projectile, [crsp+0x70] = RaycastHit.m_Point (the true contact; posi is the sweep START),
 // [crsp+0x8C] = its distance, [crsp+0xD0] = (point + posi) / 2 (the game's fallback). Blast, caller
@@ -14573,7 +14570,7 @@ static const char* CrewOutcome(const CrewRec& r) {
     default: return r.down ? "down when the battle ended" : r.wounded ? "wounded" : r.hits ? "lightly hurt" : "unhurt";
   }
 }
-// ---- the prose report (phase 3; crew_report.h renders it, spec C:/code/Boat Crew/crew-report-prose-spec.md) ----
+// ---- the prose report (crew_report.h renders it) ----
 // reports.ini in BoatCrewMod replaces any built-in [section] it has; reports.default.ini is the built-in set, written
 // for reference (each session) so a player can copy a section and reword it without a rebuild.
 static std::string CrewReadText(const std::string& path) {
@@ -15184,7 +15181,7 @@ static void SafeGfxBattleChange(bool had) {
   __except (FaultFilter("gun effects (battle end)", GetExceptionInformation())) { g_gfxFaults = -1; g_gfxHitOn = false; g_gfxCrewOn = false; SafeFrugalRestore(); }
 }
 
-// ---- All-Knowing (David 2026-10-30) ----------------------------------------------------------------------------------
+// ---- All-Knowing -----------------------------------------------------------------------------------------------------
 // David: "those manually aimed things ... when you are controlling it, the people on your boat can auto-spot things in
 // range ... it's annoying when you are using them and getting close to other boats and no one is shooting because you
 // didn't mark them". Read in the disassembly first (2026-10-30): the crew only fires at marked targets, i.e. locked
@@ -15342,7 +15339,7 @@ static void AllKnowingTick() {
   AllKnowingSet(want && g_akFcm, want);
 }
 
-// ---- torpedo kill cam (David's idea 2026-10-29, built 2026-11-02) ----------------------------------------------------
+// ---- torpedo kill cam ------------------------------------------------------------------------------------------------
 // When one of the player's torpedoes is about to hit an enemy ship, the camera follows it from behind while the game
 // slows to killcam_slow, holds on the blast, then cuts back and eases the speed back up. After that nothing for
 // killcam_cooldown seconds (David: 'make sure that it has a cooldown so we aren't spamming slow mo kills one after the
@@ -15463,14 +15460,14 @@ static bool TorpHittable(void* ent) {
   return ok;
 }
 
-// ---- kill cam hit prediction (David 2026-11-05, build 31D6FBEB: 'the slowmo cam seemed to have went to the wrong torpedo')
+// ---- kill cam hit prediction ----
 // Until then the kill cam took the torpedo with the earliest closest pass to a ship's MIDDLE and called it a hit when
 // that pass was within 0.35 x the long side of the ship's collider AABB: a circle. Against a Long Boi tanker (twice as
 // long) a PT salvo had one torpedo running 20 m off the side ('passes 20.0 m from its middle', taken as a hit, it missed)
 // while another really struck; and the AABB of a ship lying diagonally is inflated besides. Now the straight track is
 // tested against the hull's real shape: the layer-21 'Misc/Torpedo Trigger' BoxCollider the game's own hit check casts
 // for (SphereCastAll(pos, r, vel.normalized, detectionDistance, mask 0x200000); r = 4 m while arming, hitboxRadius once
-// armed; vault note boat-crew-torpedo-internals). The track is relative to the ship (its realtimeVelocity); the box's XZ
+// armed). The track is relative to the ship (its realtimeVelocity); the box's XZ
 // rectangle comes from the collider transform's localToWorldMatrix at every check (ships turn, Elite traits rescale);
 // the collider list, centre and size are cached per ship for the battle. Separate from TorpSteer and the seeking code.
 struct KcBox { float cx, cz, ux, uz, hx, vx, vz, hz, bottom, circle; };    // circle > 0: the old circle test, no box
@@ -15640,8 +15637,8 @@ static void KcStop(const char* why) {
   g_kcState = 0; g_kcFactor = 1.0f; g_kcBaseFdt = 0; g_kcCamSet = false; g_kcEndedAt = GetTickCount(); g_kcHadEnd = true;
 }
 
-// ---- the kill cam's crew guard (David 2026-11-05: 'after it did the slow mo cam and went back to my boat, 2 of my people
-// fell off') ----------------------------------------------------------------------------------------------------------
+// ---- the kill cam's crew guard ----
+// After the kill cam cut back to the boat, crew members could fall off it.
 // Traced 2026-11-05 in the disassembly: CrewMember.FixedUpdateMe (rva 0x99EE30) gives a crew member's float point the
 // real Crest depth only while the camera is within CrestManager.simDistance, else depth 0. Then, if the depth is over
 // 0.1 and smoothChestPos.y under 1.25 (or transform.up.y under 0.4), framesUntilUnderwater (float) -= 1 per fixed STEP,
@@ -15874,8 +15871,8 @@ static void Hooked_BlurUpdate(void* self, void* method) {
   __except (FaultFilter("kill cam (game speed)", GetExceptionInformation())) { g_kcFaults = -1; SafeKillCamOff(); }
 }
 
-// ---- found torpedoes (David 2026-11-04: 'a unique torpedo type ... and of course home in'; 'ok go ahead') ------------
-// Traced 2026-11-04 (vault note boat-crew-torpedo-internals):
+// ---- found torpedoes -------------------------------------------------------------------------------------------------
+// Traced 2026-11-04:
 //  - A TorpedoLauncher is a SelectableObject like a WeaponSystem: its slot family is its SelectionOrder's name, the
 //    choices are its List<TorpedoTier> torpedos, and a save keeps the chosen POSITION (SLOT~Torpedo Launcher Side Tube FL
 //    = 6). So a found torpedo is a copy of a stock TorpedoTier appended at a stable position (positions.ini, as for
@@ -16496,8 +16493,7 @@ static void TorpSteer(void* t, TorpRun& r, void* body, V3 p, V3 v, float dt) {
 // lasts the game's 42 s and is networked by the game to the other players (only the dropping player's machine spawns it).
 // Raft: a copy of the ships' lifeboat decor mesh that heads for the nearest of this machine's own crew in the water and
 // rescues them on contact the game's own way for a saved swimmer: healthState Recovered (5), which the end-of-battle scan
-// keeps and recoverCharacters turns back into Healthy; then the removal steps of a pickup (traced 2026-11-08, see the
-// vault note boat-crew-crew-overboard).
+// keeps and recoverCharacters turns back into Healthy; then the removal steps of a pickup (traced 2026-11-08).
 struct UtilApi {
   bool tried = false, ok = false, dave = false;
   void *vfxInst = nullptr, *spawnVfx = nullptr, *pmInst = nullptr, *findProj = nullptr, *findBy = nullptr, *findAll = nullptr, *cmoType = nullptr;
@@ -16704,7 +16700,7 @@ static void UtilRaft(V3 p, const std::string& item) {
 // Dave (David 2026-11-09, 'a model that doesn't animate, for the lulz, like a dev thing'): the mod's dev as a stiff
 // T-posed placeholder (models/dave.obj, soles at y 0, facing +Z) that glides over the water to the nearest RP crate on
 // the water and picks it up the game's own way, PickupBehaviour.pickUp (the boat's RP, sound and rise animation there;
-// traced 2026-11-09, vault note dave-utility-idea), for 2 minutes. The crates are the ones the pickup hook saw this
+// traced 2026-11-09), for 2 minutes. The crates are the ones the pickup hook saw this
 // frame (g_crateFrame). Co-op: only this machine's copy of a crate; a client's RP is overwritten by the host's.
 static const float kDaveSpeed = 40, kDaveReach = 4, kDaveLife = 120;   // m/s, m, s; shortcut: fixed, a drops.ini key if asked
 struct Dave { void *go = nullptr, *h = nullptr; V3 p = {}; float until = 0; std::string item; int crates = 0, rp = 0; Q4 q = {}; };
@@ -17905,7 +17901,7 @@ static void InstallNameFit() {
   if (VirtualProtect(slot, sizeof(void*), PAGE_READWRITE, &old)) { *slot = (void*)&Hooked_ItemElemAwake; VirtualProtect(slot, sizeof(void*), old, &old); DLog("hooked ItemElementUI.Awake: long names shrink to fit (wrap setter %p)", m_tmpWrap); }
 }
 
-// ---- co-op (David 2026-10-29: "couldn't we put 1-4 all in the same thing and test them all at once") ---------------
+// ---- co-op ---------------------------------------------------------------------------------------------------------
 // What the game syncs was read in the disassembly first (2026-10-29):
 // - Shots: the owner's WeaponsSync.processShot sends (system index, list POSITION, ammo name, position, velocity). Every
 //   other machine fires guns[(system, position, 0)] of its own copy of that boat (WeaponsSync.guns +0x108, filled once

@@ -1,4 +1,4 @@
-// crew_talk.h: the talking crew (crew attachment batch 3, 2026-11-13; vault note crew-attachment-ideas). Each crew
+// crew_talk.h: the talking crew. Each crew
 // member has a voice (one of eight, rolled once from the crew id, steered by the vanilla traits), and says short lines
 // over their head (CrewMember.headText) when something happens, and in lulls about home, their letters and the dead.
 // Pure C++17 like crew_mail.h: weaponmod.cpp decides when; this picks and fills the words. The lines are generated

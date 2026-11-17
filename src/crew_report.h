@@ -1,5 +1,5 @@
-// crew_report.h: turns one battle's crew events into an after-action report written as prose (crew personality,
-// phase 3; spec: C:/code/Boat Crew/crew-report-prose-spec.md). Pure C++17, no game or IL2CPP calls: weaponmod.cpp
+// crew_report.h: turns one battle's crew events into an after-action report written as prose.
+// Pure C++17, no game or IL2CPP calls: weaponmod.cpp
 // fills a RepBattle at the battle change and draws or writes the returned paragraphs.
 #pragma once
 #include <string>

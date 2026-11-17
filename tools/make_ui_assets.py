@@ -363,7 +363,7 @@ def preview(paper, shadow, stamp, card, x, al, ar, dot):
 # ===================================================================================================== field crate
 # The inventory window as a plywood field crate (David 2026-11-05: 'maybe like a field crate sort of look', 'make it
 # look like it's made out of plywood?', 'Yes, build it'). The C++ draws the seams, the ply edge and every flat fill so
-# they stay crisp at any grid size; these are only the textures. Mockup: scratchpad optdesign\project\Crate.dc.html.
+# they stay crisp at any grid size; these are only the textures.
 PLY, WOOD_INK, STAMP_RED, OLIVE_A, OLIVE_B = "#cfae7c", "#2d1e0f", "#c9372c", "#5b5a45", "#3d3c2c"
 
 def aniso_noise(w, h, sx, sy, seed):

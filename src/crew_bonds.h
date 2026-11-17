@@ -1,4 +1,4 @@
-// crew_bonds.h: bonds between crew members (crew attachment batch 4, 2026-11-14; vault note crew-attachment-ideas).
+// crew_bonds.h: bonds between crew members.
 // For every pair of crew the mod keeps what they went through together: battles side by side, battles on the same
 // gun, kills they shared, a sinking or a swim they both came through. The closest mate of a crew member speaks first
 // when they fall, grieves them, is named in their file, memorial and letter home, and the two banter in quiet moments.
