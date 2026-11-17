@@ -1,20 +1,16 @@
-# Boat Crew Weapon Mod 0.9.8 (unofficial, experimental)
+# Boat Crew Weapon Mod 0.9.8
 
-**Random gun loot, new WW2 guns, tougher enemies and a crew with a story, for Boat Crew.**
+**Random gun loot, new WW2 guns, tougher enemies and a crew with a story.**
 
-This is a fan-made mod for [Boat Crew](https://store.steampowered.com/app/1633370/Boat_Crew/), the WW2 PT boat game on Steam. Picking up RP crates now and then gives you a
-**found gun**: a copy of a stock gun with random effects, in Common, Uncommon, Rare or, very rarely, Unique. Keep the
-ones you like in a Diablo-style inventory, scrap the rest for materials, and craft crates that open with a slot
-machine. On top of the loot it adds dozens of period guns with their own models, Rare and Elite enemy ships, and a crew
-that remembers its battles. It is unofficial and experimental: much of it has seen only a little testing, and the
-newest parts none in game yet.
+A mod for [Boat Crew](https://store.steampowered.com/app/1633370/Boat_Crew/), the WW2 PT boat game on Steam.
+Picking up RP crates sometimes gives you a **found gun**: a copy of a stock gun with random effects, in Common,
+Uncommon, Rare or, very rarely, Unique. Keep the ones you like in a Diablo-style inventory, scrap the rest for
+materials, and craft crates that open with a slot machine. The mod also adds dozens of period guns with their own
+models, Rare and Elite enemy ships, and a crew that remembers its battles.
 
-> **Read the warnings below before installing.** This is a fan-made mod in early testing. It is not made, checked or
-> supported by the developers of Boat Crew. Please do not send them bug reports for problems you have while it is
-> installed.
->
-> **This is a personal project.** I'm not associated with the developers or the publisher of Boat Crew in any way, and
-> nothing here speaks for them.
+> **A personal project, still in testing.** I'm not associated with the developers or the publisher of Boat Crew, and
+> they don't check or support this mod. Please don't send them bug reports while it is installed. Much of it has had
+> only light testing, so read the [warnings](#warnings-please-read) before you install.
 
 ## Highlights
 
