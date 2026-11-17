@@ -7821,8 +7821,26 @@ static void AutoUtilityDiag(void* eng, void* ws) {
 
 struct TurretStats;
 static TurretStats* TurretOf(void* mount);
+// Every frame while an automated sky-shot gun (GunType.skyShot +0x70, the player mortars) is selected: its aim point
+// GunMount.lastTarget (+0x190, written by aimAt) goes into skyShotPosition (+0x1C0), where GunMount.shoot puts the shell.
+static void AutoSkyAim() {
+  static int offSky = -2, offLastT = -1, offSkyPos = -1;
+  if (offSky == -2) {
+    auto fo = [](const char* c, const char* f) { void* k = FindClass("Core", c); void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
+    offSky = fo("GunType", "skyShot"); offLastT = fo("GunMount", "lastTarget"); offSkyPos = fo("GunMount", "skyShotPosition");
+    if (offSky < 0 || offLastT < 0 || offSkyPos < 0) Log("auto utility: sky aim MISSING PIECES (skyShot +0x%X lastTarget +0x%X skyShotPosition +0x%X)", offSky, offLastT, offSkyPos);
+  }
+  if (offSky < 0 || offLastT < 0 || offSkyPos < 0) return;
+  for (auto& kv : g_autoFollowOrig) {                                  // the slots switched to automated this battle
+    void* mount = kv.first ? *(void**)((char*)kv.first + g_offWsSelected) : nullptr; if (!mount) continue;
+    void* gt = *(void**)((char*)mount + g_offGunType);
+    if (!gt || !*(bool*)((char*)gt + offSky)) continue;
+    memcpy((char*)mount + offSkyPos, (char*)mount + offLastT, 12);
+  }
+}
 static void AutoUtilityTick() {
   void* eng = EngagementInstance();
+  if (eng && eng == g_autoLoggedEng) AutoSkyAim();                     // only once this battle's tick has forgotten last battle's slots
   if (!eng || ++g_autoFrames % 30 != 0) return;
   static int offFollow = -2, offAuxWeapons = -1, offAwSystem = -1, offAwFire = -1, offAwAim = -1, offAwExt = -1;
   if (offFollow == -2) {
@@ -7984,38 +8002,27 @@ static bool ShotHasTarget(void* pj) {
 // Sky shots (2026-11-16, read in GunMount.shoot 0x18097039f): a GunType with skyShot (+0x70, the player mortars) spawns
 // its shell at GunMount.skyShotPosition (+0x1C0), ~4.5 km up, falling straight down. The player's map aim sets that
 // point; the fire control never does, so an automated mortar dropped every shell on a stale point (David: "max range").
-// So a new automated sky shell with a target is moved above where that target will be when the shell comes down:
-// fall time from y = y0 - vd t - g t^2/2 (Projectile.iterate: gravity only, no drag, both scaled by ptype timeScale),
-// lead = LiveEntity.realtimeVelocity x that time in game seconds. lastPos moves too, so the shell's hit sweep stays short.
+// The shell appears at about the impact point's height and lands within a frame (battle 27: 'falls 1 m'), so
+// AutoSkyAim copies the mount's aim point (lastTarget) into skyShotPosition every frame; this logs how far off they land.
 static V3 PosOf(void* component);
 static void AutoShotInfo(void* pj, TurretStats* ts) {
-  static int offTgt = -2, offVel = -1, offAlive = -1, offPos = -1, offLast = -1, offPt = -1, offTs = -1, offTVel = -1;
+  static int offTgt = -2, offVel = -1, offAlive = -1, offPos = -1;
   if (offTgt == -2) {
     auto fo = [](const char* c, const char* f) { void* k = FindClass("Core", c); void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
     offTgt = fo("Projectile", "target"); offVel = fo("Projectile", "velocity"); offAlive = fo("LiveEntity", "_alive");
-    offPos = fo("Projectile", "posi"); offLast = fo("Projectile", "lastPos"); offPt = fo("Projectile", "ptype"); offTs = fo("ProjectileType", "timeScale"); offTVel = fo("LiveEntity", "realtimeVelocity");
-    if (offPos < 0 || offLast < 0 || offTVel < 0) Log("automated shot: sky shot MISSING PIECES (posi +0x%X lastPos +0x%X realtimeVelocity +0x%X); mortar shells left where the game put them", offPos, offLast, offTVel);
+    offPos = fo("Projectile", "posi");
   }
   void* tgt = offTgt >= 0 ? *(void**)((char*)pj + offTgt) : nullptr;
   if (!tgt || offVel < 0) return;
   bool dead = offAlive >= 0 && !*(bool*)((char*)tgt + offAlive);
   if (dead) ts->atDead++;
   float* v = (float*)((char*)pj + offVel);
-  if (!dead && offPos >= 0 && offLast >= 0 && offTVel >= 0 && v[1] < 0 && fabsf(v[0]) < 0.5f && fabsf(v[2]) < 0.5f) {   // falling straight down: a sky shot
-    float* ps = (float*)((char*)pj + offPos); float* lp = (float*)((char*)pj + offLast);
-    V3 tp = PosOf(tgt);
-    float y0 = ps[1] - tp.y, vd = -v[1], g = 9.81f;
-    if (tp.y > -9000 && y0 > 0) {
-      void* pt = offPt >= 0 ? *(void**)((char*)pj + offPt) : nullptr;
-      float pts = pt && offTs >= 0 ? *(float*)((char*)pt + offTs) : 1.0f; if (pts < 0.01f) pts = 1.0f;
-      float t = (-vd + sqrtf(vd * vd + 2 * g * y0)) / g;           // shell time; game seconds = t / timeScale
-      const float* tv = (const float*)((char*)tgt + offTVel);
-      float lx = tv[0] * t / pts, lz = tv[2] * t / pts;
-      float ox = ps[0], oz = ps[2];
-      ps[0] = tp.x + lx; ps[2] = tp.z + lz; lp[0] += ps[0] - ox; lp[2] += ps[2] - oz;
-      float lead = sqrtf(lx * lx + lz * lz), moved = sqrtf((ps[0] - ox) * (ps[0] - ox) + (ps[2] - oz) * (ps[2] - oz));
-      ts->skyMoved++; ts->skyLeadSum += lead;
-      if (ts->skyMoved <= 3) Log("automated shot: '%s' sky shell moved %.0f m to fall on '%s' (falls %.0f m in %.1f s, leads it %.0f m)", ts->name.c_str(), moved, StripTags(NameOf(tgt)).c_str(), y0, t / pts, lead);
+  if (offPos >= 0 && v[1] < 0 && fabsf(v[0]) < 0.5f && fabsf(v[2]) < 0.5f) {   // falling straight down: a sky shot; how far off it lands
+    const float* ps = (const float*)((char*)pj + offPos); V3 tp = PosOf(tgt);
+    if (tp.y > -9000) {
+      float miss = sqrtf((ps[0] - tp.x) * (ps[0] - tp.x) + (ps[2] - tp.z) * (ps[2] - tp.z));
+      ts->skyMoved++; ts->skyLeadSum += miss;
+      if (ts->skyMoved <= 3) Log("automated shot: '%s' sky shell comes down %.0f m from '%s' (%.0f m up)", ts->name.c_str(), miss, StripTags(NameOf(tgt)).c_str(), ps[1] - tp.y);
     }
   }
   float h = sqrtf(v[0] * v[0] + v[2] * v[2]), lob = atan2f(v[1], h) * 57.2958f, fly = v[1] > 0 ? 2 * v[1] / 9.81f : 0;
@@ -8054,7 +8061,7 @@ static void TurretKill(void* mount, void* killed) {
 static void TurretSummary() {
   for (auto& e : g_turretStats) {
     const TurretStats& s = e.second;
-    if (s.automated) Log("automated guns, last battle: '%s' fired %d shots (%d at a target the game picked, %d without one, %d at a target already dead), %d kills; launched %.0f deg up on average, about %.0f s in the air; %d sky shells moved over their target (lead %.0f m on average)", s.name.c_str(), s.shots, s.aimed, s.shots - s.aimed, s.atDead, s.kills,
+    if (s.automated) Log("automated guns, last battle: '%s' fired %d shots (%d at a target the game picked, %d without one, %d at a target already dead), %d kills; launched %.0f deg up on average, about %.0f s in the air; %d sky shells came down %.0f m from their target on average", s.name.c_str(), s.shots, s.aimed, s.shots - s.aimed, s.atDead, s.kills,
                          s.lobN ? s.lobSum / s.lobN : 0.0, s.lobN ? s.flightSum / s.lobN : 0.0, s.skyMoved, s.skyMoved ? s.skyLeadSum / s.skyMoved : 0.0);
     else if (s.shots || s.kills) Log("%s, last battle: '%s' fired %d shots, %d kills", s.sideGrade ? "side-grades" : "turret guns", s.name.c_str(), s.shots, s.kills);
   }
