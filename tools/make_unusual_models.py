@@ -683,9 +683,10 @@ def up_up_away():
 
 
 def big_brother():
-    """Big Brother (5-inch, every 40th shot calls in a Fletcher): a destroyer's enclosed gun house with a watching eye on
-    the roof and a mini Fletcher steaming round the pedestal."""
-    m = Model('big_brother', 'us5')
+    """Big Brother (3-inch, every 40th shot calls in a Fletcher): a destroyer's enclosed gun house with a watching eye on
+    the roof and a mini Fletcher steaming round the pedestal. On the 3-inch since 2026-11-16: the 5-inch only fits a
+    Heavy+ slot, which no PT boat has; the barrel follows the 3-inch bore (x -0.04, y 0.22 in the pivot frame)."""
+    m = Model('big_brother', 'us3')
     s = m.stand()
     cyl(s, 'Grey', (0, -1.317, 0), (0, -1.2, 0), 0.85, 0.8, seg=24)
     cyl(s, 'Navy', (0, -1.2, 0), (0, -0.62, 0), 0.4, 0.34, seg=18)
@@ -718,10 +719,11 @@ def big_brother():
     cyl(t, 'Steel', (0.5, 0.55, -1.1), (0.5, 1.25, -1.1), 0.015, seg=6)           # a pennant at the back
     box(t, 'Pink', (0.5, 1.15, -1.28), (0.01, 0.12, 0.34))
     b = m.barrel_from_pivot()
-    cyl(b, 'Grey', (0, 0, 0.95), (0, 0, 1.25), 0.17, 0.12, seg=16)                 # the blast bag
-    cyl(b, 'Steel', (0, 0, 1.25), (0, 0, 2.85), 0.085, 0.075, seg=16)
-    cyl(b, 'Pink', (0, 0, 2.55), (0, 0, 2.65), 0.088, seg=16, caps=False)
-    cyl(b, 'Black', (0, 0, 2.845), (0, 0, 2.86), 0.07, seg=14)
+    bx, by = -0.04, 0.22                                                           # the 3-inch bore
+    cyl(b, 'Grey', (bx, by, 0.95), (bx, by, 1.25), 0.17, 0.12, seg=16)             # the blast bag
+    cyl(b, 'Steel', (bx, by, 1.25), (bx, by, 2.87), 0.085, 0.075, seg=16)
+    cyl(b, 'Pink', (bx, by, 2.57), (bx, by, 2.67), 0.088, seg=16, caps=False)
+    cyl(b, 'Black', (bx, by, 2.865), (bx, by, 2.88), 0.07, seg=14)
     return m
 
 

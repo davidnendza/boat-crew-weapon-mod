@@ -11608,7 +11608,7 @@ const char* kUnusualDefs =
   "[unique]\nname=Home Run\nmodel=home_run\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nline=ships it kills are knocked 60-80 m into the air\nflavor=Swing for the fences.\nfx.set.homerun=70\n\n"
   "[unique]\nname=Fire Mission\nmodel=fire_mission\nmodel_material=own\nbase=3-inch Gun Player\nuses=6\nline=every 6th hit marks the target with smoke, and a barrage walks across it 4 s later\nflavor=Fire for effect.\nfx.set.firemission=6\n\n"
   "[unique]\nname=Up, Up and Away\nmodel=up_up_away\nmodel_material=own\nbase=M1919 Browning\nuses=6\nline=hits pump enemy boats up like balloons: after 5 they float off and pop\nflavor=Lighter than air. Briefly.\nfx.set.upup=5\n\n"
-  "[unique]\nname=Big Brother\nmodel=big_brother\nmodel_material=own\nbase=5-inch 25 Gun Player\nuses=6\nline=every 40th shot a full-size Fletcher destroyer steams in to fight beside you for 45 s\nflavor=Don\'t make me come over there.\nfx.set.bigbrother=40\n";
+  "[unique]\nname=Big Brother\nmodel=big_brother\nmodel_material=own\nbase=3-inch Gun Player\nuses=6\nline=every 40th shot a full-size Fletcher destroyer steams in to fight beside you for 45 s\nflavor=Don\'t make me come over there.\nfx.set.bigbrother=40\n";
 
 struct UnusualCfg { int hangar, duck, gull; bool boomerang, fireworks; float orbital, magnet; int shots; float homerun; int firemission, upup, bigbro; };
 static std::unordered_map<void*, UnusualCfg> g_unuCfg;               // mount -> its powers, per battle
