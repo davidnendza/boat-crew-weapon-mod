@@ -7823,11 +7823,24 @@ struct TurretStats;
 static TurretStats* TurretOf(void* mount);
 // Every frame while an automated sky-shot gun (GunType.skyShot +0x70, the player mortars) is selected: its aim point
 // GunMount.lastTarget (+0x190, written by aimAt) goes into skyShotPosition (+0x1C0), where GunMount.shoot puts the shell.
+static V3 PosOf(void* component);
+// The ship each automated sky-shot mount last fired at (pinned), for AutoSkyAim (battle 29-30: lastTarget is the gun's
+// ballistic aim point, 124-303 m up and 97-182 m off the ship, so shells fell 130 m off on average).
+static std::map<void*, std::pair<void*, void*>> g_skyTarget;         // mount -> (LiveEntity, GC handle)
+static void SkyRemember(void* mount, void* tgt) {
+  auto it = g_skyTarget.find(mount);
+  if (it != g_skyTarget.end() && it->second.first == tgt) return;
+  if (it != g_skyTarget.end()) Unpin(it->second.second);
+  g_skyTarget[mount] = { tgt, Pin(tgt) };
+}
+static void SkyForgetAll() { for (auto& kv : g_skyTarget) Unpin(kv.second.second); g_skyTarget.clear(); }
+static long long g_skySrc[3] = {};                                    // frames aimed by: 0 aim point, 1 forceTarget, 2 last shell's ship
 static void AutoSkyAim() {
-  static int offSky = -2, offLastT = -1, offSkyPos = -1;
+  static int offSky = -2, offLastT = -1, offSkyPos = -1, offForce = -1, offAlive = -1;
   if (offSky == -2) {
     auto fo = [](const char* c, const char* f) { void* k = FindClass("Core", c); void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
     offSky = fo("GunType", "skyShot"); offLastT = fo("GunMount", "lastTarget"); offSkyPos = fo("GunMount", "skyShotPosition");
+    offForce = fo("GunMount", "forceTarget"); offAlive = fo("LiveEntity", "_alive");
     if (offSky < 0 || offLastT < 0 || offSkyPos < 0) Log("auto utility: sky aim MISSING PIECES (skyShot +0x%X lastTarget +0x%X skyShotPosition +0x%X)", offSky, offLastT, offSkyPos);
   }
   if (offSky < 0 || offLastT < 0 || offSkyPos < 0) return;
@@ -7835,7 +7848,20 @@ static void AutoSkyAim() {
     void* mount = kv.first ? *(void**)((char*)kv.first + g_offWsSelected) : nullptr; if (!mount) continue;
     void* gt = *(void**)((char*)mount + g_offGunType);
     if (!gt || !*(bool*)((char*)gt + offSky)) continue;
-    memcpy((char*)mount + offSkyPos, (char*)mount + offLastT, 12);
+    // the fire control's target (forceTarget, set when aimAt gets one), else the ship the last shell went at; the shell
+    // appears 20 m above it (falls in ~0.1 s); with neither, the aim point (first shell of an engagement)
+    void* tgt = offForce >= 0 ? *(void**)((char*)mount + offForce) : nullptr;
+    int src = 0;
+    if (tgt && Alive(tgt) && (offAlive < 0 || *(bool*)((char*)tgt + offAlive))) src = 1;
+    else {
+      auto it = g_skyTarget.find(mount);
+      tgt = it != g_skyTarget.end() ? it->second.first : nullptr;
+      if (tgt && Alive(tgt) && (offAlive < 0 || *(bool*)((char*)tgt + offAlive))) src = 2; else tgt = nullptr;
+    }
+    V3 p = tgt ? PosOf(tgt) : V3{ 0, -10000, 0 };
+    if (tgt && p.y > -9000) { p.y += 20; memcpy((char*)mount + offSkyPos, &p, 12); }
+    else { memcpy((char*)mount + offSkyPos, (char*)mount + offLastT, 12); src = 0; }
+    g_skySrc[src]++;
   }
 }
 static void AutoUtilityTick() {
@@ -8016,6 +8042,8 @@ static void AutoShotInfo(void* pj, TurretStats* ts) {
   if (!tgt || offVel < 0) return;
   bool dead = offAlive >= 0 && !*(bool*)((char*)tgt + offAlive);
   if (dead) ts->atDead++;
+  void* from = g_offPjFrom >= 0 ? *(void**)((char*)pj + g_offPjFrom) : nullptr;
+  if (from && !dead) SkyRemember(from, tgt);
   float* v = (float*)((char*)pj + offVel);
   if (offPos >= 0 && v[1] < 0 && fabsf(v[0]) < 0.5f && fabsf(v[2]) < 0.5f) {   // falling straight down: a sky shot; how far off it lands
     const float* ps = (const float*)((char*)pj + offPos); V3 tp = PosOf(tgt);
@@ -8061,11 +8089,12 @@ static void TurretKill(void* mount, void* killed) {
 static void TurretSummary() {
   for (auto& e : g_turretStats) {
     const TurretStats& s = e.second;
-    if (s.automated) Log("automated guns, last battle: '%s' fired %d shots (%d at a target the game picked, %d without one, %d at a target already dead), %d kills; launched %.0f deg up on average, about %.0f s in the air; %d sky shells came down %.0f m from their target on average", s.name.c_str(), s.shots, s.aimed, s.shots - s.aimed, s.atDead, s.kills,
-                         s.lobN ? s.lobSum / s.lobN : 0.0, s.lobN ? s.flightSum / s.lobN : 0.0, s.skyMoved, s.skyMoved ? s.skyLeadSum / s.skyMoved : 0.0);
+    if (s.automated) Log("automated guns, last battle: '%s' fired %d shots (%d at a target the game picked, %d without one, %d at a target already dead), %d kills; launched %.0f deg up on average, about %.0f s in the air; %d sky shells came down %.0f m from their target on average (sky aim frames: %lld fire-control target, %lld last shell's ship, %lld aim point)", s.name.c_str(), s.shots, s.aimed, s.shots - s.aimed, s.atDead, s.kills,
+                         s.lobN ? s.lobSum / s.lobN : 0.0, s.lobN ? s.flightSum / s.lobN : 0.0, s.skyMoved, s.skyMoved ? s.skyLeadSum / s.skyMoved : 0.0, g_skySrc[1], g_skySrc[2], g_skySrc[0]);
     else if (s.shots || s.kills) Log("%s, last battle: '%s' fired %d shots, %d kills", s.sideGrade ? "side-grades" : "turret guns", s.name.c_str(), s.shots, s.kills);
   }
   g_turretStats.clear(); g_isTurret.clear();
+  g_skySrc[0] = g_skySrc[1] = g_skySrc[2] = 0; SkyForgetAll();       // sky aim: a new battle, new ships
 }
 
 // ---- Smoking barrels (barrel_smoke, 2026-11-05) ---------------------------------------------------------------------
