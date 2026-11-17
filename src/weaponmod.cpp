@@ -15327,6 +15327,18 @@ static void AllKnowingTick() {
         "does NOT limit itself to marked targets, so clearing it changes nothing"));
   }
   if (want && !g_akFcm && g_akFrames % 60 == 0) AllKnowingFind(craft);
+  // why it does or does not turn on (a player on a mortar thought it never did, 2026-11-16): the first 6 camera mode
+  // changes per battle while an All-Knowing gun is fitted, with the fire mode of its aux entry
+  static int lastMode = -99, modeLogs = 0; static void* modeEng = nullptr;
+  if (modeEng != eng) { modeEng = eng; modeLogs = 0; lastMode = -99; }
+  if (ready && mode != lastMode && modeLogs < 6) {
+    int slotMode = -1;
+    for (int j = 0; j < nAux && j < 16; j++) { void* w = *(void**)((char*)aux + 0x20 + 8 * (size_t)j); void* sys = w ? *(void**)((char*)w + offAwSystem) : nullptr;
+      if (sys && (sys == readySlot || NameOf(sys) == NameOf(readySlot))) slotMode = *(int*)((char*)w + offAwFire); }
+    modeLogs++; lastMode = mode;
+    Log("all-knowing: camera mode %d (1 targeting, 2 rocket, 4 special, 6 magnified, 7 squadron); '%s' is aimed in mode %d, so it is %s", mode,
+        StripTags(NameOf(ready)).c_str(), slotMode, want ? "ON" : "off");
+  }
   AllKnowingSet(want && g_akFcm, want);
 }
 
