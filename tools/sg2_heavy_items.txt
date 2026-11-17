@@ -194,3 +194,43 @@ family=Heavy+ Weapon
 base=5-inch 25 Gun Player
 built_from=10.5 cm SK C/32
 weight=0.3
+
+# 0.9.9: the 155 mm M1 Long Tom, appended at the end of kSideGrades (Heavy+ third set). On the 3-inch so it fits Heavy
+# slots too (3-inch: 800 damage, 400 splash over 30 m, 400 m/s). Its Unique 'Longer Tom' (model longer_tom) is in kDefaultDrops.
+[item]
+name=155 mm M1 Long Tom
+family=Heavy Weapon,Heavy+ Weapon
+base=3-inch Gun Player
+model=long_tom_155mm
+model_keep=Stand,US_3in_base,Bofors Hand Crank
+sound_from=US Superheavy Artillery
+description=US 155 mm Gun M1 'Long Tom', the Army's long-range field gun, bolted to a deck by someone who should not be allowed near a deck. One huge shell at a time that flies far and fast with a massive blast, then a long reload; very expensive, few shells carried.
+mul.price=3.5
+mul.roundsPerMinute=0.4
+mul.shotCooldown=2.5
+set.MagSize=1
+set.MaxAmmo=4
+set.ammoPerFill=1
+set.reloadCooldown=6
+set.Accuracy=97
+set.engagementDistance=5000
+proj.mul.BaseDamage=6
+proj.mul.SplashDamageBase=4
+proj.mul.SplashDamageRange=1.8
+proj.mul.MuzzleVelocity=1.5
+proj.mul.MuzzleVelocityRealistic=1.3
+proj.mul.projectileWidth=1.6
+
+[template]
+label=Long Tom
+family=Heavy Weapon
+base=3-inch Gun Player
+built_from=155 mm M1 Long Tom
+weight=0.2
+
+[template]
+label=Long Tom
+family=Heavy+ Weapon
+base=3-inch Gun Player
+built_from=155 mm M1 Long Tom
+weight=0.2

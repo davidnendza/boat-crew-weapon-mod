@@ -8,7 +8,7 @@ struct FmodVec { float x, y, z; };
 struct Fmod3D { FmodVec pos, vel, fwd, up; };
 struct FmodApi {
   bool tried = false, ok = false; DWORD lastTry = 0;
-  void *studio = nullptr, *core = nullptr, *chomp = nullptr, *gulp = nullptr;
+  void *studio = nullptr, *core = nullptr, *chomp = nullptr, *gulp = nullptr, *boom = nullptr;   // boom: guns with fx kick
   int (*createSound)(void*, const char*, unsigned, void*, void**) = nullptr;
   int (*playSound)(void*, void*, void*, int, void**) = nullptr;
   int (*set3D)(void*, const FmodVec*, const FmodVec*) = nullptr;
@@ -57,8 +57,10 @@ static bool FmodReady() {
   std::string dir = g_folder + "\\sounds\\";
   int r1 = a.createSound(a.core, (dir + "chomp.wav").c_str(), 0x10 | 0x2 | 0x100 | 0x400000, nullptr, &a.chomp);   // 3D, loop, sample, linear-square rolloff
   int r2 = a.createSound(a.core, (dir + "gulp.wav").c_str(), 0x10 | 0x1 | 0x100 | 0x400000, nullptr, &a.gulp);
+  int r3 = a.createSound(a.core, (dir + "boom.wav").c_str(), 0x10 | 0x1 | 0x100 | 0x400000, nullptr, &a.boom);
   if (r1 != 0) a.chomp = nullptr;
   if (r2 != 0) a.gulp = nullptr;
+  if (r3 != 0) a.boom = nullptr;
   void* sa = FindClass("Core", "SettingsAudio");                       // the effects slider's Studio parameter
   void* fsi = sa ? il2cpp_class_get_field_from_name(sa, "instance") : nullptr; void* fss = sa ? il2cpp_class_get_field_from_name(sa, "settings") : nullptr;
   void* sai = nullptr; if (fsi) il2cpp_field_static_get_value(fsi, &sai);
@@ -75,9 +77,10 @@ static bool FmodReady() {
       if (i == 1) a.sfxParam = nm;
     }
   }
-  a.ok = a.chomp || a.gulp;
-  Log("chomper sound: %s (chomp.wav %s, gulp.wav %s; volume sliders %s; effects volume from '%s')", a.ok ? "ready" : "the sound files did not load",
+  a.ok = a.chomp || a.gulp || a.boom;
+  Log("chomper sound: %s (chomp.wav %s, gulp.wav %s, boom.wav %s; volume sliders %s; effects volume from '%s')", a.ok ? "ready" : "the sound files did not load",
       (r1 ? "FMOD error " + std::to_string(r1) : std::string("loaded")).c_str(), (r2 ? "FMOD error " + std::to_string(r2) : std::string("loaded")).c_str(),
+      (r3 ? "FMOD error " + std::to_string(r3) : std::string("loaded")).c_str(),
       names.empty() ? "not found" : names.c_str(), a.sfxParam.empty() ? "nothing, full volume" : a.sfxParam.c_str());
   a.lastTry = 0;
   return a.ok;
@@ -97,6 +100,15 @@ static void* FmodPlay(void* sound, V3 p, float vol) {
   FmodVec pos = { p.x, p.y, p.z }, vel = {};
   g_fm.minMax(ch, 40, 900); g_fm.set3D(ch, &pos, &vel); g_fm.volume(ch, vol); g_fm.paused(ch, 0);
   return ch;
+}
+// The kick guns' boom (GfxKick), on top of the gun's own sound; follows the effects slider but not chomp_volume.
+static void PlayBoom(V3 p) {
+  if (!FmodReady() || !g_fm.boom) return;
+  FmodListener();
+  float v = 1, fv = 1;
+  if (!g_fm.sfxParam.empty() && g_fm.param && g_fm.param(g_fm.studio, g_fm.sfxParam.c_str(), &v, &fv) == 0) v = fv > 1.5f ? fv / 100 : fv;
+  void* ch = FmodPlay(g_fm.boom, p, v < 0 ? 0 : v > 1 ? 1 : v);
+  if (ch) g_fm.minMax(ch, 150, 3000);                                   // loud a long way off
 }
 
 // The model a found torpedo shows in place of its own (TorpRun.look): 1 Chomper, 2 Chompette (two jaws), 3 the Sneaking

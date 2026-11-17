@@ -427,7 +427,7 @@ static const char* kSideGrades =
   "mul.price=1.35\nmul.roundsPerMinute=0.85\nmul.shotCooldown=1.18\nset.reloadCooldown=1.3\nset.engagementDistance=3200\n"
   "proj.mul.BaseDamage=1.5\nproj.mul.SplashDamageBase=1.25\nproj.mul.SplashDamageRange=1.15\nproj.mul.MuzzleVelocity=1.2\nproj.mul.MuzzleVelocityRealistic=1.2\n\n"
   "[item]\nname=10 cm Type 98 Twin\nfamily=Heavy+ Weapon\nbase=5-inch 25 Gun Player\nmodel=type98_100mm\nmodel_keep=Stand,5in_wet_mount,5 inch 25 Hand Crank\nsound_from=100 mm Type98 Dual Barrel Turret\n"
-  "description=Captured Japanese 10 cm/65 Type 98 twin from an Akizuki-class destroyer. Four shells before a reload and the longest reach of any gun, but each shell is lighter than the 5-inch's and the reload is long.\n"
+  "description=Captured Japanese 10 cm/65 Type 98 twin from an Akizuki-class destroyer. Four shells before a reload and a very long reach, but each shell is lighter than the 5-inch's and the reload is long.\n"
   "mul.price=1.4\nmul.roundsPerMinute=1.3\nmul.shotCooldown=0.77\nset.MagSize=4\nset.MaxAmmo=8\nset.ammoPerFill=2\nset.reloadCooldown=3\nset.Accuracy=95\nset.engagementDistance=4500\n"
   "proj.mul.BaseDamage=0.6\nproj.mul.SplashDamageBase=0.7\nproj.mul.SplashDamageRange=0.85\nproj.mul.MuzzleVelocity=1.6\nproj.mul.MuzzleVelocityRealistic=1.58\n\n"
   "[item]\nname=QF 4.7-inch Mk IX\nfamily=Heavy+ Weapon\nbase=5-inch 25 Gun Player\nmodel=qf_47inch\nmodel_keep=Stand,5in_wet_mount,5 inch 25 Hand Crank\n"
@@ -578,7 +578,13 @@ static const char* kSideGrades =
   "[item]\nname=Type 89 Knee Mortar\nfamily=Crew Weapons\nbase=M7 Grenade Launcher\nmodel=type89_discharger\nsound_from=M2 60 mm Mortar\n"
   "description=Captured Japanese Type 89 50 mm grenade discharger, the 'knee mortar': a mistranslated name, as firing it off the thigh broke bones. Fast but light: it reloads faster than the rifle grenade, but its burst is smaller and it scatters far wider.\n"
   "mul.price=1.1\nset.reloadCooldown=6\nset.Accuracy=55\n"
-  "proj.mul.SplashDamageBase=0.8\n";
+  "proj.mul.SplashDamageBase=0.8\n\n"
+  // Heavy+ (third set)
+  // On the 3-inch (in Heavy and Heavy+ slots; a 5-inch base could not sit in Heavy slots), so x6 damage = 4800, x4 splash = 1600 over 54 m
+  "[item]\nname=155 mm M1 Long Tom\nfamily=Heavy Weapon,Heavy+ Weapon\nbase=3-inch Gun Player\nmodel=long_tom_155mm\nmodel_keep=Stand,US_3in_base,Bofors Hand Crank\nsound_from=US Superheavy Artillery\n"
+  "description=US 155 mm Gun M1 'Long Tom', the Army's long-range field gun, bolted to a deck by someone who should not be allowed near a deck. One huge shell at a time that flies far and fast with a massive blast, then a long reload; very expensive, few shells carried.\n"
+  "mul.price=3.5\nmul.roundsPerMinute=0.4\nmul.shotCooldown=2.5\nset.MagSize=1\nset.MaxAmmo=4\nset.ammoPerFill=1\nset.reloadCooldown=6\nset.Accuracy=97\nset.engagementDistance=5000\n"
+  "proj.mul.BaseDamage=6\nproj.mul.SplashDamageBase=4\nproj.mul.SplashDamageRange=1.8\nproj.mul.MuzzleVelocity=1.5\nproj.mul.MuzzleVelocityRealistic=1.3\nproj.mul.projectileWidth=1.6\n";
 // ---- utility gear for the depth charge launchers ----------------------------------------------------------------------
 // Smoke pots and life rafts, always in the depth charge slots' lists like stock gear. Each is a copy of a stock depth
 // charge tier (so it rolls off the side or the stern rack the same way); when it lands on the water the mod takes the

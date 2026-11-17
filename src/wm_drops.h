@@ -633,7 +633,7 @@ static std::string ColorEffectText(const std::string& text, bool bad) {
   while (st <= text.size()) {
     size_t c = text.find(", ", st); if (c == std::string::npos) c = text.size();
     std::string part = text.substr(st, c - st);
-    bool partBad = (bad && !(!part.empty() && part[0] == '+')) || (!part.empty() && part[0] == '-') || part.compare(0, 4, "but ") == 0;
+    bool partBad = (bad && !(!part.empty() && part[0] == '+')) || (!part.empty() && part[0] == '-') || part.compare(0, 4, "but ") == 0 || part.compare(0, 7, "WARNING") == 0;
     if (!out.empty()) out += ", ";
     out += Colored(part, partBad ? kBadHex : kGoodHex);
     st = c + 2;

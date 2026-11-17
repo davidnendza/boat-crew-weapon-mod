@@ -418,7 +418,89 @@ def skc32():
     return m
 
 
-MODELS = [t34_turret, chicago_piano, qf2pdr_single, skc30, breda_twin, skc32]
+def shift_parts(m, d):
+    """Move every part of m by d (parts authored with the bore at the origin)."""
+    d = np.asarray(d, float)
+    for part in m.parts:
+        part.tris = [(mat, [np.asarray(q) + d for q in ps], ns, uv) for mat, ps, ns, uv in part.tris]
+
+
+def long_tom():
+    """US 155 mm Gun M1 'Long Tom' (field artillery), on the 3-inch pedestal so it fits Heavy and Heavy+ slots: a very
+    long L/45 monobloc barrel with no muzzle brake, the big interrupted-screw breech, the long cradle with the recoil
+    cylinders under it, the two tall equilibrators either side, handwheels on the carriage and a panoramic sight. No
+    shield. The barrel runs far past the stock muzzle, so the muzzle flash shows partway along it (shoot points stay)."""
+    m = Model('long_tom_155mm', 'us3', keep=['Stand', 'US_3in_base', 'Bofors Hand Crank'], item='155 mm M1 Long Tom')
+    t, b = m.turret(), m.barrel()
+    lathe(b, US3, (0, 0, -1.15), (0, 0, 1), [(0, 0.24), (0.7, 0.24), (0.7, 0.19), (1.6, 0.17), (2.6, 0.15), (5.85, 0.11),
+                                            (5.85, 0.125), (5.95, 0.125), (5.95, 0.0)], seg=20)
+    chamfer_box(b, US3, (0, 0, -0.85), (0.54, 0.54, 0.62), 0.06)                              # breech ring
+    cyl(b, DARK, (-0.27, 0.0, -1.16), (-0.27, -0.2, -1.16), 0.035, seg=8)                     # breech-block hinge
+    cyl(b, DARK, (0.27, 0.05, -1.05), (0.42, 0.05, -1.05), 0.035, seg=8)                      # operating lever
+    chamfer_box(t, US3, (0, -0.04, 0.55), (0.5, 0.44, 2.3), 0.05)                              # cradle
+    for sx in (-1, 1):
+        cyl(t, US3, (sx * 0.11, -0.3, -0.45), (sx * 0.11, -0.3, 1.75), 0.085, seg=12)         # recoil cylinders
+        lathe(t, US3, (sx * 0.11, -0.3, 1.75), (0, 0, 1), [(0, 0.085), (0.05, 0.06), (0.07, 0.0)], seg=12)
+        cyl(t, US3, (sx * 0.34, 0.05, 0.9), (sx * 0.34, -0.6, 0.25), 0.09, seg=12)            # equilibrators
+        cyl(t, DARK, (sx * 0.34, -0.6, 0.25), (sx * 0.34, -0.75, 0.12), 0.04, seg=8)
+    for z in (-0.4, 0.6, 1.5):
+        box(t, US3, (0, -0.05, z), (0.56, 0.5, 0.09))                                          # cradle bands
+    y = yaw_part(m)                                                                           # the carriage: turns, does not elevate
+    for sx in (-1, 1):
+        box(y, US3, (sx * 0.32, -0.1, 0.0), (0.16, 0.42, 0.42))                               # trunnion brackets
+        cyl(y, US3, (sx * 0.4, -0.1, 0.0), (sx * 0.55, -0.1, 0.0), 0.11, seg=12)
+        handwheel(y, DARK, (sx * 0.66, -0.18, -0.15), (1, 0, 0), 0.16)
+        cyl(y, DARK, (sx * 0.66, -0.18, -0.15), (sx * 0.4, -0.18, -0.15), 0.02, seg=6)
+    box(t, DARK, (-0.45, 0.22, -0.35), (0.09, 0.12, 0.3))                                     # panoramic sight
+    cyl(t, DARK, (-0.45, 0.28, -0.35), (-0.45, 0.42, -0.35), 0.04, seg=10)
+    box(t, US3, (0.0, -0.2, -1.5), (0.3, 0.05, 0.45))                                         # loading tray
+    shift_parts(m, (X3, Y3, 0))
+    return m
+
+
+def longer_tom():
+    """The Longer Tom Unique's look: an over-the-top siege gun (an original design from generic heavy-artillery parts):
+    a thick stepped barrel with collars and a slotted muzzle brake, a big ribbed breech drum, two hydraulic recoil struts,
+    slab armour cheeks on the carriage, a counterweight behind the breech. The Unique also scales the whole mount up."""
+    m = Model('longer_tom', 'us3', keep=['Stand', 'US_3in_base', 'Bofors Hand Crank'], item='155 mm M1 Long Tom')
+    t, b = m.turret(), m.barrel()
+    # barrel: three steps, a collar at each step, the muzzle brake at the end
+    lathe(b, US3, (0, 0, -0.2), (0, 0, 1), [(0, 0.27), (1.4, 0.27), (1.4, 0.21), (3.2, 0.21), (3.2, 0.17), (5.25, 0.17),
+                                           (5.25, 0.0)], seg=24)                                 # runs 0.05 m into the brake (starts 0.2 m back)
+    for z, r in ((1.3, 0.31), (3.1, 0.25), (4.9, 0.2)):
+        lathe(b, DARK, (0, 0, z), (0, 0, 1), [(0, r), (0.16, r), (0.16, 0.0)], seg=24)
+    lathe(b, US3, (0, 0, 5.0), (0, 0, 1), [(0, 0.25), (0.62, 0.25), (0.62, 0.12), (0.66, 0.12), (0.66, 0.0)], seg=24)
+    for sx in (-1, 1):                                                                        # muzzle brake ports
+        for k in range(3):
+            box(b, DARK, (sx * 0.235, 0, 5.12 + 0.17 * k), (0.04, 0.26, 0.1))
+    lathe(b, DARK, (0, 0, 5.62), (0, 0, 1), [(0, 0.15), (0.05, 0.15), (0.05, 0.0)], seg=24)   # bore mouth
+    # breech drum with ribs, and a counterweight block behind it
+    lathe(b, US3, (0, 0, -1.25), (0, 0, 1), [(0, 0.3), (0.1, 0.44), (1.0, 0.44), (1.1, 0.34), (1.1, 0.0)], seg=24)
+    for z in (-1.0, -0.75, -0.5):
+        lathe(b, DARK, (0, 0, z), (0, 0, 1), [(0, 0.46), (0.07, 0.46), (0.07, 0.0)], seg=24)
+    chamfer_box(b, US3, (0, 0.05, -1.45), (0.6, 0.56, 0.4), 0.08)
+    box(b, DARK, (0.36, 0.1, -1.45), (0.08, 0.2, 0.26))                                      # breech actuator
+    # cradle under the barrel and two hydraulic recoil struts: thick cylinder, chrome rod, end eyes
+    chamfer_box(t, US3, (0, -0.36, 0.4), (0.62, 0.26, 2.4), 0.05)
+    for sx in (-1, 1):
+        x = sx * 0.2
+        cyl(t, US3, (x, -0.42, -0.6), (x, -0.42, 1.0), 0.1, seg=14)
+        cyl(t, BRASS, (x, -0.42, 1.0), (x, -0.32, 2.3), 0.045, seg=10)
+        cyl(t, DARK, (x, -0.3, 2.35), (x, -0.22, 2.35), 0.07, seg=10)
+        box(t, US3, (x, -0.26, 2.35), (0.1, 0.12, 0.14))
+    # armoured cheeks on the carriage (turn, do not elevate), trunnion hubs and a handwheel each side
+    y = yaw_part(m)
+    cheek = [(-0.75, -0.75), (0.85, -0.75), (0.55, 0.15), (0.05, 0.45), (-0.6, 0.35)]
+    for sx in (-1, 1):
+        extrude(y, US3, cheek, (0, 0, 1), (0, 1, 0), (1, 0, 0), sx * 0.5, sx * 0.62)
+        cyl(y, DARK, (sx * 0.62, 0, 0), (sx * 0.7, 0, 0), 0.2, seg=16)
+        handwheel(y, DARK, (sx * 0.78, -0.35, -0.35), (1, 0, 0), 0.15)
+    box(t, DARK, (-0.4, 0.42, -0.6), (0.12, 0.14, 0.36))                                      # sight box on top of the drum
+    shift_parts(m, (X3, Y3, 0))
+    return m
+
+
+MODELS = [t34_turret, chicago_piano, qf2pdr_single, skc30, breda_twin, skc32, long_tom, longer_tom]
 
 
 def main():

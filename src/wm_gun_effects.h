@@ -179,13 +179,14 @@ struct GunFx {
   bool item = false; std::string name;
   float mark = 0, markTime = 8, giant = 0, salvo = 0, closeB = 0, closeD = 400, longB = 0, longD = 1000, overkill = 0;
   float vetPer = 0; int vetCap = 10; float rally = 0, steady = 0; int steadyCap = 10; float steadyDecay = 3, saveAmmo = 0, brittle = 0;
+  float kick = 0;
 };
 static std::unordered_map<void*, GunFx> g_gfxCache;                   // mount -> its effects, per battle (stable references)
 struct GfxStats { int marks = 0, markedHits = 0, giantHits = 0, salvoShots = 0, salvoHits = 0, closeHits = 0, longHits = 0, spills = 0, vetHits = 0, vetKills = 0,
-                  rallyKills = 0, rallyCrew = 0, stacks = 0, freeShots = 0, shots = 0, brittleHits = 0, capHits = 0;
+                  rallyKills = 0, rallyCrew = 0, stacks = 0, freeShots = 0, shots = 0, brittleHits = 0, capHits = 0, kicks = 0;
                   double capCut = 0, markDmg = 0, giantDmg = 0, salvoDmg = 0, closeDmg = 0, longDmg = 0, spillDmg = 0, vetDmg = 0, rallySecs = 0, brittleDmg = 0; };
 static std::map<std::string, GfxStats> g_gfxStats;                    // gun name -> this battle's counts
-enum { GL_MARK, GL_GIANT, GL_SALVO, GL_RANGE, GL_SPILL, GL_VET, GL_RALLY, GL_STEADY, GL_FRUGAL, GL_BRITTLE, GL_CAP, GL_N };
+enum { GL_MARK, GL_GIANT, GL_SALVO, GL_RANGE, GL_SPILL, GL_VET, GL_RALLY, GL_STEADY, GL_FRUGAL, GL_BRITTLE, GL_CAP, GL_KICK, GL_N };
 static int g_gfxLines[GL_N];                                          // event lines this battle: the first 5 of each are Log lines
 #define GFXLOG(kind, ...) do { if (g_gfxLines[kind]++ < 5) Log(__VA_ARGS__); else DLog(__VA_ARGS__); } while (0)
 static bool g_gfxTried = false, g_gfxReady = false, g_gfxHitOn = false, g_gfxCrewOn = false, g_gfxInBattle = false;
@@ -274,7 +275,7 @@ static const GunFx& GfxOf(void* mount) {
     g.longB = v("longBonus"); if (v("longDist") > 0) g.longD = v("longDist");
     g.overkill = v("overkill"); g.vetPer = v("vetPerKill"); if (v("vetCap") > 0) g.vetCap = (int)v("vetCap");
     g.rally = v("rally"); g.steady = v("steady"); if (v("steadyCap") > 0) g.steadyCap = (int)v("steadyCap"); if (v("steadyDecay") > 0) g.steadyDecay = v("steadyDecay");
-    g.saveAmmo = v("saveAmmo"); g.brittle = v("brittle");
+    g.saveAmmo = v("saveAmmo"); g.brittle = v("brittle"); g.kick = v("kick");
   } else {
     g.name = CrewClean(StripTags(NameOf(mount)));                      // a stock gun: only Marking's bonus reaches it
     std::string nm = StripTags(NameOf(mount)); static std::set<std::string> told;   // or a found gun purged at launch, still in its slot

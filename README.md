@@ -17,7 +17,7 @@ models, Rare and Elite enemy ships, and a crew that remembers its battles.
 - **Found guns:** 1 to 3 random effects each (Homing, Chaining, Flak, Deadeye, Skipping, Drum and over 20 more), colored tracers by rarity.
 - **Uniques:** named guns with fixed powers, one for nearly every gun, such as Hornet's Nest, The Ferryman and The Metronome.
 - **Eleven more turret guns:** Twin Vickers K, Twin Type 93, 2 cm Flak 38, M4 Barge Buster, Twin DShK and more, each with its own model.
-- **Forty-one side-grades:** the 8.8 cm Flak 36, Pom-pom, Chicago Piano, T-34 turret, Katyushas, Boys AT rifle and more.
+- **Forty-two side-grades:** the 8.8 cm Flak 36, Pom-pom, Chicago Piano, T-34 turret, Katyushas, Boys AT rifle and more.
 - **Found torpedoes:** Seeking, Swift or Dolphin-leaping torpedoes, plus Uniques such as Chomper, a hungry yellow ball that chomps its way in.
 - **Smoke pots and life rafts:** depth charge slot gear that lays a 150 m smoke screen or fetches your crew from the water.
 - **Rare and Elite enemies:** tougher ships with traits such as Armored, Swift, Long Boi or Chonker, each carrying a guaranteed gun.
@@ -351,7 +351,7 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
     slots, 2 + 2, 3 + 3 and 4 + 4 in the PT boats' torpedo slots, 2 + 2 and 4 + 4 on the sub chaser's K-guns, 2 + 2, 3 + 3 and
     4 + 4 on the PT-6's depth charge slot, and 4 + 4, 6 + 6 and 8 + 8 on the sub chaser's stern racks.
   Otherwise the left and right launchers always carry the same choice; that is how the game links them.
-- **Forty-one side-grades for the other slots (new in 0.9.0; the 8.8 cm Flak 36 is new in 0.9.6; 23 more are new in
+- **Forty-two side-grades for the other slots (new in 0.9.0; the 8.8 cm Flak 36 is new in 0.9.6; 23 more are new in
   0.9.7 and only minimally tested: T-34 Turret 76 mm to Type 89 Knee Mortar in the table below).** Period guns that trade against a stock gun of the same
   slot, each with its own model on the stock gun's mount. Like the turret guns they are always in the slot's gun list,
   never wear out, and also drop as loot with random effects. A side-grade only shows in a slot that has its stock gun.
@@ -371,9 +371,10 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
   | 3.7 cm SK C/30 | Heavy, Heavy+ | Bofors | -40% | Very slow, 2-round loads, but very accurate, with fast, flat shells and a longer reach |
   | Breda 37/54 Twin | Heavy, Heavy+ | Dual Bofors | -20% | Slower and a little softer, but steadier, with a quick reload |
   | 8 cm Type 3 | Heavy+ | 3-inch | +35% | A heavier, faster shell at a slightly slower rate |
-  | 10 cm Type 98 Twin | Heavy+ | 5-inch | +40% | Four shells a load and the longest reach, lighter shells, long reload |
+  | 10 cm Type 98 Twin | Heavy+ | 5-inch | +40% | Four shells a load and a very long reach, lighter shells, long reload |
   | QF 4.7-inch Mk IX | Heavy+ | 5-inch | same | Three rounds to the 5-inch's two, faster shells, smaller blast |
   | 10.5 cm SK C/32 | Heavy+ | 5-inch | -45% | Far cheaper with a faster shell, but a softer hit and a smaller blast |
+  | 155 mm M1 Long Tom | Heavy, Heavy+ | 3-inch | +250% | One huge, fast shell at a time with a massive blast and the longest reach, then a long reload |
   | Type 96 25 mm Twin | Medium | Twin Oerlikon | +10% | Heavier shells, a bit slower and less accurate |
   | MG 151/20 Drilling | Medium | Twin Oerlikon | +20% | Three cannon: much faster fire and a bigger burst, but scattered, short reach, slow reload |
   | M1 81 mm Mortar | Utility | 60 mm mortar | +30% | Much bigger blast, fewer rounds, slower reload |
@@ -425,6 +426,11 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
 - **Custom gun models (experimental).** A hand-made gun can wear its own 3D model: see "Custom gun models" below.
 
 ## Changes
+
+- **0.9.9 (in progress):**
+  - **155 mm M1 Long Tom**, a new Heavy and Heavy+ side-grade on the 3-inch: one huge shell at a time with a massive
+    blast and a very long reach, then a long reload. Expensive and rare in the loot.
+  - **Longer Tom**, its Unique: a much, much bigger gun that hits twice as hard, and every shot shoves your boat back.
 
 - **0.9.8, balance and options:**
   - **Crew story switches:** `crew_stories=0` keeps the after-action report shut (the crew files still keep each

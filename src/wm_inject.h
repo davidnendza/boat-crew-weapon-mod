@@ -44,9 +44,13 @@ static bool IsHiddenMount(void* mount) {
 // (Seat.holdL/holdR, GunMount.holdLeft/holdRight) move with them so the pose stays. Only transforms inside this copy are
 // moved: one outside it would be shared with the stock gun.
 static V3 QRotV(Q4 q, V3 v);
+// A gun drawn far bigger than stock (Longer Tom's gunScale 2.5) carries its seats out with the scale, off the deck where the
+// crew cannot path; above 1.7 (past Oversized's 1.6) the seats go back to the stock gun's spots around the mount's origin.
 static void ApplyCrewOffset(void* mount, const Item& it) {
   V3 off = { (float)ItemFx(it, "crewOffsetX"), (float)ItemFx(it, "crewOffsetY"), (float)ItemFx(it, "crewOffsetZ") };
-  if (off.x == 0 && off.y == 0 && off.z == 0) return;
+  float gs = (float)ItemFx(it, "gunScale"), sc = it.scale * (gs > 0 ? gs : 1.0f);
+  bool unscale = sc > 1.7f;
+  if (off.x == 0 && off.y == 0 && off.z == 0 && !unscale) return;
   static void *getPos = nullptr, *setPos = nullptr, *getRot = nullptr;
   static int state = 0;
   if (!state) {
@@ -80,10 +84,15 @@ static void ApplyCrewOffset(void* mount, const Item& it) {
   // all read first, then set parents first: a parent's move carries its children, whose own set puts them back at at+w
   std::stable_sort(ts.begin(), ts.end(), [](const std::pair<int, void*>& x, const std::pair<int, void*>& y) { return x.first < y.first; });
   std::vector<V3> at; for (auto& e : ts) at.push_back(GetV3(getPos, e.second));
-  for (size_t i = 0; i < ts.size(); i++) { V3 p = { at[i].x + w.x, at[i].y + w.y, at[i].z + w.z }; void* a[1] = { &p }; Invoke(setPos, ts[i].second, a); }
+  V3 o = GetV3(getPos, mt); float k = unscale ? 1.0f / sc : 1.0f;      // the scale's origin is the mount's own position
+  for (size_t i = 0; i < ts.size(); i++) {
+    V3 p = { o.x + (at[i].x - o.x) * k + w.x, o.y + (at[i].y - o.y) * k + w.y, o.z + (at[i].z - o.z) * k + w.z };
+    void* a[1] = { &p }; Invoke(setPos, ts[i].second, a);
+  }
   static std::set<std::string> told;                                   // once per gun: every boat build moves them again
   if (told.insert(it.name).second)
-    Log("  '%s': crew_offset (%.2f, %.2f, %.2f) m applied to %d seats/hand targets (%d outside the copy left alone)", it.name.c_str(), off.x, off.y, off.z, (int)ts.size(), outside);
+    Log("  '%s': crew_offset (%.2f, %.2f, %.2f) m%s applied to %d seats/hand targets (%d outside the copy left alone)", it.name.c_str(), off.x, off.y, off.z,
+        unscale ? ", seats kept at the stock gun's spots (gun drawn bigger)" : "", (int)ts.size(), outside);
 }
 // pivot_offset=x,y,z (fx pivotOffsetX/Y/Z): moves GunMount.pivotPoint, the transform that elevates, on this mount copy,
 // metres in the mount's own frame; the barrels, shoot points and the model's turret/barrel/yaw parts move with it.

@@ -1,17 +1,54 @@
 // gun effects per shot, kill, tick and battle change (GfxShot to GfxBattleChange) (a fragment of weaponmod.cpp, included in order, not standalone)
-// Each own new shot (CritScan, after the co-op copies are left out): Opening Salvo's count, Frugal's next roll.
+// Kick (fx kick, m/s): each shot shoves your boat back against the shell's flight, a velocity change (ForceMode 2) with a
+// little lift. Only your own shots reach GfxShot, so another player's gun never moves your boat. Projectile is a plain
+// managed class (no transform), so the direction is its velocity field; get_Body is looked up on the boat's own class.
+static void PlayBoom(V3 p);                                           // wm_torp_looks.h: boom.wav through FMOD
+static void GfxKick(void* pj, void* mount, const GunFx& gx) {
+  static void *mBody = nullptr, *mAddForce = nullptr, *mVel = nullptr, *bodyClass = nullptr; static int offVel = -2;
+  if (offVel == -2) {
+    offVel = FieldOffset(FindClass("Core", "Projectile"), "velocity");
+    void* rb = FindClass("UnityEngine", "Rigidbody"); mAddForce = rb ? FindMethod(rb, "AddForce", 2, "UnityEngine.Vector3", "UnityEngine.ForceMode") : nullptr;
+    mVel = rb ? FindMethod(rb, "get_linearVelocity", 0) : nullptr;
+    if (offVel < 0 || !mAddForce || !mVel) Log("kick: MISSING PIECES (Projectile.velocity %d, Rigidbody.AddForce %p get_linearVelocity %p); guns do not kick", offVel, mAddForce, mVel);
+  }
+  void* k = il2cpp_object_get_class(g_gfxCraft);
+  if (k != bodyClass) {                                                // the boat's class: get_Body comes from LiveEntity up its parents
+    bodyClass = k; mBody = k ? il2cpp_class_get_method_from_name(k, "get_Body", 0) : nullptr;
+    if (!mBody) Log("kick: the boat's class has no get_Body; guns do not kick");
+  }
+  PlayBoom(PosOf(mount));                                             // the boom plays even if the shove cannot
+  if (offVel < 0 || !mAddForce || !mBody || !mVel) return;
+  void* body = Invoke(mBody, g_gfxCraft);
+  void* vb = body ? Invoke(mVel, body) : nullptr;
+  if (!vb) return;
+  V3 d = *(V3*)((char*)pj + offVel); float l = sqrtf(d.x * d.x + d.z * d.z);
+  if (l < 0.05f) return;                                               // fired straight up: nothing to push back along
+  // tops the boat up to kick m/s backward and 15% of it upward, never adds on top: fast fire (72 shots at a plane) stacked
+  // 30 m/s shoves and threw the boat out of the battle area
+  V3 v = *(V3*)((char*)vb + 0x10), u{ -d.x / l, 0, -d.z / l };
+  float back = v.x * u.x + v.z * u.z, push = gx.kick - back, lift = gx.kick * 0.15f - v.y;
+  if (push < 0) push = 0;
+  if (lift < 0) lift = 0;
+  GfxStat(gx.name).kicks++;
+  if (push <= 0 && lift <= 0) { DLog("kick: '%s' fired, boat already moving back %.1f m/s, no extra shove", gx.name.c_str(), back); return; }
+  V3 f{ u.x * push, lift, u.z * push }; int mode = 2;
+  void* fa[2] = { &f, &mode }; Invoke(mAddForce, body, fa);
+  GFXLOG(GL_KICK, "kick: '%s' shoved your boat back %.1f m/s (it was moving back %.1f m/s), up %.1f m/s", gx.name.c_str(), push, back, lift);
+}
+// Each own new shot (CritScan, after the co-op copies are left out): Opening Salvo's count, Frugal's next roll, Kick.
 static void GfxShot(void* pj, void* mount, bool leap) {
   g_salvoShots.erase(pj);                                              // a pooled shell's earlier life is over
   if (leap || !g_gfxReady || !g_gfxCraft || *(void**)((char*)mount + g_oGmEntity) != g_gfxCraft) return;
   const GunFx& gx = GfxOf(mount);
   if (!gx.item) return;
   bool frag = false;                                                   // a fragment of one of this gun's shells
-  if ((gx.salvo > 0 || gx.saveAmmo > 0) && g_oPjType >= 0 && g_oPtFrag >= 0) {
+  if ((gx.salvo > 0 || gx.saveAmmo > 0 || gx.kick > 0) && g_oPjType >= 0 && g_oPtFrag >= 0) {   // kick: one shove per shell, not per fragment
     void* pt = *(void**)((char*)pj + g_oPjType);
     std::set<void*>& ft = g_gfxFragTypes[mount];
     if (pt && ft.count(pt)) frag = true;
     else if (pt) { void* fr = *(void**)((char*)pt + g_oPtFrag); if (fr && fr != pt) ft.insert(fr); }
   }
+  if (gx.kick > 0 && !frag) GfxKick(pj, mount, gx);
   if (gx.salvo > 0) {
     auto s = g_salvo.find(mount);
     if (s == g_salvo.end()) {
@@ -285,6 +322,8 @@ static void GfxBattleChange(bool had) {
     if (g_steadyPeak > 0) { snprintf(b, sizeof b, "sure-footed, last battle: at most %.1f stacks; %d hits on your crew while steady, %d of them braced", g_steadyPeak, g_steadyHits, g_steadyBraced); Log("%s", b); }
     line("frugal", [](const std::string& n, const GfxStats& s) { char b[300]; if (!s.shots) return std::string();
       snprintf(b, sizeof b, "'%s' %d of %d shots used no ammo", n.c_str(), s.freeShots, s.shots); return std::string(b); });
+    line("kick", [](const std::string& n, const GfxStats& s) { char b[300]; if (!s.kicks) return std::string();
+      snprintf(b, sizeof b, "'%s' shoved your boat back %d times", n.c_str(), s.kicks); return std::string(b); });
     line("bonus cap", [](const std::string& n, const GfxStats& s) { char b[300]; if (!s.capHits) return std::string();
       snprintf(b, sizeof b, "'%s' %d hits held to +200%% (%.0f damage cut)", n.c_str(), s.capHits, s.capCut); return std::string(b); });
     line("brittle", [](const std::string& n, const GfxStats& s) { char b[300]; if (!s.brittleHits) return std::string();

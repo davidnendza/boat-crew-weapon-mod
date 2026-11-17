@@ -355,6 +355,10 @@ static void OptionsWindow(int type, Vec2 mouse) {
 
 // What's New: the README's change lists, shortened, newest first. Keep the secret tier out of it, as out of the README.
 static const char* kChangelog =
+  "## 0.9.9 (in progress)\n"
+  "- New Heavy and Heavy+ side-grade on the 3-inch, by request: the 155 mm M1 Long Tom, the US Army's long-range field gun. One huge shell at a time with a massive blast and a very long reach, then a long reload. It is expensive and rare in the loot.\n"
+  "- Its Unique, Longer Tom: a much, much bigger gun that hits twice as hard, and every shot shoves your boat back.\n"
+  "\n"
   "## 0.9.8 - Balance and options\n"
   "- New Crew options in Mod Options: After-action report (off: the report never opens; the crew files still keep each battle) and Letters home and mail call (off: no letters to the families, no mail call, and the crew do not talk about letters).\n"
   "- Balance pass. Toned down: QF 2-pdr Single, Pom-pom, T-34 Turret, Type 96 Twin and Triple (fewer rounds carried), Twin Type 93 (30-round boxes, less damage), M4 Barge Buster (smaller magazine). Crates now cost 2 Scrap Iron, 3 Brass or 4 Gunmetal. Your drops.ini updates on its own unless you changed those lines.\n"
