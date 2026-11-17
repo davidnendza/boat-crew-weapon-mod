@@ -1,13 +1,90 @@
 # Boat Crew Weapon Mod 0.9.7 (unofficial, experimental)
 
-Loot for Boat Crew. Picking up RP crates also gives you a **found gun** (or now and then an unopened crate): a copy of a stock gun with
-random effects, in Common, Uncommon, Rare or, very rarely, Unique. Keep the ones you like, scrap the rest for
-materials, and craft crates that open with a slot machine. Some enemy ships now spawn as **Rare** or **Elite**: tougher,
-stranger, and carrying a guaranteed gun.
+**Random gun loot, new WW2 guns, tougher enemies and a crew with a story, for Boat Crew.**
+
+This is a fan-made mod for Boat Crew, the WW2 PT boat game on Steam. Picking up RP crates now and then gives you a
+**found gun**: a copy of a stock gun with random effects, in Common, Uncommon, Rare or, very rarely, Unique. Keep the
+ones you like in a Diablo-style inventory, scrap the rest for materials, and craft crates that open with a slot
+machine. On top of the loot it adds dozens of period guns with their own models, Rare and Elite enemy ships, and a crew
+that remembers its battles. It is unofficial and experimental: much of it has seen only a little testing, and the
+newest parts none in game yet.
 
 > **Read the warnings below before installing.** This is a fan-made mod in early testing. It is not made, checked or
 > supported by the developers of Boat Crew. Please do not send them bug reports for problems you have while it is
 > installed.
+
+## Highlights
+
+- **Found guns:** 1 to 3 random effects each (Homing, Chaining, Flak, Deadeye, Skipping, Drum and over 20 more), colored tracers by rarity.
+- **Uniques:** named guns with fixed powers, one for nearly every gun, such as Hornet's Nest, The Ferryman and The Metronome.
+- **Eleven more turret guns:** Twin Vickers K, Twin Type 93, 2 cm Flak 38, M4 Barge Buster, Twin DShK and more, each with its own model.
+- **Forty-one side-grades:** the 8.8 cm Flak 36, Pom-pom, Chicago Piano, T-34 turret, Katyushas, Boys AT rifle and more.
+- **Found torpedoes:** Seeking, Swift or Dolphin-leaping torpedoes, plus Uniques such as Chomper, a hungry yellow ball that chomps its way in.
+- **Smoke pots and life rafts:** depth charge slot gear that lays a 150 m smoke screen or fetches your crew from the water.
+- **Rare and Elite enemies:** tougher ships with traits such as Armored, Swift, Long Boi or Chonker, each carrying a guaranteed gun.
+- **Torpedo kill cam:** slow motion follow-cam when one of your torpedoes is about to hit (single player).
+- **Battle newsreel:** a black-and-white GIF of each battle's best moments, played on an old 1950s TV page in your browser.
+- **Crew files and after-action reports:** every battle told as a story, a past for each crew member, a memorial for the lost.
+- **Letters and talk:** letters home and mail call, crew lines over their heads in 8 personalities, closest mates and earned nicknames.
+- **Female crew:** a quarter of the crew are women by default, with their own hair, figure and names.
+
+## Pictures
+
+Renders of the mod's models and windows, made outside the game (some from older versions).
+
+| | |
+|---|---|
+| ![Mod Options window](tools/ui_assets_preview.png) | ![Turret gun models](tools/turret_models_preview.png) |
+| Mod Options window | New turret guns next to the stock ones |
+| ![Side-grade models](tools/sidegrade_previews/sidegrade_models_1.png) | ![8.8 cm Flak 36](tools/sidegrade_previews/flak88.png) |
+| Side-grades: Pom-pom, Flak M42, 6-pdr Molins | The 8.8 cm Flak 36 |
+| ![Inventory window](tools/crate_preview.png) | ![Chomper torpedo](tools/chomper_preview.png) |
+| The inventory and loot grids | Chomper, a Unique torpedo |
+
+![Female crew hair styles](tools/female_hair_preview.png)
+
+## Quick start
+
+1. Back up your saves (`<game folder>\Boat Crew_Data\GameData\GameSaves`).
+2. Download the zip of the latest release from the
+   [Releases page](https://github.com/davidnendza/boat-crew-weapon-mod/releases).
+3. Close the game and unzip the zip into the Boat Crew game folder, next to `Boat Crew.exe` (Steam: right-click Boat Crew, Manage, Browse
+   local files).
+4. Start the game. The mod writes its settings and a log (`weaponmod.log`) into the `BoatCrewMod` folder.
+
+See [Install](#install) for details and [Uninstall](#uninstall) before you remove it.
+
+## Everything is optional
+
+Nearly every part can be turned off or tuned. **Mod Options** on the title screen and the loadout screen has tabs for
+Loot, Arsenal, Visuals, Enemies, Crew and Co-op. The same switches are in `BoatCrewMod\drops.ini`, for example:
+
+- `crew_stories=0` turns off the after-action report, `crew_letters=0` the letters home and mail call, and
+  `crew_talk=0` the crew's lines (the first two are new since 0.9.7).
+- `female_crew` sets the share of women (default 25), and `no_females=1` turns them off completely.
+- `newsreel=0` stops the battle filming, which can slow battles on some machines.
+- `turret_guns=0` and `side_grades=0` hide the new guns; `killcam=0` turns off the kill cam.
+
+Enemy traits are in `BoatCrewMod\enemies.ini`, and you can write your own guns in `BoatCrewMod\weapons.ini`.
+
+## Co-op
+
+Co-op works when everyone in the session has the same version of the mod. Found guns, side-grades, torpedoes and Rare
+and Elite enemies are then shared. It has seen the least testing of anything here, and the crew attachments are
+untested in co-op. Each part can be switched off; see the co-op warning below.
+
+## Contents
+
+- [What it does](#what-it-does)
+- [Changes](#changes)
+- [Warnings: please read](#warnings-please-read)
+- [Install](#install)
+- [Uninstall](#uninstall)
+- [Settings (`BoatCrewMod\drops.ini`)](#settings-boatcrewmoddropsini)
+- [Enemy settings (`BoatCrewMod\enemies.ini`)](#enemy-settings-boatcrewmodenemiesini)
+- [Custom gun models (experimental)](#custom-gun-models-experimental)
+- [Reporting problems](#reporting-problems)
+- [Source and license](#source-and-license)
 
 ## What it does
 
@@ -71,8 +148,8 @@ stranger, and carrying a guaranteed gun.
     the first time the mod needs them). Copy a section into `reports.ini`, `life.ini` or `talk.ini` and change it
     there; it replaces the built-in one. `reports.ini` is read for every report; `life.ini` and `talk.ini` take effect
     at the next launch. Letters from home cannot be changed yet.
-  - **Limits.** Your own boat only, and untested in co-op. Only the talk can be switched off; the report, crew files,
-    letters and mail are always on. A portrait can show NO PHOTO. Two crew with the same name, eyes and brows share
+  - **Limits.** Your own boat only, and untested in co-op. The talk (`crew_talk`), the report (`crew_stories`, since 0.9.8)
+    and the letters and mail (`crew_letters`, since 0.9.8) can be switched off; the crew files are always kept. A portrait can show NO PHOTO. Two crew with the same name, eyes and brows share
     one file.
 - **Battle newsreel (new in 0.9.6).** A second camera films the best moments of each battle and, when the battle
   ends, writes them as a black-and-white, old-film-style GIF (640x360, 20 frames a second, up to about 60 s) to
@@ -142,6 +219,8 @@ stranger, and carrying a guaranteed gun.
   - **Drum** (of the Drum): two to three times the magazine, but reloads 30% slower. On the machine guns (tub guns,
     Meat Chopper, BAR, Thompson, Johnson, handheld M1919) and the Oerlikon, Elco, Bofors and 37 mm autocannons.
   The damage effects above count blast damage too, not only direct hits, and multiply with each other (they stack).
+  Since 0.9.8 the conditional bonuses (Giant Slayer, Opening Salvo, Close Quarters, Long Shot, Veteran's) add up
+  instead, capped at +200% together.
   Drawbacks can also be **Wild** (+20-40% damage but a 50-100% wider spread; not on Homing or Guided guns, mortars
   or howitzers) or **Brittle** (the gun takes 50-100%
   more damage when hit).
@@ -206,7 +285,7 @@ stranger, and carrying a guaranteed gun.
     sunk), **Ironclad** (Elite only: 3x HP, a little slower).
   - Size traits: **Long Boi** (longer and tougher), **Short King** (shorter and faster), **Thicc** (wider, tougher,
     slower), **Noodle** (thinner and faster), **Chonker** (bigger all over) and **Smol** (smaller all over, faster).
-  Sinking one drops a gun into your loot grid (Rare: Uncommon or better, Elite: Rare) and gives extra call-in progress
+  Sinking one drops a gun into your loot grid (Rare: Uncommon or better, Elite: Rare, and since 0.9.8 sometimes a Unique) and gives extra call-in progress
   (twice a normal kill for a Rare, three times for an Elite). About 8% of enemy ships are Rare and 2% Elite; every
   number and trait is in `BoatCrewMod\enemies.ini`.
 - **Wear.** A found gun lasts a few missions. Each slot it is equipped in uses one mission in a battle where it fires; a gun
@@ -342,6 +421,16 @@ stranger, and carrying a guaranteed gun.
 
 ## Changes
 
+- **0.9.8 (in testing, not released yet):**
+  - **Crew story switches:** `crew_stories=0` keeps the after-action report shut (the crew files still keep each
+    battle), and `crew_letters=0` turns off letters home and mail call. Both are in Mod Options, Crew tab.
+  - **Balance pass:** several mod guns toned down; crates now cost 2, 3 and 4 Scrap Iron, Brass and Gunmetal;
+    Shrapnel no longer rolls on 20 mm guns; Chaining now works from guns you aim yourself; Uniques last 8 missions
+    (Uniques you already have get 2 more) and can drop from Elite enemies; conditional damage bonuses are capped at
+    +200%.
+  - **Automated utility mortars** now drop their shells on the ship they fire at. Before, every shell fell on one old
+    aim point.
+  - Fixes from a code review.
 - **0.9.7, the More Weapons release (requested on Discord, minimally tested):**
   - **(suggestion) Asked for on Discord:** the new guns, among them the 380mm RW 61 (the Sturmtiger's rocket mortar),
     as the 8.8 cm Flak 36 and the Flakvierling shield were in 0.9.6.
@@ -784,4 +873,5 @@ For a more detailed log, set `debug=1` in `drops.ini`, restart the game and repr
 
 ## Source and license
 
-The source is not in the zip; ask on Discord if you want it. MIT License, see `LICENSE`.
+The source is in `src/` in this repository (not in the release zip). `build.bat` builds `out\version.dll` with the
+Visual Studio C++ build tools (MSVC, x64). MIT License, see `LICENSE`.
