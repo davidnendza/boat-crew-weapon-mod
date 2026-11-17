@@ -196,6 +196,21 @@ static void* FindClass(const char* ns, const char* name) {
   return nullptr;
 }
 
+// A field's offset in its object, or -1 when the class or the field is missing.
+static int FieldOffset(void* klass, const char* field) { void* f = klass ? il2cpp_class_get_field_from_name(klass, field) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; }
+static int FieldOffset(const char* ns, const char* cls, const char* field) { return FieldOffset(FindClass(ns, cls), field); }
+
+// Il2CppArray: the length (il2cpp_array_size_t) sits at 0x18 and the elements start at 0x20; reference elements are 8 bytes.
+static int ArrLen(void* a) { return a ? *(int*)((char*)a + 0x18) : 0; }
+static void* ArrData(void* a) { return (char*)a + 0x20; }
+static void* ArrAt(void* a, size_t i) { return *(void**)((char*)a + 0x20 + 8 * i); }
+
+// The text with every "\n" written as nl (drops.ini keeps the line ends the player's file already has).
+static std::string WithNewlines(const std::string& s, const std::string& nl) {
+  if (nl != "\r\n") return s;
+  std::string c; for (char ch : s) { if (ch == '\n') c += '\r'; c += ch; } return c;
+}
+
 // A type's name. il2cpp_type_get_name returns a copy the caller must free with il2cpp_free (it leaked a little on every
 // edit of every boat build until 2026-10-28).
 static std::string TypeName(const void* type) {
@@ -252,7 +267,7 @@ static const char* Str(void* s) {
 }
 // List<T> layout: _items at 0x10 (array: length 0x18, elements from 0x20), _size at 0x18
 static int ListCount(void* list) { return list ? *(int*)((char*)list + 0x18) : 0; }
-static void* ListAt(void* list, int i) { void* arr = *(void**)((char*)list + 0x10); return *(void**)((char*)arr + 0x20 + 8 * (size_t)i); }
+static void* ListAt(void* list, int i) { void* arr = *(void**)((char*)list + 0x10); return ArrAt(arr, i); }
 static bool ListAdd(void* list, void* item) {
   void* add = il2cpp_class_get_method_from_name(il2cpp_object_get_class(list), "Add", 1);
   if (!add) return false;
@@ -1138,9 +1153,9 @@ static void* StockGunType(const std::string& name, bool withAmmo = false) {
   if (findAll && gtk) {
     void* a[1] = { il2cpp_type_get_object(il2cpp_class_get_type(gtk)) };
     void* arr = Invoke(findAll, nullptr, a);
-    int n = arr ? *(int*)((char*)arr + 0x18) : 0;
+    int n = ArrLen(arr);
     for (int i = 0; i < n && !found; i++) {
-      void* gt = *(void**)((char*)arr + 0x20 + 8 * (size_t)i);
+      void* gt = ArrAt(arr, i);
       if (gt && NameOf(gt) == name && (!withAmmo || HasAmmo(gt))) found = gt;
     }
   }
@@ -1167,9 +1182,8 @@ static bool CopySounds(void* gt2, const Item& it) {
   static int offShot = -2, offLoop = -1, offRecoil = -1, offSwap = -1, offDistant = -1;
   if (offShot == -2) {
     void* k = FindClass("Core", "GunType");
-    auto off = [&](const char* f) { void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    offShot = off("soundEvent"); offLoop = off("soundLoopEvent"); offRecoil = off("soundRecoilEvent");
-    offSwap = off("distantSoundSwapDistance"); offDistant = off("soundEventDistant");
+    offShot = FieldOffset(k, "soundEvent"); offLoop = FieldOffset(k, "soundLoopEvent"); offRecoil = FieldOffset(k, "soundRecoilEvent");
+    offSwap = FieldOffset(k, "distantSoundSwapDistance"); offDistant = FieldOffset(k, "soundEventDistant");
     if (offShot < 0 || offLoop - offShot != 16 || offRecoil - offLoop != 16 || offDistant < 0 || offSwap < 0) {
       Log("gun sounds: GunType sound fields not as expected (soundEvent +0x%X, loop +0x%X); sound_from is ignored", offShot, offLoop);
       offShot = -1;
@@ -1192,7 +1206,7 @@ static bool CopySounds(void* gt2, const Item& it) {
 }
 static void SetFragment(void* ptype, const Item& it) {
   static int offFrag = -2;
-  if (offFrag == -2) { void* k = FindClass("Core", "ProjectileType"); void* f = k ? il2cpp_class_get_field_from_name(k, "fragment") : nullptr; offFrag = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (offFrag == -2) offFrag = FieldOffset("Core", "ProjectileType", "fragment");
   void* frag = offFrag >= 0 ? StockAmmo(it.fragmentFrom) : nullptr;
   if (!frag || frag == ptype) { Log("  '%s': fragment_from '%s' not found on any live gun; no fragments", it.name.c_str(), it.fragmentFrom.c_str()); return; }
   SetRef(ptype, (char*)ptype + offFrag, frag);
@@ -1263,13 +1277,13 @@ static void CloneProjectiles(void* origGun, void* gun2, const Item& it) {
 // GunMount.seats (Seat[]): shortened in place by lowering the array length, so no array is allocated or written.
 static int g_offSeats = -2;
 static int SeatsOffset() {
-  if (g_offSeats == -2) { void* k = FindClass("Core", "GunMount"); void* f = k ? il2cpp_class_get_field_from_name(k, "seats") : nullptr; g_offSeats = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (g_offSeats == -2) g_offSeats = FieldOffset("Core", "GunMount", "seats");
   return g_offSeats;
 }
 static int SeatCount(void* mount) {
   if (!mount || SeatsOffset() < 0) return -1;
   void* arr = *(void**)((char*)mount + g_offSeats);
-  return arr ? (int)*(size_t*)((char*)arr + 0x18) : 0;
+  return ArrLen(arr);
 }
 static void RemoveSeats(void* mount, int n) {
   int have = SeatCount(mount);
@@ -1399,8 +1413,8 @@ static void CollectMaterials(void* t, int depth, int& budget) {
   void* r = Invoke(g_mapi.getComponent, t, (void**)&g_mapi.rendererType);
   if (r && IsMeshRenderer(r)) {
     void* arr = g_mapi.getMats ? Invoke(g_mapi.getMats, r) : nullptr;
-    size_t n = arr ? *(size_t*)((char*)arr + 0x18) : 0;
-    if (arr) { for (size_t i = 0; i < n && i < 16; i++) { void* m = *(void**)((char*)arr + 0x20 + 8 * i); if (m) AddGameMaterial(m); } }
+    size_t n = ArrLen(arr);
+    if (arr) { for (size_t i = 0; i < n && i < 16; i++) { void* m = ArrAt(arr, i); if (m) AddGameMaterial(m); } }
     else if (void* m = Invoke(g_mapi.getMat, r)) AddGameMaterial(m);
   }
   int n = Unbox32(Invoke(g_mapi.childCount, t));
@@ -1408,7 +1422,7 @@ static void CollectMaterials(void* t, int depth, int& budget) {
 }
 static void* GameMaterial(void* mount, const std::string& key) {
   static int offEntity = -2;
-  if (offEntity == -2) { void* k = FindClass("Core", "GunMount"); void* f = k ? il2cpp_class_get_field_from_name(k, "entity") : nullptr; offEntity = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (offEntity == -2) offEntity = FieldOffset("Core", "GunMount", "entity");
   auto topOf = [&]() { void* t = Invoke(m_getTransform, mount); for (int i = 0; i < 64 && t; i++) { void* p = Invoke(m_getParent, t); if (!p) break; t = p; } return t; };
   void* ent = offEntity >= 0 ? *(void**)((char*)mount + offEntity) : nullptr;
   void* root = ent ? Invoke(m_getTransform, ent) : nullptr;
@@ -1482,17 +1496,16 @@ static void ApplyModel(void* mount, const Item& it) {
   static int offStand = -2, offPivot = -1, offShoot = -1, offBarrels = -1, offYaw = -1;
   if (offStand == -2) {
     void* k = FindClass("Core", "GunMount");
-    auto off = [&](const char* f) { void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    offStand = off("stand"); offPivot = off("pivotPoint"); offShoot = off("shootPoints"); offBarrels = off("barrels"); offYaw = off("yawFineTuner");
+    offStand = FieldOffset(k, "stand"); offPivot = FieldOffset(k, "pivotPoint"); offShoot = FieldOffset(k, "shootPoints"); offBarrels = FieldOffset(k, "barrels"); offYaw = FieldOffset(k, "yawFineTuner");
   }
   if (offStand < 0 || offPivot < 0 || offBarrels < 0) { Log("gun model: GunMount fields missing; '%s' keeps its look", it.name.c_str()); return; }
   void* mt = Invoke(m_getTransform, mount);
   void* stand = *(void**)((char*)mount + offStand); void* pivot = *(void**)((char*)mount + offPivot);
   void* barrels = *(void**)((char*)mount + offBarrels);
-  size_t nb = barrels ? *(size_t*)((char*)barrels + 0x18) : 0;
+  size_t nb = ArrLen(barrels);
   std::vector<void*> barrelTs;                                         // Barrel.transform is its first field (+0x10)
   for (size_t i = 0; i < nb && i < 16; i++) {                         // the twin M2 lists one transform twice: one copy is enough
-    void* b = *(void**)((char*)barrels + 0x20 + 8 * i); void* bt = b ? *(void**)((char*)b + 0x10) : nullptr;
+    void* b = ArrAt(barrels, i); void* bt = b ? *(void**)((char*)b + 0x10) : nullptr;
     if (bt && std::find(barrelTs.begin(), barrelTs.end(), bt) == barrelTs.end()) barrelTs.push_back(bt);
   }
   static std::set<std::string> logged;
@@ -1500,8 +1513,8 @@ static void ApplyModel(void* mount, const Item& it) {
     std::vector<std::pair<void*, std::string>> marks = { { stand, "stand" }, { pivot, "pivotPoint" } };
     for (size_t i = 0; i < barrelTs.size(); i++) marks.push_back({ barrelTs[i], "barrel " + std::to_string(i) });
     void* sp = offShoot >= 0 ? *(void**)((char*)mount + offShoot) : nullptr;
-    size_t ns = sp ? *(size_t*)((char*)sp + 0x18) : 0;
-    for (size_t i = 0; i < ns && i < 16; i++) { void* s = *(void**)((char*)sp + 0x20 + 8 * i); if (s) marks.push_back({ s, "shootPoint " + std::to_string(i) }); }
+    size_t ns = ArrLen(sp);
+    for (size_t i = 0; i < ns && i < 16; i++) { void* s = ArrAt(sp, i); if (s) marks.push_back({ s, "shootPoint " + std::to_string(i) }); }
     DLog("gun model: parts of '%s' (%d barrels):", it.base.c_str(), (int)barrelTs.size());
     LogModelTree(mt, 0, marks);
   }
@@ -1674,8 +1687,7 @@ static bool PaintApiReady() {
   a.vrType = vr ? il2cpp_type_get_object(il2cpp_class_get_type(vr)) : nullptr; a.vrFetch = vr ? FindMethod(vr, "fetchDefaults", 1) : nullptr;
   void* cc = FindClass("Core.Customization", "CustomColorSync");
   a.ccsType = cc ? il2cpp_type_get_object(il2cpp_class_get_type(cc)) : nullptr;
-  auto off = [&](const char* f) { void* fi = cc ? il2cpp_class_get_field_from_name(cc, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-  a.ccsRenderers = off("renderers"); a.ccsIndex = off("targetColorIndex"); a.ccsBright = off("colorBrightness");
+  a.ccsRenderers = FieldOffset(cc, "renderers"); a.ccsIndex = FieldOffset(cc, "targetColorIndex"); a.ccsBright = FieldOffset(cc, "colorBrightness");
   void* fr = cc ? il2cpp_class_get_field_from_name(cc, "renderers") : nullptr;   // its element class, for the empty array
   auto fieldGetType = (void* (*)(void*))GetProcAddress(g_ga, "il2cpp_field_get_type");
   auto classFromType = (void* (*)(void*))GetProcAddress(g_ga, "il2cpp_class_from_type");
@@ -1706,8 +1718,8 @@ static std::vector<void*> PaintComponents(void* mount, void* type) {
   std::vector<void*> out;
   void* go = Invoke(m_getGameObject, mount);
   bool typed = true, recursive = true, inactive = true, reverse = false; void* a[6] = { type, &typed, &recursive, &inactive, &reverse, nullptr };
-  void* arr = go ? Invoke(g_papi.inChildren, go, a) : nullptr; int n = arr ? *(int*)((char*)arr + 0x18) : 0;
-  for (int i = 0; i < n && i < 256; i++) if (void* c = *(void**)((char*)arr + 0x20 + 8 * (size_t)i)) out.push_back(c);
+  void* arr = go ? Invoke(g_papi.inChildren, go, a) : nullptr; int n = ArrLen(arr);
+  for (int i = 0; i < n && i < 256; i++) if (void* c = ArrAt(arr, i)) out.push_back(c);
   return out;
 }
 // Clears the hull colour a CustomColorSync left on a renderer: SetPropertyBlock(null) is Unity's 'clear'; an empty
@@ -1773,18 +1785,18 @@ static void ApplyPaint(void* mount, const Item& it) {
     int slot = *(int*)((char*)c + g_papi.ccsIndex); float br = *(float*)((char*)c + g_papi.ccsBright);
     if (!(br > 0.05f && br < 4.0f)) br = 1.0f;
     void* rs = *(void**)((char*)c + g_papi.ccsRenderers);
-    int n = rs ? *(int*)((char*)rs + 0x18) : 0;
-    for (int i = 0; i < n && i < 256; i++) if (void* r = *(void**)((char*)rs + 0x20 + 8 * (size_t)i)) if (slot >= 1 && slot <= 5) sync[r].push_back({ slot, br });
+    int n = ArrLen(rs);
+    for (int i = 0; i < n && i < 256; i++) if (void* r = ArrAt(rs, i)) if (slot >= 1 && slot <= 5) sync[r].push_back({ slot, br });
   }
   // 2. the materials, near and far LOD renderers alike
   std::set<std::string> painted; std::set<void*> took; int slots = 0;   // took: renderers wearing at least one painted copy
   for (void* r : RenderersUnder(mt)) {
     if (!IsMeshRenderer(r)) continue;
     void* arr = Invoke(g_mapi.getMats, r);                            // a fresh Material[]: edited, then set back
-    int n = arr ? *(int*)((char*)arr + 0x18) : 0;
+    int n = ArrLen(arr);
     auto sf = sync.find(r); bool changed = false;
     for (int i = 0; i < n && i < 16; i++) {
-      void* worn = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); if (!worn) continue;
+      void* worn = ArrAt(arr, i); if (!worn) continue;
       void* m = worn; auto back = g_paintStock.find(m); if (back != g_paintStock.end() && Alive(back->second)) m = back->second;   // a copy of a painted gun
       std::string base; int kind = PaintKind(m, &base);
       const PaintSlots* t = nullptr; if (kind == 1) for (const PaintSlots& x : kPaintSlots) if (base == x.mat) { t = &x; break; }
@@ -1805,11 +1817,11 @@ static void ApplyPaint(void* mount, const Item& it) {
   int taken = 0;
   for (void* c : ccs) {
     void* rs = *(void**)((char*)c + g_papi.ccsRenderers);
-    int n = rs ? *(int*)((char*)rs + 0x18) : 0;
+    int n = ArrLen(rs);
     if (n > 256) continue;                                            // never seen; a shortened list would drop renderers
     std::vector<void*> keep; bool cut = false;
     for (int i = 0; i < n; i++) {
-      void* r = *(void**)((char*)rs + 0x20 + 8 * (size_t)i); if (!r) continue;
+      void* r = ArrAt(rs, i); if (!r) continue;
       if (took.count(r)) { PaintClearBlock(r); cut = true; } else keep.push_back(r);
     }
     if (!cut) continue;
@@ -1911,9 +1923,9 @@ static void ApplyCrewOffset(void* mount, const Item& it) {
     outside++;
   };
   auto ref = [](void* obj, const char* f) -> void* { void* fi = il2cpp_class_get_field_from_name(il2cpp_object_get_class(obj), f); return fi ? *(void**)((char*)obj + il2cpp_field_get_offset(fi)) : nullptr; };
-  size_t n = *(size_t*)((char*)seats + 0x18);
+  size_t n = ArrLen(seats);
   for (size_t i = 0; i < n && i < 16; i++) {
-    void* seat = *(void**)((char*)seats + 0x20 + 8 * i);
+    void* seat = ArrAt(seats, i);
     if (seat) { add(ref(seat, "transform")); add(ref(seat, "holdL")); add(ref(seat, "holdR")); }
   }
   add(ref(mount, "holdLeft")); add(ref(mount, "holdRight"));
@@ -1942,8 +1954,7 @@ static void ApplyPivotOffset(void* mount, const Item& it) {
     void* tr = FindClass("UnityEngine", "Transform");
     getPos = tr ? FindMethod(tr, "get_position", 0) : nullptr; setPos = tr ? FindMethod(tr, "set_position", 1) : nullptr;
     getRot = tr ? FindMethod(tr, "get_rotation", 0) : nullptr;
-    void* fi = il2cpp_class_get_field_from_name(il2cpp_object_get_class(mount), "pivotPoint");
-    offPivot = fi ? (int)il2cpp_field_get_offset(fi) : -1;
+    offPivot = FieldOffset(il2cpp_object_get_class(mount), "pivotPoint");
     state = getPos && setPos && getRot && offPivot >= 0 ? 1 : -1;
     if (state > 0) Log("pivot_offset: ready (GunMount.pivotPoint +0x%X)", offPivot);
     else Log("pivot_offset: MISSING PIECES (Transform get_position %p set_position %p get_rotation %p, GunMount.pivotPoint %d); pivots stay", getPos, setPos, getRot, offPivot);
@@ -1996,7 +2007,7 @@ static void* AddCloneMount(void* wsObj, void* mounts, void* source, const Item& 
   bool crewless = false;
   for (const Op& op : it.ops) if (op.mount && !op.mul && op.field == "requiresCrew" && op.value == 0) crewless = true;
   static int offEngage = -2;
-  if (offEngage == -2) { void* gtk = FindClass("Core", "GunType"); void* f = gtk ? il2cpp_class_get_field_from_name(gtk, "engagementDistance") : nullptr; offEngage = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (offEngage == -2) offEngage = FieldOffset("Core", "GunType", "engagementDistance");
   if (crewless && offEngage >= 0 && *(float*)((char*)gt2 + offEngage) <= 0) {
     *(float*)((char*)gt2 + offEngage) = kAutoRange;                     // the gun's physical range (maxRange) still applies
     DLog("  '%s': crewless, engagementDistance 0 -> %.0f so the fire control can pick ship targets", it.name.c_str(), kAutoRange);
@@ -2136,9 +2147,8 @@ static void LogCatalogue(const std::string& family, void* mounts, void* ws) {
   // which flags differ between player-aimed (utility) and crew-aimed guns; read-only
   static int offFollow = -2, offIndep = -2, offNoAim = -2, offReq = -2;
   if (offFollow == -2) {
-    auto fo = [](const char* ns, const char* c, const char* f) { void* k = FindClass(ns, c); void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    offFollow = fo("Core", "WeaponSystem", "followTargetingMode"); offIndep = fo("Core", "GunMount", "independentFromEntityAI");
-    offNoAim = fo("Core", "GunMount", "noAim"); offReq = fo("Core", "GunMount", "requiresCrew");
+    offFollow = FieldOffset("Core", "WeaponSystem", "followTargetingMode"); offIndep = FieldOffset("Core", "GunMount", "independentFromEntityAI");
+    offNoAim = FieldOffset("Core", "GunMount", "noAim"); offReq = FieldOffset("Core", "GunMount", "requiresCrew");
   }
   std::string flags;
   for (int i = 0; i < ListCount(mounts); i++) {
@@ -2367,20 +2377,19 @@ static void DumpRenderStyles() {
   void* mCount = shC ? FindMethod(shC, "GetPropertyCount", 0) : nullptr;
   void* mPName = shC ? FindMethod(shC, "GetPropertyName", 1, "System.Int32") : nullptr;
   void* mPType = shC ? FindMethod(shC, "GetPropertyType", 1, "System.Int32") : nullptr;
-  int n = *(int*)((char*)arr + 0x18);
+  int n = ArrLen(arr);
   DLog("ProjectileManager.render holds %d style renderers (index = ProjectileStyle: 0 BasicWhite, 1 BasicYellowish, 2 BasicYellow, 3 Rocket, 4 Rocket_ASW, 5 Shell)", n);
   for (int i = 0; i < n; i++) {
-    void* r = *(void**)((char*)arr + 0x20 + 8 * (size_t)i);
+    void* r = ArrAt(arr, i);
     if (!r) { DLog("  style %d: null", i); continue; }
     void* rk = il2cpp_object_get_class(r);
     void* fLod = il2cpp_class_get_field_from_name(rk, "LOD");
     void* lod = fLod ? *(void**)((char*)r + il2cpp_field_get_offset(fLod)) : nullptr;
-    int ln = lod ? *(int*)((char*)lod + 0x18) : 0;
+    int ln = ArrLen(lod);
     void* rt = ln ? *(void**)((char*)lod + 0x20) : nullptr;
     if (!rt) { DLog("  style %d: renderer '%s', no LOD render type", i, NameOf(r).c_str()); continue; }
     void* tk = il2cpp_object_get_class(rt);
-    auto fld = [&](const char* nm) -> int { void* f = il2cpp_class_get_field_from_name(tk, nm); return f ? (int)il2cpp_field_get_offset(f) : -1; };
-    int oMesh = fld("mesh"), oMat = fld("material"), oColor = fld("mayColorData"), oMatrix = fld("mayMatrixData"), oSpT = fld("specialMaterialForType"), oSpB = fld("specialMaterialPerBlock");
+    int oMesh = FieldOffset(tk, "mesh"), oMat = FieldOffset(tk, "material"), oColor = FieldOffset(tk, "mayColorData"), oMatrix = FieldOffset(tk, "mayMatrixData"), oSpT = FieldOffset(tk, "specialMaterialForType"), oSpB = FieldOffset(tk, "specialMaterialPerBlock");
     void* mesh = oMesh >= 0 ? *(void**)((char*)rt + oMesh) : nullptr;
     void* mat = oMat >= 0 ? *(void**)((char*)rt + oMat) : nullptr;
     DLog("  style %d: renderer '%s', %d LODs, mesh '%s', material '%s', mayColorData=%d mayMatrixData=%d specialMaterialForType=%d specialMaterialPerBlock=%d",
@@ -2936,7 +2945,7 @@ static void MigrateDrops(const std::string& path) {
   for (const UniqueBlockUpdate& u : kUniqueBlockUpdates) {
     if (u.since <= done) continue;
     std::string ob = u.oldBlock;
-    if (nl == "\r\n") { std::string c; for (char ch : ob) { if (ch == '\n') c += '\r'; c += ch; } ob = c; }
+    ob = WithNewlines(ob, nl);
     size_t op = text.find(ob);
     if (op == std::string::npos || (op > 0 && text[op - 1] != '\n')) continue;   // edited by the player, or already new
     std::string head = std::string("[unique]\nname=") + u.name + "\n";
@@ -2944,7 +2953,7 @@ static void MigrateDrops(const std::string& path) {
     size_t de = def.find("\n[", dp + head.size());
     std::string nb = def.substr(dp, de == std::string::npos ? std::string::npos : de + 1 - dp);
     while (nb.size() > 1 && nb[nb.size() - 1] == '\n' && nb[nb.size() - 2] == '\n') nb.pop_back();   // the old block had no blank line
-    if (nl == "\r\n") { std::string c; for (char ch : nb) { if (ch == '\n') c += '\r'; c += ch; } nb = c; }
+    nb = WithNewlines(nb, nl);
     text.replace(op, ob.size(), nb);
     fixedNames += std::string(u.name) + " ";
   }
@@ -2978,7 +2987,7 @@ static void MigrateDrops(const std::string& path) {
       size_t at = text.find(nl + "# debug=1", ds); if (at == std::string::npos || at >= de) at = de;
       std::string block, def = kDefaultDrops; size_t a = def.find("# Co-op ("), b = def.find("# debug=1", a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block);
       fixedNames += "coop_guns coop_elites coop_visuals coop_helpers ";
     }
@@ -3006,7 +3015,7 @@ static void MigrateDrops(const std::string& path) {
       if (at == std::string::npos || at >= de) at = de;
       std::string block, def = kDefaultDrops; size_t a = def.find("# killcam:"), b = def.find("# Co-op (", a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block);
       fixedNames += "killcam killcam_cooldown killcam_slow chomp_volume crew_tracers crew_marker crew_aim_line ";
     }
@@ -3018,7 +3027,7 @@ static void MigrateDrops(const std::string& path) {
       if (at == std::string::npos || at >= de) at = de;
       std::string block, def = kDefaultDrops; size_t a = def.find("# crew_tracers:"), b = def.find("# Co-op (", a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block);
       fixedNames += "crew_tracers crew_marker crew_aim_line ";
     }
@@ -3037,7 +3046,7 @@ static void MigrateDrops(const std::string& path) {
       if (at == std::string::npos || at >= de) at = de;
       std::string block, def = kDefaultDrops; size_t a = def.find("# torpedo_share:"), b = def.find("# Crates.", a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block);
       fixedNames += "torpedo_share auto_scrap ";
     }
@@ -3048,7 +3057,7 @@ static void MigrateDrops(const std::string& path) {
       if (at == std::string::npos || at >= de) at = de;
       std::string block, def = kDefaultDrops; size_t a = def.find("# chomp_volume:"), b = def.find("# crew_tracers:", a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "chomp_volume "; }
     }
   }
@@ -3060,7 +3069,7 @@ static void MigrateDrops(const std::string& path) {
       else { at = text.find(nl + "# effect_counts:", ds); if (at == std::string::npos || at >= de) at = text.find(nl + "# debug=1", ds); if (at == std::string::npos || at >= de) at = de; }
       std::string block, def = kDefaultDrops; size_t a = def.find("# paint_chance:"), b = def.find("# effect_counts:", a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block);
       fixedNames += "paint_chance ";
     }
@@ -3073,7 +3082,7 @@ static void MigrateDrops(const std::string& path) {
       else { at = text.find(nl + "# debug=1", ds); if (at == std::string::npos || at >= de) at = de; }
       std::string block, def = kDefaultDrops; size_t a = def.find("# coop_torpedoes:"), b = def.find("# debug=1", a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "coop_torpedoes "; }
     }
     de = dropsEnd(ds); size_t sp = text.find(nl + "effect_streaks=", ds);   // heal and chain streaks, above the co-op lines (files older
@@ -3083,7 +3092,7 @@ static void MigrateDrops(const std::string& path) {
       const char* last = "effect_streaks=1\n";                         // the block ends with its key's line
       std::string block, def = kDefaultDrops; size_t a = def.find("# effect_streaks:"), b = def.find(last, a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b + strlen(last) - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "effect_streaks "; }
     }
     de = dropsEnd(ds); size_t bp = text.find(nl + "barrel_smoke=", ds);    // smoking barrels, after effect_streaks (files older than
@@ -3093,7 +3102,7 @@ static void MigrateDrops(const std::string& path) {
       const char* last = "barrel_smoke_seconds=4\n";                   // the block ends with its last key's line
       std::string block, def = kDefaultDrops; size_t a = def.find("# barrel_smoke:"), b = def.find(last, a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b + strlen(last) - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "barrel_smoke barrel_smoke_after barrel_smoke_seconds "; }
     }
   }
@@ -3107,13 +3116,13 @@ static void MigrateDrops(const std::string& path) {
       size_t e = b == std::string::npos ? b : def.find('\n', b + 1);
       if (e != std::string::npos) block = def.substr(a, e + 1 - a);
       else Log("female crew: the female_crew block is missing from the default drops.ini; not added");
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "female_crew "; }
     }
   }
   if (ds != std::string::npos && done < 16) {                          // female crew phase 2: default 100 -> 25, only while the line is
     size_t de = dropsEnd(ds);                                          // still the old default (a value the player set stays); the old
-    auto conv = [&](std::string b) { if (nl == "\r\n") { std::string c; for (char ch : b) { if (ch == '\n') c += '\r'; c += ch; } b = c; } return b; };
+    auto conv = [&](const std::string& b) { return WithNewlines(b, nl); };
     std::string oldBlock = conv("# female_crew: percent of crew members who are women (test): their own hair, no beard or pipe and a female figure that\n"
                                 "# the clothes follow. 100 = all of them, 0 = stock figures and hair (beards and pipes\n"
                                 "# taken from women stay off in the save). Picked from the name, so saves and co-op players with the mod agree\n"
@@ -3140,13 +3149,13 @@ static void MigrateDrops(const std::string& path) {
       std::string block, def = kDefaultDrops; size_t a = def.find("# no_females"), b = a == std::string::npos ? a : def.find(last, a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b + strlen(last) - a);
       else Log("female crew: the no_females block is missing from the default drops.ini; not added");
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "no_females "; }
     }
   }
   if (ds != std::string::npos && done < 18) {                          // female_crew help: genders are stored now (review 2026-11-06);
     size_t de = dropsEnd(ds);                                          // only the comment, only while untouched, the value stays
-    auto conv = [&](std::string b) { if (nl == "\r\n") { std::string c; for (char ch : b) { if (ch == '\n') c += '\r'; c += ch; } b = c; } return b; };
+    auto conv = [&](const std::string& b) { return WithNewlines(b, nl); };
     std::string oldC = conv("# female_crew: percent of crew members who are women: their own hair, no beard or pipe and a female figure that the\n"
                             "# clothes follow. New women get women's first names. Crew you already have keep their names; the percent picks which of\n"
                             "# them are women. Enemy crews too. 0 = stock figures, hair and names (beards and pipes taken from women stay off in the\n"
@@ -3166,7 +3175,7 @@ static void MigrateDrops(const std::string& path) {
       const char* last = "raft_speed=8\n";                             // the block ends with its last key's line
       std::string block, def = kDefaultDrops; size_t a = def.find("# smoke_seconds:"), b = a == std::string::npos ? a : def.find(last, a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b + strlen(last) - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "smoke_seconds raft_speed "; }
     }
   }
@@ -3179,7 +3188,7 @@ static void MigrateDrops(const std::string& path) {
       const char* last = "crew_chatter=1\n";
       std::string block, def = kDefaultDrops; size_t a = def.find("# crew_talk:"), b = a == std::string::npos ? a : def.find(last, a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b + strlen(last) - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "crew_talk crew_chatter "; }
     }
   }
@@ -3191,7 +3200,7 @@ static void MigrateDrops(const std::string& path) {
       const char* last = "newsreel_keep=10\n";
       std::string block, def = kDefaultDrops; size_t a = def.find("# newsreel:"), b = a == std::string::npos ? a : def.find(last, a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b + strlen(last) - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "newsreel newsreel_keep "; }
     }
   }
@@ -3204,7 +3213,7 @@ static void MigrateDrops(const std::string& path) {
       const char* last = "mod_gun_share=0.25\n";
       std::string block, def = kDefaultDrops; size_t a = def.find("# mod_gun_share:"), b = a == std::string::npos ? a : def.find(last, a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b + strlen(last) - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "mod_gun_share "; }
     }
   }
@@ -3217,7 +3226,7 @@ static void MigrateDrops(const std::string& path) {
       const char* last = "crew_letters=1\n";
       std::string block, def = kDefaultDrops; size_t a = def.find("# crew_stories:"), b = a == std::string::npos ? a : def.find(last, a);
       if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b + strlen(last) - a);
-      if (nl == "\r\n") { std::string c; for (char ch : block) { if (ch == '\n') c += '\r'; c += ch; } block = c; }
+      block = WithNewlines(block, nl);
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "crew_stories crew_letters "; }
     }
   }
@@ -3244,7 +3253,7 @@ static void MigrateDrops(const std::string& path) {
   if (!add.empty()) {
     std::string head = std::string("\n# Guns, torpedoes, effects and Uniques added by BoatCrewWeaponMod ") + kModVersion + " (new since this file was made). Set weight=0 to switch one off.\n";
     add = head + add;
-    if (nl == "\r\n") { std::string c; for (char ch : add) { if (ch == '\n') c += '\r'; c += ch; } add = c; }
+    add = WithNewlines(add, nl);
     text += add;
   }
   f = fopen((path + ".tmp").c_str(), "wb");
@@ -4129,10 +4138,10 @@ static void DumpSelection(void* manager, const char* why, bool onlyChanges) {
   if (!craft) return;
   void* wm = *(void**)((char*)craft + g_offCraftWM);
   void* systems = wm ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
-  int n = systems ? *(int*)((char*)systems + 0x18) : 0;
+  int n = ArrLen(systems);
   if (n > 32) n = 32;
   for (int i = 0; i < n; i++) {
-    void* ws = *(void**)((char*)systems + 0x20 + 8 * (size_t)i);
+    void* ws = ArrAt(systems, i);
     if (!ws) continue;
     void* sel = *(void**)((char*)ws + g_offWsSelected);
     if (onlyChanges && sel == g_lastSel[i]) continue;
@@ -4160,9 +4169,9 @@ static void UnequipRetired(void* manager) {
   TorpUnequipRetired(craft);
   void* wm = *(void**)((char*)craft + g_offCraftWM);
   void* systems = wm ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
-  int n = systems ? *(int*)((char*)systems + 0x18) : 0;
+  int n = ArrLen(systems);
   for (int i = 0; i < n && i < 32; i++) {
-    void* ws = *(void**)((char*)systems + 0x20 + 8 * (size_t)i);
+    void* ws = ArrAt(systems, i);
     void* sel = ws ? *(void**)((char*)ws + g_offWsSelected) : nullptr;
     if (!sel) continue;
     std::string nm = StripTags(NameOf(sel));
@@ -4202,10 +4211,9 @@ static bool InitSeatIcons() {
   g_clsGunMount = FindClass("Core", "GunMount"); g_clsWeaponSystem = FindClass("Core", "WeaponSystem");
   { void* go = FindClass("UnityEngine", "GameObject"); m_activeSelf = go ? FindMethod(go, "get_activeSelf", 0) : nullptr; }
   if (!g_resFindAll || !ie || !se || !g_clsGunMount || !g_clsWeaponSystem || !m_activeSelf) { Log("seat icons: a lookup failed (FindObjectsOfTypeAll %p ItemElementUI %p SlotElementUI %p)", g_resFindAll, ie, se); return false; }
-  auto off = [](void* k, const char* f) { void* fi = il2cpp_class_get_field_from_name(k, f); return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-  g_offIeHolder = off(ie, "seatsHolder"); g_offIeDet = off(ie, "detailable");
-  g_offSeHolder = off(se, "seatsHolder"); g_offSeEmpty = off(se, "seatsHolderEmpties"); g_offSeMissing = off(se, "seatsHolderMissing"); g_offSeObj = off(se, "selectableObject");
-  g_offReqCrew = off(g_clsGunMount, "requiresCrew");
+  g_offIeHolder = FieldOffset(ie, "seatsHolder"); g_offIeDet = FieldOffset(ie, "detailable");
+  g_offSeHolder = FieldOffset(se, "seatsHolder"); g_offSeEmpty = FieldOffset(se, "seatsHolderEmpties"); g_offSeMissing = FieldOffset(se, "seatsHolderMissing"); g_offSeObj = FieldOffset(se, "selectableObject");
+  g_offReqCrew = FieldOffset(g_clsGunMount, "requiresCrew");
   if (g_offIeHolder < 0 || g_offIeDet < 0 || g_offSeHolder < 0 || g_offSeObj < 0 || g_offReqCrew < 0) { Log("seat icons: a field lookup failed"); return false; }
   g_typeItemEl = il2cpp_type_get_object(il2cpp_class_get_type(ie));
   g_typeSlotEl = il2cpp_type_get_object(il2cpp_class_get_type(se));
@@ -4274,15 +4282,14 @@ static void ScanElements(void* type, std::vector<void*>& out, int slot, bool inc
   void* a3[3] = { type, &inactive, &sort }; void* a1[1] = { type };
   void* arr = g_objFindBy ? Invoke(g_objFindBy, nullptr, a3) : Invoke(g_resFindAll, nullptr, a1);
   if (arr && il2cpp_gchandle_new) g_scanHandles[slot] = il2cpp_gchandle_new(arr, false);
-  int n = arr ? *(int*)((char*)arr + 0x18) : 0;
-  for (int i = 0; i < n; i++) { void* e = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); if (e) out.push_back(e); }
+  int n = ArrLen(arr);
+  for (int i = 0; i < n; i++) { void* e = ArrAt(arr, i); if (e) out.push_back(e); }
 }
 static void RefreshRowLists(void* ccm) {
   if (g_offCachedPtr == -2) {
-    auto fo = [](const char* ns, const char* c, const char* f) { void* k = FindClass(ns, c); void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    g_offCachedPtr = fo("UnityEngine", "Object", "m_CachedPtr");
-    g_offCcmSlotGroup = fo("Core.Customization", "CraftCustomizationManager", "slotGroup");
-    g_offGroupSlots = fo("Core.Customization", "SlotGroupUI", "slots");
+    g_offCachedPtr = FieldOffset("UnityEngine", "Object", "m_CachedPtr");
+    g_offCcmSlotGroup = FieldOffset("Core.Customization", "CraftCustomizationManager", "slotGroup");
+    g_offGroupSlots = FieldOffset("Core.Customization", "SlotGroupUI", "slots");
     DLog("seat icons: rows from Awake (m_CachedPtr +0x%X), slots from CraftCustomizationManager.slotGroup +0x%X .slots +0x%X", g_offCachedPtr, g_offCcmSlotGroup, g_offGroupSlots);
   }
   if (g_offCachedPtr < 0) { ScanElements(g_typeItemEl, g_itemEls, 0); ScanElements(g_typeSlotEl, g_slotEls, 1); return; }   // old way
@@ -4536,9 +4543,9 @@ static std::vector<std::string> BoatFamilies() {
   if (!craft) return out;
   void* wm = *(void**)((char*)craft + g_offCraftWM);
   void* systems = wm ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
-  int n = systems ? *(int*)((char*)systems + 0x18) : 0;
+  int n = ArrLen(systems);
   for (int i = 0; i < n && i < 32; i++) {
-    void* ws = *(void**)((char*)systems + 0x20 + 8 * (size_t)i);
+    void* ws = ArrAt(systems, i);
     void* order = ws ? *(void**)((char*)ws + g_offOrder) : nullptr;
     if (!order) continue;
     std::string f = FamilyOf(order);
@@ -4559,10 +4566,10 @@ static std::vector<std::string> EquippedNames(void* craft = nullptr) {
   if (!craft) return out;
   void* wm = *(void**)((char*)craft + g_offCraftWM);
   void* systems = wm ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
-  int n = systems ? *(int*)((char*)systems + 0x18) : 0;
+  int n = ArrLen(systems);
   if (n > 32) n = 32;
   for (int i = 0; i < n; i++) {
-    void* ws = *(void**)((char*)systems + 0x20 + 8 * (size_t)i);
+    void* ws = ArrAt(systems, i);
     void* sel = ws ? *(void**)((char*)ws + g_offWsSelected) : nullptr;
     if (!sel) continue;
     std::string nm = NameOf(sel);
@@ -4718,6 +4725,7 @@ static void* ItemSprite(const Item& it) {
     std::string t;
     for (int i = 0; i < ListCount(list) && i < 20; i++) {
       void* arr = *(void**)((char*)list + 0x10);
+      // raw on purpose: each element is a (string, string) ValueTuple, 16 bytes, so ArrAt's 8-byte stride does not fit
       void* k = *(void**)((char*)arr + 0x20 + 16 * (size_t)i); void* v = *(void**)((char*)arr + 0x28 + 16 * (size_t)i);
       t += std::string(Str(k)) + ": " + Str(v) + "\n";
     }
@@ -4853,8 +4861,8 @@ static std::vector<void*> SlotSystems() {
     if (!craft || g_offCraftWM < 0 || g_offWMSystems < 0) continue;
     void* wm = *(void**)((char*)craft + g_offCraftWM);
     void* systems = wm ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
-    int n = systems ? *(int*)((char*)systems + 0x18) : 0;
-    for (int i = 0; i < n && i < 32; i++) add(*(void**)((char*)systems + 0x20 + 8 * (size_t)i));
+    int n = ArrLen(systems);
+    for (int i = 0; i < n && i < 32; i++) add(ArrAt(systems, i));
   }
   return out;
 }
@@ -5266,10 +5274,10 @@ static void FindGameFont() {
   if (!mAll || !fk) { Log("inventory font: lookups failed, Unity's default font is used"); return; }
   void* a[1] = { il2cpp_type_get_object(il2cpp_class_get_type(fk)) };
   void* arr = Invoke(mAll, nullptr, a);
-  size_t n = arr ? *(size_t*)((char*)arr + 0x18) : 0;
+  size_t n = ArrLen(arr);
   std::string names; int best = (int)(sizeof kUiFonts / sizeof *kUiFonts);
   for (size_t i = 0; i < n && i < 200; i++) {
-    void* f = *(void**)((char*)arr + 0x20 + 8 * i);
+    void* f = ArrAt(arr, i);
     if (!f) continue;
     std::string nm = NameOf(f), lo = nm;
     for (char& ch : lo) ch = (char)tolower((unsigned char)ch);
@@ -5722,7 +5730,7 @@ static void* BaseSprite(const std::string& base) {                   // the pict
   // no howitzer had been seen live that session (David 2026-11-01); bases already cached were fine.
   if (!e.sprite) {
     static int offSprite = -2;
-    if (offSprite == -2) { void* k = FindClass("Core", "GunType"); void* f = k ? il2cpp_class_get_field_from_name(k, "sprite") : nullptr; offSprite = f ? (int)il2cpp_field_get_offset(f) : -1; }
+    if (offSprite == -2) offSprite = FieldOffset("Core", "GunType", "sprite");
     void* gt = offSprite >= 0 ? StockGunType(base) : nullptr;
     if (gt) { e.sprite = *(void**)((char*)gt + offSprite); if (e.sprite) Pin(e.sprite); }
   }
@@ -6712,7 +6720,6 @@ static void SafeTitleBanner() {
   __try { TitleBanner(); } __except (FaultFilter("title banner", GetExceptionInformation())) { g_bannerOn = false; }
 }
 
-static int GfxOff(void* k, const char* n);
 static std::string FemUtf8(void* s);
 static std::string FemGShown(void* c);
 static uint32_t CrewIdOf(void* c);
@@ -6891,24 +6898,24 @@ static std::vector<std::string> CrewTraitWords(void* ch) {
   static int oSet = -2, oList = -1, oCode = -1; static void* mName = nullptr; static int logged = 0;
   if (!ch) return out;
   if (oSet == -2) {
-    oSet = GfxOff(il2cpp_object_get_class(ch), "_traits");
+    oSet = FieldOffset(il2cpp_object_get_class(ch), "_traits");
     void* uo = FindClass("UnityEngine", "Object"); mName = uo ? FindMethod(uo, "get_name", 0) : nullptr;
     Log("crew lives: crew traits %s (_traits +0x%X)", oSet > 0 ? "found" : "NOT found; facts are rolled without them", oSet);
   }
   void* set = oSet > 0 ? *(void**)((char*)ch + oSet) : nullptr;       // null until the game first asks: no traits, no roll forced
   if (!set) return out;
-  if (oList < 0) oList = GfxOff(il2cpp_object_get_class(set), "traits");
+  if (oList < 0) oList = FieldOffset(il2cpp_object_get_class(set), "traits");
   void* list = oList > 0 ? *(void**)((char*)set + oList) : nullptr;
   for (int i = 0, n = ListCount(list); i < n && i < 16; i++) {
     void* tr = ListAt(list, i); if (!tr) continue;
-    if (oCode < 0) oCode = GfxOff(il2cpp_object_get_class(tr), "code");
+    if (oCode < 0) oCode = FieldOffset(il2cpp_object_get_class(tr), "code");
     if (oCode > 0) { void* s = *(void**)((char*)tr + oCode); if (s) out.push_back(FemUtf8(s)); }
     if (mName && Alive(tr)) { void* s = Invoke(mName, tr); if (s) out.push_back(FemUtf8(s)); }
   }
   if (logged < 10) { logged++; std::string j; for (auto& w : out) j += (j.empty() ? "" : ", ") + w; Log("crew lives: '%s' traits: %s", FemGShown(ch).c_str(), j.empty() ? "none" : j.c_str()); }
   return out;
 }
-static bool CrewTraitsLoaded(void* ch) { static int o = -2; if (o == -2) o = GfxOff(il2cpp_object_get_class(ch), "_traits"); return o <= 0 || *(void**)((char*)ch + o) != nullptr; }
+static bool CrewTraitsLoaded(void* ch) { static int o = -2; if (o == -2) o = FieldOffset(il2cpp_object_get_class(ch), "_traits"); return o <= 0 || *(void**)((char*)ch + o) != nullptr; }
 // shortcut: 'taken' is whoever already has facts, so a file rolled again after a reload without a save can differ
 static LifeFacts LifeRoll(const CrewFile& cf, void* ch) {
   std::vector<LifeFacts> taken;
@@ -7085,20 +7092,20 @@ static void CabRoster() {
   static const std::string kDead = "\xC2\xB4" "DEAD" "\xC2\xB4";      // CharacterRoster's mark, U+00B4 both sides
   static int oRoster = -2, oGroups = -1, oChars = -1, oTarget = -1, oHealth = -1, oCraft = -1;
   void* cur = nullptr; if (g_fCampaignCurrent) il2cpp_field_static_get_value(g_fCampaignCurrent, &cur);
-  if (cur && oRoster == -2) oRoster = GfxOff(il2cpp_object_get_class(cur), "characterRoster");
+  if (cur && oRoster == -2) oRoster = FieldOffset(il2cpp_object_get_class(cur), "characterRoster");
   void* roster = cur && oRoster > 0 ? *(void**)((char*)cur + oRoster) : nullptr;
-  if (roster && oGroups < 0) oGroups = GfxOff(il2cpp_object_get_class(roster), "groups");
+  if (roster && oGroups < 0) oGroups = FieldOffset(il2cpp_object_get_class(roster), "groups");
   void* groups = roster && oGroups > 0 ? *(void**)((char*)roster + oGroups) : nullptr;
   std::set<uint32_t> seen;
   for (int g = 0, gn = ListCount(groups); g < gn && g < 64; g++) {
     void* grp = ListAt(groups, g); if (!grp) continue;
-    if (oChars < 0) { void* k = il2cpp_object_get_class(grp); oChars = GfxOff(k, "characters"); oTarget = GfxOff(k, "targetID"); }
+    if (oChars < 0) { void* k = il2cpp_object_get_class(grp); oChars = FieldOffset(k, "characters"); oTarget = FieldOffset(k, "targetID"); }
     std::string target = oTarget > 0 ? FemUtf8(*(void**)((char*)grp + oTarget)) : std::string();
     void* chars = oChars > 0 ? *(void**)((char*)grp + oChars) : nullptr;
     for (int i = 0, n = ListCount(chars); i < n && i < 200; i++) {
       void* ch = ListAt(chars, i); uint32_t id = CrewIdOf(ch);
       if (!id || !seen.insert(id).second) continue;
-      if (oHealth < 0) { void* k = il2cpp_object_get_class(ch); oHealth = GfxOff(k, "healthState"); oCraft = GfxOff(k, "designatedCraftID"); g_cabOffPortrait = GfxOff(k, "portrait"); }
+      if (oHealth < 0) { void* k = il2cpp_object_get_class(ch); oHealth = FieldOffset(k, "healthState"); oCraft = FieldOffset(k, "designatedCraftID"); g_cabOffPortrait = FieldOffset(k, "portrait"); }
       int hs = oHealth > 0 ? *(int*)((char*)ch + oHealth) : 0;
       std::string craft = oCraft > 0 ? FemUtf8(*(void**)((char*)ch + oCraft)) : std::string();
       CabRow r; r.id = id; r.ch = ch; r.name = FemGShown(ch);
@@ -7147,7 +7154,7 @@ static void* CabCard() {
   if (!g_cabCardTried) {
     g_cabCardTried = true;
     void* k = FindClass("Core.CharacterManagement", "CharacterCardInformation"); void* go = FindClass("UnityEngine", "GameObject");
-    g_cabCardF = k ? il2cpp_class_get_field_from_name(k, "instance") : nullptr; g_cabOffLast = GfxOff(k, "lastCharacter");
+    g_cabCardF = k ? il2cpp_class_get_field_from_name(k, "instance") : nullptr; g_cabOffLast = FieldOffset(k, "lastCharacter");
     g_cabGoActive = go ? FindMethod(go, "get_activeInHierarchy", 0) : nullptr;
     Log("crew files: crew card %s (instance %p, lastCharacter +0x%X, activeInHierarchy %p)", g_cabCardF && g_cabOffLast > 0 && g_cabGoActive && m_getGameObject ? "found" : "NOT found; the window opens on the first crew member",
         g_cabCardF, g_cabOffLast, g_cabGoActive);
@@ -7575,14 +7582,14 @@ static void ApplyTracerColor(void* manager) {
   void* mGet = matC ? FindMethod(matC, "GetColor", 1, "System.String") : nullptr;
   if (!fRender || !mSet || !mGet) { Log("tracer color: a lookup failed (render %p SetColor %p GetColor %p)", fRender, mSet, mGet); return; }
   void* arr = *(void**)((char*)manager + il2cpp_field_get_offset(fRender));
-  if (!arr || *(int*)((char*)arr + 0x18) < 3) { Log("tracer color: render array is missing or too short"); return; }
-  void* r = *(void**)((char*)arr + 0x20 + 8 * 2);                     // style 2 = BasicYellow
+  if (!arr || ArrLen(arr) < 3) { Log("tracer color: render array is missing or too short"); return; }
+  void* r = ArrAt(arr, 2);                     // style 2 = BasicYellow
   void* fLod = r ? il2cpp_class_get_field_from_name(il2cpp_object_get_class(r), "LOD") : nullptr;
   void* lod = fLod ? *(void**)((char*)r + il2cpp_field_get_offset(fLod)) : nullptr;
-  int ln = lod ? *(int*)((char*)lod + 0x18) : 0;
+  int ln = ArrLen(lod);
   int done = 0;
   for (int i = 0; i < ln; i++) {
-    void* rt = *(void**)((char*)lod + 0x20 + 8 * (size_t)i);
+    void* rt = ArrAt(lod, i);
     void* fMat = rt ? il2cpp_class_get_field_from_name(il2cpp_object_get_class(rt), "material") : nullptr;
     void* mat = fMat ? *(void**)((char*)rt + il2cpp_field_get_offset(fMat)) : nullptr;
     if (!mat) continue;
@@ -7624,13 +7631,13 @@ static int g_paletteBase = -1;                                       // style in
 static bool g_paletteDead = false;                                   // the palette could not be set up: shots keep their own styles
 static int g_offPtStyle = -2;
 static void SetShotStyle(const PaletteShot& ps) {
-  if (g_offPtStyle == -2) { void* k = FindClass("Core", "ProjectileType"); void* f = k ? il2cpp_class_get_field_from_name(k, "style") : nullptr; g_offPtStyle = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (g_offPtStyle == -2) g_offPtStyle = FieldOffset("Core", "ProjectileType", "style");
   if (g_offPtStyle < 0 || g_paletteBase < 0 || ps.slot < 0) return;
   *(int*)((char*)ps.ptype + g_offPtStyle) = g_paletteBase + ps.slot;
 }
 static void RegisterPaletteShot(void* ptype, int slot) {
   if (!PaletteOn() || slot < 0 || slot >= kPaletteN || !ptype) return;
-  if (g_offPtStyle == -2) { void* k = FindClass("Core", "ProjectileType"); void* f = k ? il2cpp_class_get_field_from_name(k, "style") : nullptr; g_offPtStyle = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (g_offPtStyle == -2) g_offPtStyle = FieldOffset("Core", "ProjectileType", "style");
   int style = g_offPtStyle >= 0 ? *(int*)((char*)ptype + g_offPtStyle) : 0;
   if (style == 3 || style == 4) return;                               // Rocket / Rocket_ASW: a rocket body, not a tracer; keep its look
   PaletteShot ps = { ptype, Pin(ptype), slot, style };
@@ -7653,16 +7660,15 @@ static void ExtendPalette(void* manager) {
   static int offRender = -2; static void *mSet = nullptr, *(*arrayNew)(void*, size_t) = nullptr;
   if (offRender == -2) {
     void* pmk = FindClass("Core", "ProjectileManager");
-    void* fRender = pmk ? il2cpp_class_get_field_from_name(pmk, "render") : nullptr;
     void* matC = FindClass("UnityEngine", "Material");
     mSet = matC ? FindMethod(matC, "SetColor", 2, "System.String", "UnityEngine.Color") : nullptr;
     arrayNew = (void* (*)(void*, size_t))GetProcAddress(g_ga, "il2cpp_array_new");
-    offRender = fRender ? (int)il2cpp_field_get_offset(fRender) : -1;
+    offRender = FieldOffset(pmk, "render");
     if (offRender < 0 || !mSet || !arrayNew) { Log("rarity tracers: a lookup failed (render %d SetColor %p array_new %p)", offRender, mSet, arrayNew); PaletteFailed(); return; }
   }
   if (offRender < 0) return;
   void* arr = *(void**)((char*)manager + offRender);
-  int n = arr ? *(int*)((char*)arr + 0x18) : 0;
+  int n = ArrLen(arr);
   if (n == 6 + kPaletteN) return;                                      // this manager already has the palette
   if (n != 6) { Log("rarity tracers: render array has %d entries (expected 6); left alone", n); PaletteFailed(); return; }
   void* src = *(void**)((char*)arr + 0x20);                            // style 0, BasicWhite (Unlit projectile shader)
@@ -7683,9 +7689,9 @@ static void ExtendPalette(void* manager) {
     SetName(r, ("Instanced Renderer (WM palette " + std::to_string(k) + ")").c_str());
     void* lod = *(void**)((char*)r + offLod);
     if (!lod || lod == srcLod) { Log("rarity tracers: the copy shares its LOD list with the original; stopped"); PaletteFailed(); return; }
-    int ln = *(int*)((char*)lod + 0x18);
+    int ln = ArrLen(lod);
     for (int i = 0; i < ln; i++) {
-      void* t = *(void**)((char*)lod + 0x20 + 8 * (size_t)i); if (!t) continue;
+      void* t = ArrAt(lod, i); if (!t) continue;
       void* fMat = il2cpp_class_get_field_from_name(il2cpp_object_get_class(t), "material");
       void* mat = fMat ? *(void**)((char*)t + il2cpp_field_get_offset(fMat)) : nullptr;
       if (!mat) continue;
@@ -7701,7 +7707,7 @@ static void ExtendPalette(void* manager) {
   }
   void* arr2 = arrayNew(rk, (size_t)n + kPaletteN);
   if (!arr2) { Log("rarity tracers: could not make the longer array"); PaletteFailed(); return; }
-  for (int i = 0; i < n; i++) SetRef(arr2, (char*)arr2 + 0x20 + 8 * (size_t)i, *(void**)((char*)arr + 0x20 + 8 * (size_t)i));
+  for (int i = 0; i < n; i++) SetRef(arr2, (char*)arr2 + 0x20 + 8 * (size_t)i, ArrAt(arr, i));
   for (int k = 0; k < kPaletteN; k++) SetRef(arr2, (char*)arr2 + 0x20 + 8 * (size_t)(n + k), made[k]);
   SetRef(manager, (char*)manager + offRender, arr2);
   g_paletteBase = n;
@@ -7729,10 +7735,10 @@ static void* AuxController() {
   if (!type) return nullptr;
   void* a[1] = { type };
   void* arr = Invoke(g_resFindAll, nullptr, a);
-  int n = arr ? *(int*)((char*)arr + 0x18) : 0;
+  int n = ArrLen(arr);
   // FindObjectsOfTypeAll also returns prefab copies; the live controller is the one that has found its ship (playerShip +0x28)
   for (int i = 0; i < n; i++) {
-    void* c = *(void**)((char*)arr + 0x20 + 8 * (size_t)i);
+    void* c = ArrAt(arr, i);
     if (!c) continue;
     if (*(void**)((char*)c + 0x28)) return c;
   }
@@ -7751,16 +7757,15 @@ static void AutoUtilityFireControl(void* eng, void* craft, void* ws) {
   g_playerFcm = nullptr;                                               // found again below for this battle
   void* k = FindClass("Core", "FireControlMaster");
   if (!k || !g_resFindAll) { DLog("auto utility: FireControlMaster class not found"); return; }
-  auto off = [&](const char* f) { void* fi = il2cpp_class_get_field_from_name(k, f); return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-  int oSelf = off("self"), oAuto = off("autoFillAllSystems"), oSys = off("systems");
+  int oSelf = FieldOffset(k, "self"), oAuto = FieldOffset(k, "autoFillAllSystems"), oSys = FieldOffset(k, "systems");
   void* createTargets = il2cpp_class_get_method_from_name(k, "createTargetsList", 0);
   void* type = il2cpp_type_get_object(il2cpp_class_get_type(k));
   void* a[1] = { type };
   void* arr = Invoke(g_resFindAll, nullptr, a);                      // once per battle
-  int n = arr ? *(int*)((char*)arr + 0x18) : 0;
+  int n = ArrLen(arr);
   int onPlayer = 0;
   for (int i = 0; i < n; i++) {
-    void* f = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); if (!f) continue;
+    void* f = ArrAt(arr, i); if (!f) continue;
     void* self = oSelf >= 0 ? *(void**)((char*)f + oSelf) : nullptr;
     if (self != craft) continue;
     onPlayer++;
@@ -7787,7 +7792,7 @@ static void AutoUtilityMountCheck(void* ws) {
   void* mount = ws ? *(void**)((char*)ws + g_offWsSelected) : nullptr; if (!mount) return;
   static void *mGetEn = nullptr, *mSetEn = nullptr; static int offEngage = -2;
   if (!mGetEn) { void* b = FindClass("UnityEngine", "Behaviour"); mGetEn = b ? FindMethod(b, "get_enabled", 0) : nullptr; mSetEn = b ? FindMethod(b, "set_enabled", 1) : nullptr; }
-  if (offEngage == -2) { void* gtk = FindClass("Core", "GunType"); void* f = gtk ? il2cpp_class_get_field_from_name(gtk, "engagementDistance") : nullptr; offEngage = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (offEngage == -2) offEngage = FieldOffset("Core", "GunType", "engagementDistance");
   void* r = mGetEn ? Invoke(mGetEn, mount) : nullptr; bool en = r && *(bool*)((char*)r + 0x10);
   void* gt = *(void**)((char*)mount + g_offGunType);
   Log("auto utility:   mount '%s' enabled %d enabledOnShootAndAim %d requiresCrew %d crewed %d engagementDistance %.0f", StripTags(NameOf(mount)).c_str(), en,
@@ -7802,8 +7807,7 @@ static void* g_searchEt = nullptr; static void* g_searchEtHandle = nullptr; stat
 static int g_offSearchDist = -2, g_offCraftParams = -1;
 static void AutoUtilitySearch(void* craft, bool on) {
   if (g_offSearchDist == -2) {
-    auto fo = [](const char* c, const char* f) { void* k = FindClass("Core", c); void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    g_offSearchDist = fo("EntityType", "fireControlSystemSearchDistance"); g_offCraftParams = fo("CombatEntity", "parameters");
+    g_offSearchDist = FieldOffset("Core", "EntityType", "fireControlSystemSearchDistance"); g_offCraftParams = FieldOffset("Core", "CombatEntity", "parameters");
   }
   if (!on) {
     if (g_searchEt && g_offSearchDist >= 0) { *(float*)((char*)g_searchEt + g_offSearchDist) = g_searchOrig; DLog("auto utility:   fire control search distance put back to %.0f", g_searchOrig); }
@@ -7840,8 +7844,7 @@ static void AutoUtilityDiag(void* eng, void* ws) {
     void* c = FindClass("UnityEngine", "Component"); mTransform = c ? FindMethod(c, "get_transform", 0) : nullptr;
     void* t = FindClass("UnityEngine", "Transform"); mPosition = t ? FindMethod(t, "get_position", 0) : nullptr;
     void* so = FindClass("Core", "EntitySphereOverlap"); mRange = so ? FindMethod(so, "get_Range", 0) : nullptr;
-    auto fo = [](const char* cls, const char* fld) { void* k = FindClass("Core", cls); void* fi = k ? il2cpp_class_get_field_from_name(k, fld) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    offMarked = fo("FireControlMaster", "constrainToAssignedTargets"); offMun = fo("GunMount", "munitions"); offMag = fo("GunMount", "inMag");
+    offMarked = FieldOffset("Core", "FireControlMaster", "constrainToAssignedTargets"); offMun = FieldOffset("Core", "GunMount", "munitions"); offMag = FieldOffset("Core", "GunMount", "inMag");
   }
   auto posOf = [&](void* obj, V3& p) {
     void* tr = obj && mTransform ? Invoke(mTransform, obj) : nullptr; void* pb = tr && mPosition ? Invoke(mPosition, tr) : nullptr;
@@ -7906,18 +7909,17 @@ static void SkyShotFired(void* mount) {
 static void AutoSkyAim() {
   static int offSky = -2, offLastT = -1, offSkyPos = -1, offForce = -1, offAlive = -1;
   if (offSky == -2) {
-    auto fo = [](const char* c, const char* f) { void* k = FindClass("Core", c); void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    offSky = fo("GunType", "skyShot"); offLastT = fo("GunMount", "lastTarget"); offSkyPos = fo("GunMount", "skyShotPosition");
-    offForce = fo("GunMount", "forceTarget"); offAlive = fo("LiveEntity", "_alive");
+    offSky = FieldOffset("Core", "GunType", "skyShot"); offLastT = FieldOffset("Core", "GunMount", "lastTarget"); offSkyPos = FieldOffset("Core", "GunMount", "skyShotPosition");
+    offForce = FieldOffset("Core", "GunMount", "forceTarget"); offAlive = FieldOffset("Core", "LiveEntity", "_alive");
     if (offSky < 0 || offLastT < 0 || offSkyPos < 0) Log("auto utility: sky aim MISSING PIECES (skyShot +0x%X lastTarget +0x%X skyShotPosition +0x%X)", offSky, offLastT, offSkyPos);
   }
   if (offSky < 0 || offLastT < 0 || offSkyPos < 0 || g_autoFollowOrig.empty()) return;
   void* craft = PlayerCraft(); if (!craft) return;                      // only systems on the boat right now (review: a sunk or rebuilt boat)
   void* wm = *(void**)((char*)craft + g_offCraftWM);
   void* systems = wm ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
-  int nSys = systems ? *(int*)((char*)systems + 0x18) : 0;
+  int nSys = ArrLen(systems);
   for (int i = 0; i < nSys && i < 32; i++) {
-    void* ws = *(void**)((char*)systems + 0x20 + 8 * (size_t)i);
+    void* ws = ArrAt(systems, i);
     if (!ws || !g_autoFollowOrig.count(ws)) continue;                   // the slots switched to automated this battle
     void* mount = *(void**)((char*)ws + g_offWsSelected); if (!mount || !Alive(mount)) continue;
     void* gt = *(void**)((char*)mount + g_offGunType);
@@ -7952,14 +7954,12 @@ static void AutoUtilityTick() {
   if (!eng || ++g_autoFrames % 30 != 0) return;
   static int offFollow = -2, offAuxWeapons = -1, offAwSystem = -1, offAwFire = -1, offAwAim = -1, offAwExt = -1;
   if (offFollow == -2) {
-    auto fo = [](const char* ns, const char* c, const char* f) { void* k = FindClass(ns, c); void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    offFollow = fo("Core", "WeaponSystem", "followTargetingMode");
-    offAuxWeapons = fo("Core.Player", "PlayerAuxiliaryWeaponController", "weapons");
+    offFollow = FieldOffset("Core", "WeaponSystem", "followTargetingMode");
+    offAuxWeapons = FieldOffset("Core.Player", "PlayerAuxiliaryWeaponController", "weapons");
     void* ctl = FindClass("Core.Player", "PlayerAuxiliaryWeaponController");
     void* iter = nullptr; void* nested; void* wk = nullptr;
     while (ctl && (nested = il2cpp_class_get_nested_types(ctl, &iter))) if (!strcmp(il2cpp_class_get_name(nested), "Weapon")) wk = nested;
-    auto fk = [&](const char* f) { void* fi = wk ? il2cpp_class_get_field_from_name(wk, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    offAwSystem = fk("system"); offAwFire = fk("fireMode"); offAwAim = fk("aimingMode"); offAwExt = fk("externalInput");
+    offAwSystem = FieldOffset(wk, "system"); offAwFire = FieldOffset(wk, "fireMode"); offAwAim = FieldOffset(wk, "aimingMode"); offAwExt = FieldOffset(wk, "externalInput");
     DLog("auto utility: offsets follow %d aux.weapons %d Weapon.system %d fireMode %d aimingMode %d externalInput %d", offFollow, offAuxWeapons, offAwSystem, offAwFire, offAwAim, offAwExt);
   }
   if (offFollow < 0) return;
@@ -7975,17 +7975,17 @@ static void AutoUtilityTick() {
     if (ctl) { ctlEng = eng; if (il2cpp_gchandle_new) ctlHandle = il2cpp_gchandle_new(ctl, false); }
   }
   void* aux = ctl && offAuxWeapons >= 0 ? *(void**)((char*)ctl + offAuxWeapons) : nullptr;   // Weapon[]
-  int nAux = aux ? *(int*)((char*)aux + 0x18) : 0;
+  int nAux = ArrLen(aux);
   bool logNow = eng != g_autoLoggedEng;
-  int nLive = systems ? *(int*)((char*)systems + 0x18) : 0;
+  int nLive = ArrLen(systems);
   if (logNow && (!g_autoFollowOrig.empty() || !g_autoAimOrig.empty())) {
     for (int i = 0; i < nLive && i < 32; i++) {                        // only objects that are on the boat right now are written
-      void* ws = *(void**)((char*)systems + 0x20 + 8 * (size_t)i);
+      void* ws = ArrAt(systems, i);
       auto f = g_autoFollowOrig.find(ws);
       if (ws && f != g_autoFollowOrig.end()) *(bool*)((char*)ws + offFollow) = f->second;
     }
     for (int j = 0; j < nAux; j++) {
-      void* w = *(void**)((char*)aux + 0x20 + 8 * (size_t)j);
+      void* w = ArrAt(aux, j);
       auto f = g_autoAimOrig.find(w);
       if (w && f != g_autoAimOrig.end() && offAwAim >= 0) *(int*)((char*)w + offAwAim) = f->second;
     }
@@ -7997,15 +7997,15 @@ static void AutoUtilityTick() {
     g_autoLoggedEng = eng;
     DLog("auto utility: aux controller %p with %d weapons", ctl, nAux);
     for (int j = 0; j < nAux; j++) {
-      void* w = *(void**)((char*)aux + 0x20 + 8 * (size_t)j); if (!w) continue;
+      void* w = ArrAt(aux, j); if (!w) continue;
       void* sys = offAwSystem >= 0 ? *(void**)((char*)w + offAwSystem) : nullptr;
       DLog("auto utility:   aux[%d] system %p '%s' fireMode %d aimingMode %d externalInput %d", j, sys, sys ? NameOf(sys).c_str() : "-",
           offAwFire >= 0 ? *(int*)((char*)w + offAwFire) : -1, offAwAim >= 0 ? *(int*)((char*)w + offAwAim) : -1, offAwExt >= 0 ? *(bool*)((char*)w + offAwExt) : -1);
     }
   }
-  int nSys = systems ? *(int*)((char*)systems + 0x18) : 0;          // WeaponManager.systems is WeaponSystem[]
+  int nSys = ArrLen(systems);          // WeaponManager.systems is WeaponSystem[]
   for (int i = 0; i < nSys && i < 32; i++) {
-    void* ws = *(void**)((char*)systems + 0x20 + 8 * (size_t)i); if (!ws) continue;
+    void* ws = ArrAt(systems, i); if (!ws) continue;
     int c = CrewlessMount(ws);
     // the empty 'None' entry has no seats and no crew flag: not a gun (the 2026-10-29 battle drove it, enabled its mount
     // and raised the search distance for nothing)
@@ -8020,7 +8020,7 @@ static void AutoUtilityTick() {
       AutoUtilityMountCheck(ws);
       AutoUtilitySearch(craft, true);
       for (int j = 0; j < nAux; j++) {
-        void* w = *(void**)((char*)aux + 0x20 + 8 * (size_t)j);
+        void* w = ArrAt(aux, j);
         if (!w || offAwSystem < 0 || offAwAim < 0) continue;
         void* sys = *(void**)((char*)w + offAwSystem);
         // 09:47 battle: the pointers did not match although both were named 'Utility Weapon'; fall back to the name
@@ -8095,13 +8095,13 @@ static std::unordered_map<void*, bool> g_isTurret;                    // mount -
 static int g_turretFaults = 0;
 static bool OnPlayerBoat(void* mount) {
   static int off = -2;
-  if (off == -2) { void* k = FindClass("Core", "GunMount"); void* f = k ? il2cpp_class_get_field_from_name(k, "entity") : nullptr; off = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (off == -2) off = FieldOffset("Core", "GunMount", "entity");
   void* craft = off >= 0 ? PlayerCraft() : nullptr;
   return craft && *(void**)((char*)mount + off) == craft;
 }
 static bool ShotHasTarget(void* pj) {
   static int off = -2;
-  if (off == -2) { void* k = FindClass("Core", "Projectile"); void* f = k ? il2cpp_class_get_field_from_name(k, "target") : nullptr; off = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (off == -2) off = FieldOffset("Core", "Projectile", "target");
   return off >= 0 && *(void**)((char*)pj + off);
 }
 // Automated shots (2026-11-16, David saw the Automated mortar keep firing at a ship that had gone down): the launch angle,
@@ -8116,9 +8116,8 @@ static V3 PosOf(void* component);
 static void AutoShotInfo(void* pj, TurretStats* ts) {
   static int offTgt = -2, offVel = -1, offAlive = -1, offPos = -1;
   if (offTgt == -2) {
-    auto fo = [](const char* c, const char* f) { void* k = FindClass("Core", c); void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    offTgt = fo("Projectile", "target"); offVel = fo("Projectile", "velocity"); offAlive = fo("LiveEntity", "_alive");
-    offPos = fo("Projectile", "posi");
+    offTgt = FieldOffset("Core", "Projectile", "target"); offVel = FieldOffset("Core", "Projectile", "velocity"); offAlive = FieldOffset("Core", "LiveEntity", "_alive");
+    offPos = FieldOffset("Core", "Projectile", "posi");
   }
   void* tgt = offTgt >= 0 ? *(void**)((char*)pj + offTgt) : nullptr;
   if (!tgt || offVel < 0) return;
@@ -8226,14 +8225,13 @@ static bool SmokeApiReady() {
   a.dontDestroy = obj ? FindMethod(obj, "DontDestroyOnLoad", 1) : nullptr; a.destroy = obj ? FindMethod(obj, "Destroy", 1, "UnityEngine.Object") : nullptr;
   a.time = tm ? FindMethod(tm, "get_time", 0) : nullptr;
   void* gm = FindClass("Core", "GunMount");
-  auto off = [](void* k, const char* f) { void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-  a.offBarrels = off(gm, "barrels"); a.offShoot = off(gm, "shootPoints"); a.offLen = off(gm, "barrelLength"); a.offCounter = off(gm, "shotCounter");
-  a.offSystems = off(pg, "systems");
+  a.offBarrels = FieldOffset(gm, "barrels"); a.offShoot = FieldOffset(gm, "shootPoints"); a.offLen = FieldOffset(gm, "barrelLength"); a.offCounter = FieldOffset(gm, "shotCounter");
+  a.offSystems = FieldOffset(pg, "systems");
   a.offEmm = 0x40;                                                     // Barrel.emmiter (dump); by name when the element class is there
   void* fb = gm ? il2cpp_class_get_field_from_name(gm, "barrels") : nullptr;
   auto elementClass = (void* (*)(void*))GetProcAddress(g_ga, "il2cpp_class_get_element_class");
   void* arrK = fb ? il2cpp_class_from_type(il2cpp_field_get_type(fb)) : nullptr; void* bk = arrK && elementClass ? elementClass(arrK) : nullptr;
-  if (bk) { int e = off(bk, "emmiter"); if (e >= 0) a.offEmm = e; }
+  if (bk) { int e = FieldOffset(bk, "emmiter"); if (e >= 0) a.offEmm = e; }
   a.ok = a.emit && a.play && a.clear && a.goTr && a.trPos && a.trFwd && a.time && m_instantiate && a.offBarrels >= 0 && a.offShoot >= 0 && a.offLen >= 0;
   if (!a.ok) Log("barrel smoke: a lookup failed (Emit %p, Play %p, Clear %p, Time.time %p, get_forward %p, GunMount.barrels %d, shootPoints %d, barrelLength %d); guns do not smoke",
                  a.emit, a.play, a.clear, a.time, a.trFwd, a.offBarrels, a.offShoot, a.offLen);
@@ -8284,10 +8282,10 @@ static void SmokeConsider(void* pg, const std::string& name, const char* via) {
 }
 static void SmokeConsiderMount(void* mount) {                         // (a) the emmiter prefabs of a gun's barrels
   void* arr = *(void**)((char*)mount + g_sa.offBarrels);
-  int n = arr ? *(int*)((char*)arr + 0x18) : 0;
+  int n = ArrLen(arr);
   g_smokeLooked++;
   for (int i = 0; i < n && i < 8; i++) {
-    void* b = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); if (!b) continue;
+    void* b = ArrAt(arr, i); if (!b) continue;
     void* emm = *(void**)((char*)b + g_sa.offEmm); if (!Alive(emm)) continue;
     std::string name = NameOf(emm);
     if (SmokeRankOf(name) <= g_smokeBestRank) continue;
@@ -8303,8 +8301,8 @@ static void SmokeSearchAll() {                                        // (c) eve
   if (!findAll || !g_sa.pgType) return;
   void* a[1] = { g_sa.pgType };
   void* arr = Invoke(findAll, nullptr, a);
-  int n = arr ? *(int*)((char*)arr + 0x18) : 0;
-  for (int i = 0; i < n; i++) { void* pg = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); if (pg) SmokeConsider(pg, NameOf(pg), "loaded assets"); }
+  int n = ArrLen(arr);
+  for (int i = 0; i < n; i++) { void* pg = ArrAt(arr, i); if (pg) SmokeConsider(pg, NameOf(pg), "loaded assets"); }
   DLog("barrel smoke: searched %d ParticleGroups (best '%s')", n, g_smokeBestRank >= 0 ? g_smokeBestName.c_str() : "none");
 }
 // Our parked copy of the best template: active, kept across scenes, at the origin. Made again when a better template
@@ -8370,12 +8368,12 @@ static void SmokeFirstSight(void* mount, bool copy, SmokeGun& s) {
   s.len = *(float*)((char*)mount + g_sa.offLen);
   float k = s.len / 2.5f; s.sizeK = k < 0.6f ? 0.6f : (k > 1.6f ? 1.6f : k);
   void* pts = *(void**)((char*)mount + g_sa.offShoot);
-  int n = pts ? *(int*)((char*)pts + 0x18) : 0;
+  int n = ArrLen(pts);
   std::vector<void*> got;                                              // distinct shoot points: the first and the last
-  for (int i = 0; i < n; i++) { void* t = *(void**)((char*)pts + 0x20 + 8 * (size_t)i); if (t && std::find(got.begin(), got.end(), t) == got.end()) got.push_back(t); }
+  for (int i = 0; i < n; i++) { void* t = ArrAt(pts, i); if (t && std::find(got.begin(), got.end(), t) == got.end()) got.push_back(t); }
   if (got.empty()) {                                                   // none: the barrels' own transforms (Barrel +0x10)
-    void* arr = *(void**)((char*)mount + g_sa.offBarrels); int nb = arr ? *(int*)((char*)arr + 0x18) : 0;
-    for (int i = 0; i < nb; i++) { void* b = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); void* t = b ? *(void**)((char*)b + 0x10) : nullptr; if (t && std::find(got.begin(), got.end(), t) == got.end()) got.push_back(t); }
+    void* arr = *(void**)((char*)mount + g_sa.offBarrels); int nb = ArrLen(arr);
+    for (int i = 0; i < nb; i++) { void* b = ArrAt(arr, i); void* t = b ? *(void**)((char*)b + 0x10) : nullptr; if (t && std::find(got.begin(), got.end(), t) == got.end()) got.push_back(t); }
   }
   if (got.empty()) { DLog("barrel smoke: '%s' has no shoot points; it does not smoke", s.name.c_str()); return; }
   s.sp[0] = got.front(); s.nsp = 1;
@@ -8520,12 +8518,8 @@ static void CrateBattleChange(bool hadBattle);
 static void CritScan(void* pm) {
   if (g_offPmLive == -2) {
     void* k = FindClass("Core", "ProjectileManager"); void* pk = FindClass("Core", "Projectile");
-    void* f1 = k ? il2cpp_class_get_field_from_name(k, "projectiles_live") : nullptr;
-    void* f2 = pk ? il2cpp_class_get_field_from_name(pk, "shotFrom") : nullptr;
-    void* f3 = pk ? il2cpp_class_get_field_from_name(pk, "damageMultiplier") : nullptr;
-    void* f4 = pk ? il2cpp_class_get_field_from_name(pk, "alive") : nullptr; void* f5 = pk ? il2cpp_class_get_field_from_name(pk, "networkOwner") : nullptr;
-    g_offPmLive = f1 ? (int)il2cpp_field_get_offset(f1) : -1; g_offPjFrom = f2 ? (int)il2cpp_field_get_offset(f2) : -1; g_offPjDmg = f3 ? (int)il2cpp_field_get_offset(f3) : -1;
-    g_offPjAlive = f4 ? (int)il2cpp_field_get_offset(f4) : -1; g_offPjNetOwner = f5 ? (int)il2cpp_field_get_offset(f5) : -1;
+    g_offPmLive = FieldOffset(k, "projectiles_live"); g_offPjFrom = FieldOffset(pk, "shotFrom"); g_offPjDmg = FieldOffset(pk, "damageMultiplier");
+    g_offPjAlive = FieldOffset(pk, "alive"); g_offPjNetOwner = FieldOffset(pk, "networkOwner");
     Log("crits: projectiles_live +0x%X, shotFrom +0x%X, damageMultiplier +0x%X, alive +0x%X, networkOwner +0x%X", g_offPmLive, g_offPjFrom, g_offPjDmg, g_offPjAlive, g_offPjNetOwner);
   }
   if (g_offPmLive < 0 || g_offPjFrom < 0 || g_offPjDmg < 0) return;
@@ -8684,9 +8678,7 @@ static const std::vector<EnemyAt>& LiveEnemies() {
     g_enemyListState = -1;
     HashSetLayout hl = set ? HashSetLayoutOf(il2cpp_object_get_class(set)) : HashSetLayout();
     if (hl.ok()) { offSlots = hl.slots; offLast = hl.count; offVal = hl.val; elemSize = hl.elem; }
-    void* ft = le ? il2cpp_class_get_field_from_name(le, "teamCode") : nullptr; void* fa = le ? il2cpp_class_get_field_from_name(le, "_alive") : nullptr;
-    void* fu = le ? il2cpp_class_get_field_from_name(le, "underwater") : nullptr;
-    offTeam = ft ? (int)il2cpp_field_get_offset(ft) : -1; g_offLeAlive = fa ? (int)il2cpp_field_get_offset(fa) : -1; offUnder = fu ? (int)il2cpp_field_get_offset(fu) : -1;
+    offTeam = FieldOffset(le, "teamCode"); g_offLeAlive = FieldOffset(le, "_alive"); offUnder = FieldOffset(le, "underwater");
     void* comp = FindClass("UnityEngine", "Component"); mTr = comp ? FindMethod(comp, "get_transform", 0) : nullptr;
     void* t = FindClass("UnityEngine", "Transform"); mPos = t ? FindMethod(t, "get_position", 0) : nullptr;
     bool ok = offSlots >= 0 && offVal >= 0 && elemSize >= 8 && offTeam >= 0 && g_offLeAlive >= 0 && FindClass("Core", "CombatEntity") && mTr && mPos;
@@ -8696,7 +8688,7 @@ static const std::vector<EnemyAt>& LiveEnemies() {
   if (g_enemyListState < 0) return list;
   void* set = nullptr; il2cpp_field_static_get_value(fReg, &set); if (!set) return list;
   void* arr = *(void**)((char*)set + offSlots); if (!arr) return list;
-  int n = (int)*(size_t*)((char*)arr + 0x18);
+  int n = ArrLen(arr);
   if (offLast >= 0) { int l = *(int*)((char*)set + offLast); if (l >= 0 && l < n) n = l; }
   void* me = PlayerCraft(); if (!me) return list;
   int myTeam = *(int*)((char*)me + offTeam);
@@ -8756,9 +8748,9 @@ static int ColliderBox(void* ent, float lo[3], float hi[3]) {
     // (type, a Collider[] back, recursive, includeInactive, reverse, resultList): what GetComponentsInChildren(type) passes
     bool typed = true, recursive = true, inactive = false, reverse = false; void* a[6] = { colType, &typed, &recursive, &inactive, &reverse, nullptr };
     void* goEnt = Invoke(m_getGameObject, ent);
-    void* arr = goEnt ? Invoke(mInChildren, goEnt, a) : nullptr; int n = arr ? *(int*)((char*)arr + 0x18) : 0;
+    void* arr = goEnt ? Invoke(mInChildren, goEnt, a) : nullptr; int n = ArrLen(arr);
     for (int i = 0; i < n && i < 64; i++) {
-      void* c = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); if (!c) continue;
+      void* c = ArrAt(arr, i); if (!c) continue;
       void* b = mTrigger ? Invoke(mTrigger, c) : nullptr; if (b && *(bool*)((char*)b + 0x10)) continue;   // shots pass through triggers
       b = mEnabled ? Invoke(mEnabled, c) : nullptr; if (b && !*(bool*)((char*)b + 0x10)) continue;
       void* bb = Invoke(mBounds, c); if (!bb) continue;
@@ -8903,10 +8895,8 @@ static float GameTimeScale();
 static void SeekScan(void* pm) {
   if (g_offPjTarget == -2) {
     void* pk = FindClass("Core", "Projectile");
-    auto off = [&](const char* f) { void* fi = pk ? il2cpp_class_get_field_from_name(pk, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    g_offPjTarget = off("target"); g_offPjVel = off("velocity"); g_offPjPos = off("posi"); g_offPjTypeSeek = off("ptype");
-    void* ptkTs = FindClass("Core", "ProjectileType"); void* fts = ptkTs ? il2cpp_class_get_field_from_name(ptkTs, "timeScale") : nullptr;
-    g_offPtTimeScale = fts ? (int)il2cpp_field_get_offset(fts) : -1;
+    g_offPjTarget = FieldOffset(pk, "target"); g_offPjVel = FieldOffset(pk, "velocity"); g_offPjPos = FieldOffset(pk, "posi"); g_offPjTypeSeek = FieldOffset(pk, "ptype");
+    g_offPtTimeScale = FieldOffset("Core", "ProjectileType", "timeScale");
     void* le = FindClass("Core", "LiveEntity"); void* fa = le ? il2cpp_class_get_field_from_name(le, "_alive") : nullptr;
     if (fa) g_offLeAlive = (int)il2cpp_field_get_offset(fa);
     if (g_offPjTarget < 0 || g_offPjVel < 0 || g_offPjPos < 0 || g_offPjTypeSeek < 0 || g_offPtTimeScale < 0 || g_offLeAlive < 0)
@@ -8917,8 +8907,8 @@ static void SeekScan(void* pm) {
     void* res = FindClass("UnityEngine", "Resources"); void* findAll = res ? FindMethod(res, "FindObjectsOfTypeAll", 1, "System.Type") : nullptr;
     if (fa2 && findAll) {
       void* a[1] = { il2cpp_type_get_object(il2cpp_class_get_type(ptk)) };
-      void* arr = Invoke(findAll, nullptr, a); int n = arr ? *(int*)((char*)arr + 0x18) : 0; std::string list;
-      for (int i = 0; i < n; i++) { void* pt = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); float af = pt ? *(float*)((char*)pt + il2cpp_field_get_offset(fa2)) : 0; if (af > 0) { char b[96]; snprintf(b, sizeof b, "%s=%.2f; ", NameOf(pt).c_str(), af); list += b; } }
+      void* arr = Invoke(findAll, nullptr, a); int n = ArrLen(arr); std::string list;
+      for (int i = 0; i < n; i++) { void* pt = ArrAt(arr, i); float af = pt ? *(float*)((char*)pt + il2cpp_field_get_offset(fa2)) : 0; if (af > 0) { char b[96]; snprintf(b, sizeof b, "%s=%.2f; ", NameOf(pt).c_str(), af); list += b; } }
       DLog("seeking shots: stock assistFactor values (%d projectile types): %s", n, list.empty() ? "none above 0" : list.c_str());
     }
   }
@@ -8947,7 +8937,7 @@ static void SeekScan(void* pm) {
   // aim where the target will be when the shot arrives, using LiveEntity.realtimeVelocity; slow homing shells otherwise
   // dropped into the water behind ships moving away (David)
   static int offTVel = -2;
-  if (offTVel == -2) { void* le = FindClass("Core", "LiveEntity"); void* f = le ? il2cpp_class_get_field_from_name(le, "realtimeVelocity") : nullptr; offTVel = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (offTVel == -2) offTVel = FieldOffset("Core", "LiveEntity", "realtimeVelocity");
   void* live = *(void**)((char*)pm + g_offPmLive);
   std::unordered_map<void*, V3> aimAt;                                 // one aim point per target per frame
   bool steeredAny = false;
@@ -9058,8 +9048,7 @@ static void* NearestOtherEnemyShip(const float* at, void* exclude, float radius,
     void* ce = FindClass("Core", "CombatEntity"); ceType = ce ? il2cpp_type_get_object(il2cpp_class_get_type(ce)) : nullptr;
     shipClass = FindClass("Core", "Ship"); planeClass = FindClass("Core", "Plane");
     void* le = FindClass("Core", "LiveEntity");
-    void* ft = le ? il2cpp_class_get_field_from_name(le, "teamCode") : nullptr; void* fa = le ? il2cpp_class_get_field_from_name(le, "_alive") : nullptr;
-    offTeam = ft ? (int)il2cpp_field_get_offset(ft) : -1; offAlive = fa ? (int)il2cpp_field_get_offset(fa) : -1;
+    offTeam = FieldOffset(le, "teamCode"); offAlive = FieldOffset(le, "_alive");
     void* pc = FindClass("Core.Player", "Player"); mCraft = pc ? FindMethod(pc, "get_playerCraft", 0) : nullptr;
     void* col = FindClass("UnityEngine", "Collider");
     static void* (*arrayNew)(void*, size_t) = (void* (*)(void*, size_t))GetProcAddress(g_ga, "il2cpp_array_new");
@@ -9077,7 +9066,7 @@ static void* NearestOtherEnemyShip(const float* at, void* exclude, float radius,
   void* best = nullptr; float bestD = 1e30f;
   std::vector<void*> checked;
   for (int i = 0; i < n; i++) {
-    void* coll = *(void**)((char*)buf + 0x20 + 8 * (size_t)i); if (!coll) continue;
+    void* coll = ArrAt(buf, i); if (!coll) continue;
     bool inactive = false; void* g[2] = { ceType, &inactive };
     void* ent = Invoke(mInParent, coll, g);
     if (!ent || ent == exclude || ent == me || std::find(checked.begin(), checked.end(), ent) != checked.end()) continue;
@@ -9118,9 +9107,8 @@ static std::unordered_map<void*, std::set<void*>> g_chainFragTypes;  // mount ->
 static float EntitySize(void* ce) {
   static int offParams = -2, offLen = -1, offWid = -1; static void* ceClass = nullptr;
   if (offParams == -2) {
-    auto off = [](void* k, const char* n) { void* f = k ? il2cpp_class_get_field_from_name(k, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
     ceClass = FindClass("Core", "CombatEntity"); void* et = FindClass("Core", "EntityType");
-    offParams = off(ceClass, "parameters"); offLen = off(et, "estimatedLength"); offWid = off(et, "estimatedWidth");
+    offParams = FieldOffset(ceClass, "parameters"); offLen = FieldOffset(et, "estimatedLength"); offWid = FieldOffset(et, "estimatedWidth");
   }
   bool combat = false;                                                 // a shot's target can be any LiveEntity
   for (void* k = ce ? il2cpp_object_get_class(ce) : nullptr; k && !combat; k = il2cpp_class_get_parent(k)) combat = k == ceClass;
@@ -9132,11 +9120,10 @@ static float EntitySize(void* ce) {
 static void ChainScan(void* pm) {
   if (g_offPjDead == -2) {
     void* pk = FindClass("Core", "Projectile");
-    void* f1 = pk ? il2cpp_class_get_field_from_name(pk, "dead") : nullptr; void* f2 = pk ? il2cpp_class_get_field_from_name(pk, "ptype") : nullptr;
-    g_offPjDead = f1 ? (int)il2cpp_field_get_offset(f1) : -1; g_offPjType = f2 ? (int)il2cpp_field_get_offset(f2) : -1;
+    g_offPjDead = FieldOffset(pk, "dead"); g_offPjType = FieldOffset(pk, "ptype");
   }
   static int offFrag = -2;
-  if (offFrag == -2) { void* ptk = FindClass("Core", "ProjectileType"); void* f = ptk ? il2cpp_class_get_field_from_name(ptk, "fragment") : nullptr; offFrag = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (offFrag == -2) offFrag = FieldOffset("Core", "ProjectileType", "fragment");
   if (g_offPjDead < 0 || g_offPjType < 0 || g_offPjTarget < 0 || g_offPjVel < 0 || g_offPjPos < 0 || g_offPmLive < 0 || g_offPjFrom < 0 || g_offPjDmg < 0) return;
   void* eng = EngagementInstance();
   if (eng != g_chainEng) {
@@ -9418,13 +9405,12 @@ static bool EliteLookups() {
   void* hp = FindClass("Core", "HealthPart"); void* le = FindClass("Core", "LiveEntity"); void* ce = FindClass("Core", "CombatEntity");
   void* et = FindClass("Core", "EntityType"); void* gm = FindClass("Core", "GunMount"); g_shipClass = FindClass("Core", "Ship");
   void* tr = FindClass("UnityEngine", "Transform"); void* cam = FindClass("UnityEngine", "Camera");
-  auto off = [](void* k, const char* n) { void* fl = k ? il2cpp_class_get_field_from_name(k, n) : nullptr; return fl ? (int)il2cpp_field_get_offset(fl) : -1; };
   g_hpRegField = hp ? il2cpp_class_get_field_from_name(hp, "register") : nullptr;
   m_hpForceStart = hp ? FindMethod(hp, "forceStart", 1) : nullptr;
-  g_offHpEntity = off(hp, "combatEntity"); g_offHpMult = off(hp, "multiplierMAX");
-  g_offLeAlive = off(le, "_alive"); g_offLeTeam = off(le, "teamCode");
-  g_offCeHull = off(ce, "hull"); g_offCeParams = off(ce, "parameters"); g_offEtTitle = off(et, "entityTitle");
-  g_offShipSpeed = off(g_shipClass, "maxSpeedProgressionMultiplier"); g_offGmEntity = off(gm, "entity");
+  g_offHpEntity = FieldOffset(hp, "combatEntity"); g_offHpMult = FieldOffset(hp, "multiplierMAX");
+  g_offLeAlive = FieldOffset(le, "_alive"); g_offLeTeam = FieldOffset(le, "teamCode");
+  g_offCeHull = FieldOffset(ce, "hull"); g_offCeParams = FieldOffset(ce, "parameters"); g_offEtTitle = FieldOffset(et, "entityTitle");
+  g_offShipSpeed = FieldOffset(g_shipClass, "maxSpeedProgressionMultiplier"); g_offGmEntity = FieldOffset(gm, "entity");
   m_trGetPos = tr ? FindMethod(tr, "get_position", 0) : nullptr;
   m_camMain = cam ? FindMethod(cam, "get_main", 0) : nullptr;
   m_camW2S = cam ? FindMethod(cam, "WorldToScreenPoint", 1) : nullptr;
@@ -9479,8 +9465,8 @@ static int ArmShip(void* ce, const Item& it, EliteRestore* r, float* damage) {
   void* arr = wm && g_offWMSystems >= 0 ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
   std::map<void*, void*> copies;                                       // the ship's GunType -> its armed copy
   int n = 0;
-  for (int i = 0; arr && i < *(int*)((char*)arr + 0x18); i++) {
-    void* ws = ((void**)((char*)arr + 0x20))[i]; if (!ws) continue;
+  for (int i = 0; arr && i < ArrLen(arr); i++) {
+    void* ws = ArrAt(arr, i); if (!ws) continue;
     void* mounts = *(void**)((char*)ws + g_offMounts);
     for (int j = 0; j < ListCount(mounts); j++) {
       void* m = ListAt(mounts, j); if (!m) continue;
@@ -9596,7 +9582,7 @@ static bool QueueSplash(V3 pos, float radius, float damage, void* killer, int en
   if (offQueue == -2) {
     void* sk = FindClass("Core", "SplashDamageManager");
     fInst = sk ? il2cpp_class_get_field_from_name(sk, "instance") : nullptr;
-    void* fq = sk ? il2cpp_class_get_field_from_name(sk, "splashdamage") : nullptr; offQueue = fq ? (int)il2cpp_field_get_offset(fq) : -1;
+    offQueue = FieldOffset(sk, "splashdamage");
   }
   void* mgr = nullptr; if (fInst) il2cpp_field_static_get_value(fInst, &mgr);
   void* queue = mgr && offQueue >= 0 ? *(void**)((char*)mgr + offQueue) : nullptr;
@@ -9614,7 +9600,7 @@ static void EliteBlast(void* ce, const EliteInfo& info) {
   static void* mExplode = nullptr; static int offEntityCode = -2;
   if (offEntityCode == -2) {
     void* cek = FindClass("Core", "CombatEntity"); void* le = FindClass("Core", "LiveEntity");
-    void* fe = le ? il2cpp_class_get_field_from_name(le, "entityCode") : nullptr; offEntityCode = fe ? (int)il2cpp_field_get_offset(fe) : -1;
+    offEntityCode = FieldOffset(le, "entityCode");
     mExplode = cek ? FindMethod(cek, "explodeAt", 1) : nullptr;
   }
   void* tr = Invoke(m_getTransform, ce); void* pb = tr && m_trGetPos ? Invoke(m_trGetPos, tr) : nullptr;
@@ -9625,7 +9611,7 @@ static void EliteBlast(void* ce, const EliteInfo& info) {
   void* wm = g_offCraftWM >= 0 ? *(void**)((char*)ce + g_offCraftWM) : nullptr;
   void* arr = wm && g_offWMSystems >= 0 ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
   void* killer = nullptr;
-  for (int i = 0; arr && i < *(int*)((char*)arr + 0x18) && !killer; i++) killer = ((void**)((char*)arr + 0x20))[i];
+  for (int i = 0; arr && i < ArrLen(arr) && !killer; i++) killer = ArrAt(arr, i);
   if (!killer || offEntityCode < 0 || !QueueSplash(pos, info.blastRadius, info.blastDamage, killer, *(int*)((char*)ce + offEntityCode), *(int*)((char*)ce + g_offLeTeam))) {
     Log("elites: '%s' could not explode (weapon system %p)", info.name.c_str(), killer); return;
   }
@@ -9689,8 +9675,7 @@ static void EliteCallinBonus(void* killed, double mult) {
     fInst = hk ? il2cpp_class_get_field_from_name(hk, "instance") : nullptr;
     mEnqueue = hk ? FindMethod(hk, "enqueueScore", 1) : nullptr;
     mKillScore = ce ? FindMethod(ce, "getKillScore", 0) : nullptr;
-    void* fp = hk ? il2cpp_class_get_field_from_name(hk, "parameters") : nullptr; void* fg = pk ? il2cpp_class_get_field_from_name(pk, "gainRate") : nullptr;
-    offParams = fp ? (int)il2cpp_field_get_offset(fp) : -1; offGain = fg ? (int)il2cpp_field_get_offset(fg) : -1;
+    offParams = FieldOffset(hk, "parameters"); offGain = FieldOffset(pk, "gainRate");
   }
   if (!fInst || !mEnqueue || !mKillScore || offParams < 0 || offGain < 0) { Log("elites: call-in bonus lookups failed"); return; }
   void* heat = nullptr; il2cpp_field_static_get_value(fInst, &heat);
@@ -9799,7 +9784,7 @@ static void CrewTracerFor(void* gt, const std::string& gun) {
   if (!gt || g_crewTypes.count(gt) || g_paletteDead) return;
   std::vector<PaletteShot>& v = g_crewTypes[gt];
   Pin(gt);
-  if (g_offPtStyle == -2) { void* k = FindClass("Core", "ProjectileType"); void* f = k ? il2cpp_class_get_field_from_name(k, "style") : nullptr; g_offPtStyle = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (g_offPtStyle == -2) g_offPtStyle = FieldOffset("Core", "ProjectileType", "style");
   if (g_offPtStyle < 0 || g_offProjTag < 0) { Log("crew tracers: ProjectileType.style or overrideTag missing; '%s' keeps its tracers", gun.c_str()); return; }
   for (int a = 0; a < 3; a++) {
     void* l = g_offAmmo[a] >= 0 ? *(void**)((char*)gt + g_offAmmo[a]) : nullptr;
@@ -9875,10 +9860,10 @@ static void* CrewLineMaterial(void* cmc) {
     void* inst = nullptr; if (fi) il2cpp_field_static_get_value(fi, &inst);
     void* arr = inst && fr ? *(void**)((char*)inst + il2cpp_field_get_offset(fr)) : nullptr;
     int at = g_paletteBase + kCrewSlot;
-    void* r = arr && *(int*)((char*)arr + 0x18) > at ? *(void**)((char*)arr + 0x20 + 8 * (size_t)at) : nullptr;
+    void* r = arr && ArrLen(arr) > at ? ArrAt(arr, at) : nullptr;
     void* fLod = r ? il2cpp_class_get_field_from_name(il2cpp_object_get_class(r), "LOD") : nullptr;
     void* lod = fLod ? *(void**)((char*)r + il2cpp_field_get_offset(fLod)) : nullptr;
-    void* rt = lod && *(int*)((char*)lod + 0x18) > 0 ? *(void**)((char*)lod + 0x20) : nullptr;
+    void* rt = lod && ArrLen(lod) > 0 ? ArrAt(lod, 0) : nullptr;
     void* fMat = rt ? il2cpp_class_get_field_from_name(il2cpp_object_get_class(rt), "material") : nullptr;
     if (fMat && (base = *(void**)((char*)rt + il2cpp_field_get_offset(fMat)))) from = "the red tracer material";
   }
@@ -10081,11 +10066,10 @@ static void SafeCrewMarks() { __try { CrewMarks(); } __except (FaultFilter("crew
 static void CrewVisInstall() {
   void* cmc = FindClass("Core", "CrewMemberCombat"); void* ws = FindClass("Core", "WeaponSystem"); void* gm = FindClass("Core", "GunMount");
   void* cm = FindClass("Core", "CrewMember"); void* cc = FindClass("Core", "CrewCharacter");
-  auto off = [](void* k, const char* n) { void* f = k ? il2cpp_class_get_field_from_name(k, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
   CrewApi& a = g_cw;
-  a.weapon = off(cmc, "crewWeapon"); a.aimTime = off(cmc, "aimTime"); a.closest = off(cmc, "closest"); a.member = off(cmc, "crewMember");
-  a.wsSel = off(ws, "selected"); a.counter = off(gm, "shotCounter"); a.gunType = off(gm, "gunType");
-  a.character = off(cm, "_character"); a.cName = off(cc, "name"); a.cNameCustom = off(cc, "nameCustom"); a.hl = off(cm, "HL");
+  a.weapon = FieldOffset(cmc, "crewWeapon"); a.aimTime = FieldOffset(cmc, "aimTime"); a.closest = FieldOffset(cmc, "closest"); a.member = FieldOffset(cmc, "crewMember");
+  a.wsSel = FieldOffset(ws, "selected"); a.counter = FieldOffset(gm, "shotCounter"); a.gunType = FieldOffset(gm, "gunType");
+  a.character = FieldOffset(cm, "_character"); a.cName = FieldOffset(cc, "name"); a.cNameCustom = FieldOffset(cc, "nameCustom"); a.hl = FieldOffset(cm, "HL");
   void* tr = FindClass("UnityEngine", "Transform"); a.trPos = tr ? FindMethod(tr, "get_position", 0) : nullptr;
   void* cam = FindClass("UnityEngine", "Camera"); a.camMain = cam ? FindMethod(cam, "get_main", 0) : nullptr; a.camW2S = cam ? FindMethod(cam, "WorldToScreenPoint", 1) : nullptr;
   a.goCls = FindClass("UnityEngine", "GameObject");
@@ -10247,8 +10231,6 @@ static int g_femLipPaints = 0; static bool g_femLipFail = false;           // at
 static bool FemCall(void* m, void* obj, void** args = nullptr) { void* exc = nullptr; il2cpp_runtime_invoke(m, obj, args, &exc); return !exc; }
 static bool FemActive(void* go) { void* r = go ? Invoke(g_fa.goActive, go) : nullptr; return r && *(bool*)((char*)r + 0x10); }
 static void FemSetActive(void* go, bool on) { void* a[1] = { &on }; Invoke(m_setActive, go, a); }
-static int ArrLen(void* a) { return a ? *(int*)((char*)a + 0x18) : 0; }
-static void* ArrData(void* a) { return (char*)a + 0x20; }
 static void* FemArray(void* cls, size_t n, const void* data, size_t elem) {
   void* a = g_fa.arrayNew(cls, n);
   if (a && data) memcpy(ArrData(a), data, n * elem);
@@ -10300,12 +10282,11 @@ static void FemLipApi() {
 
 static bool FemApiReady() {
   FemApi& a = g_fa;
-  auto off = [](void* k, const char* n) { void* f = k ? il2cpp_class_get_field_from_name(k, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
   void* cmv = FindClass("Core", "CrewMemberVisual"); void* cc = FindClass("Core", "CrewCharacter");
-  a.offCm = off(cmv, "cM"); a.offHolder = off(cmv, "skinnedMeshHolder"); a.offHair = off(cmv, "hair"); a.offBodyMesh = off(cmv, "bodyMesh");
-  a.offBodyMat = off(cmv, "bodyMaterial"); a.offBody = off(cmv, "body");
-  a.offName = off(cc, "name"); a.offNameCustom = off(cc, "nameCustom"); a.offSelHair = off(cc, "selectedHair"); a.offSelFacial = off(cc, "selectedFacialHair");
-  a.offSelSpecial1 = off(cc, "selectedSpecial1"); a.offCombined = off(cc, "combinedMesh"); a.offDirtyMesh = off(cc, "dirtyMesh");
+  a.offCm = FieldOffset(cmv, "cM"); a.offHolder = FieldOffset(cmv, "skinnedMeshHolder"); a.offHair = FieldOffset(cmv, "hair"); a.offBodyMesh = FieldOffset(cmv, "bodyMesh");
+  a.offBodyMat = FieldOffset(cmv, "bodyMaterial"); a.offBody = FieldOffset(cmv, "body");
+  a.offName = FieldOffset(cc, "name"); a.offNameCustom = FieldOffset(cc, "nameCustom"); a.offSelHair = FieldOffset(cc, "selectedHair"); a.offSelFacial = FieldOffset(cc, "selectedFacialHair");
+  a.offSelSpecial1 = FieldOffset(cc, "selectedSpecial1"); a.offCombined = FieldOffset(cc, "combinedMesh"); a.offDirtyMesh = FieldOffset(cc, "dirtyMesh");
   a.selFacial = cmv ? FindMethod(cmv, "selectFacialHair", 1) : nullptr; a.selSpecial1 = cmv ? FindMethod(cmv, "selectSpecial1", 1) : nullptr;
   void* mk = FindClass("UnityEngine", "Mesh"); a.meshCls = mk;
   if (mk) {
@@ -11049,8 +11030,7 @@ static void Hooked_GearSelectIndex(void* gs, int i, void* method) {
 static void FemGearInstall() {
   void* gk = FindClass("Core", "GearSlot"); void* ck = FindClass("Core", "CrewMember"); void* cc = FindClass("Core", "CrewCharacter");
   void* go = FindClass("UnityEngine", "GameObject");
-  auto off = [](void* k, const char* n) { void* f = k ? il2cpp_class_get_field_from_name(k, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
-  g_fg.offMember = off(gk, "member"); g_fg.offChar = off(ck, "_character"); g_fg.offLastMesh = off(ck, "lastMesh"); g_fg.offMats = off(cc, "combinedMaterials");
+  g_fg.offMember = FieldOffset(gk, "member"); g_fg.offChar = FieldOffset(ck, "_character"); g_fg.offLastMesh = FieldOffset(ck, "lastMesh"); g_fg.offMats = FieldOffset(cc, "combinedMaterials");
   g_fg.checkMesh = ck ? FindMethod(ck, "checkMesh", 0) : nullptr; g_fg.inHierarchy = go ? FindMethod(go, "get_activeInHierarchy", 0) : nullptr;
   void* mi = gk ? il2cpp_class_get_method_from_name(gk, "selectIndex", 1) : nullptr;
   if (g_fg.offMember < 0 || g_fg.offChar < 0 || g_fg.offLastMesh < 0 || g_fg.offMats < 0 || !g_fg.checkMesh || !g_fg.inHierarchy || !mi || !m_getGameObject) {
@@ -11097,7 +11077,6 @@ typedef void* (*fn_genChar)(void*);
 static fn_genChar g_genOrig = nullptr;
 static bool g_femGenOn = false, g_femGenChecked = false;
 static int g_femGenWomen = 0, g_femGenMen = 0, g_femGenRenamed = 0, g_femGenFallback = 0, g_femGenSkips = 0;   // this session
-static void* FemArrAt(void* a, int i) { return *(void**)((char*)a + 0x20 + 8 * (size_t)i); }
 static int FemPick(int n) { return std::uniform_int_distribution<int>(0, n - 1)(Rng()); }
 static void FemGenName(void* c) {
   if (!c) return;
@@ -11120,7 +11099,7 @@ static void FemGenName(void* c) {
   int nn = ArrLen(na), sn = ArrLen(sa), mn = ArrLen(ma);
   if (!g_femGenChecked && nn > 0) {                                    // once: no women's name may be in the game's list
     g_femGenChecked = true; std::string clash;
-    for (int i = 0; i < nn; i++) { std::string f = FemUtf8(FemArrAt(na, i)); if (FemFirstIsFemale(f.data(), f.size())) clash += " " + f; }
+    for (int i = 0; i < nn; i++) { std::string f = FemUtf8(ArrAt(na, i)); if (FemFirstIsFemale(f.data(), f.size())) clash += " " + f; }
     if (clash.empty()) Log("female crew: none of the %d women's names is among the game's %d first names (%d surnames, %d middle)", kFemFirstN, nn, sn, mn);
     else Log("female crew: the game's first names now include women's names from the mod's list:%s; men with them become women", clash.c_str());
   }
@@ -11133,14 +11112,14 @@ static void FemGenName(void* c) {
       bool found = false;
       while (!found && tries < 32) {                                   // the game's own format and order
         tries++;
-        std::string t = FemUtf8(FemArrAt(na, FemPick(nn))) + " " + FemUtf8(FemArrAt(ma, FemPick(mn))) + FemUtf8(FemArrAt(sa, FemPick(sn)));
+        std::string t = FemUtf8(ArrAt(na, FemPick(nn))) + " " + FemUtf8(ArrAt(ma, FemPick(mn))) + FemUtf8(ArrAt(sa, FemPick(sn)));
         if (!t.empty() && t[0] != ' ' && !FemNameRule(t)) { out = t; found = true; }
       }
       if (!found) {                                                    // only likely near 100%: every middle x surname
         size_t sp = cur.find(' '); std::string first = cur.substr(0, sp);
         for (int m = 0; m < mn && !found; m++) {
-          std::string fm = first + " " + FemUtf8(FemArrAt(ma, m));
-          for (int s = 0; s < sn && !found; s++) { std::string t = fm + FemUtf8(FemArrAt(sa, s)); tries++; if (!FemNameRule(t)) { out = t; found = true; } }
+          std::string fm = first + " " + FemUtf8(ArrAt(ma, m));
+          for (int s = 0; s < sn && !found; s++) { std::string t = fm + FemUtf8(ArrAt(sa, s)); tries++; if (!FemNameRule(t)) { out = t; found = true; } }
         }
       }
       if (found) { how = "renamed"; g_femGenRenamed++; }
@@ -11178,9 +11157,8 @@ static void* Hooked_GenChar(void* mi) {
 }
 static void FemGenInstall() {
   void* cg = FindClass("Core", "CharacterGenerator"); void* nk = FindClass("", "NameImporter"); void* cc = FindClass("Core", "CrewCharacter");
-  auto off = [](void* k, const char* n) { void* f = k ? il2cpp_class_get_field_from_name(k, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
   g_fn.fInst = nk ? il2cpp_class_get_field_from_name(nk, "instance") : nullptr;
-  g_fn.offNames = off(nk, "names"); g_fn.offSurnames = off(nk, "surnames"); g_fn.offMiddle = off(nk, "middle"); g_fn.offName = off(cc, "name");
+  g_fn.offNames = FieldOffset(nk, "names"); g_fn.offSurnames = FieldOffset(nk, "surnames"); g_fn.offMiddle = FieldOffset(nk, "middle"); g_fn.offName = FieldOffset(cc, "name");
   void* mi = cg ? FindMethod(cg, "generateCharacter", 0) : nullptr;
   if (!mi || !g_fn.fInst || g_fn.offNames < 0 || g_fn.offSurnames < 0 || g_fn.offMiddle < 0 || g_fn.offName < 0) {
     Log("female crew: a name lookup failed (generateCharacter %p, NameImporter.instance %p, names +%d surnames +%d middle +%d, CrewCharacter.name +%d); "
@@ -11423,14 +11401,13 @@ static bool Hooked_FakeMoveNext(void* it, void* mi) {
 }
 static void FemCoopInstall() {
   g_femCoopTried = true;
-  auto off = [](void* k, const char* n) { void* f = k ? il2cpp_class_get_field_from_name(k, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
   void* fk = FindClass("Core.Multiplayer", "CrewMemberFake"); void* psk = FindClass("Core.Multiplayer", "CrewStatePersistent");
   void* ck = FindClass("Core", "CrewMember"); void* cc = FindClass("Core", "CrewCharacter"); void* osk = FindClass("Core.Multiplayer", "ObjectSync");
   void* nk = nullptr;
   if (fk) { void* iter = nullptr; void* k; while ((k = il2cpp_class_get_nested_types(fk, &iter))) if (!strncmp(il2cpp_class_get_name(k), "<delayedSetup>d__", 17)) nk = k; }
-  g_fco.offState = off(nk, "<>1__state"); g_fco.offThis = off(nk, "<>4__this"); g_fco.offFakeMember = off(fk, "crewMember");
-  g_fco.offCmChar = off(ck, "_character"); g_fco.offPsCode = off(psk, "characterSpecialCode"); g_fco.offPsHair = off(psk, "typeHair");
-  g_fco.offSelHair = off(cc, "selectedHair");
+  g_fco.offState = FieldOffset(nk, "<>1__state"); g_fco.offThis = FieldOffset(nk, "<>4__this"); g_fco.offFakeMember = FieldOffset(fk, "crewMember");
+  g_fco.offCmChar = FieldOffset(ck, "_character"); g_fco.offPsCode = FieldOffset(psk, "characterSpecialCode"); g_fco.offPsHair = FieldOffset(psk, "typeHair");
+  g_fco.offSelHair = FieldOffset(cc, "selectedHair");
   g_fco.getPersistent = fk ? FindMethod(fk, "get_ItemPersistent", 0) : nullptr;
   // the stub hard-codes these, from the 2026-11-06 disassembly
   bool layout = g_fco.offCmChar == 0x80 && g_fco.offPsHair == 0x3C && g_fco.offSelHair == 0xA4 && g_fgd.offG == 0x103;
@@ -11496,11 +11473,10 @@ static void FemCoopInstall() {
 // jne. The trampoline redoes the cmp with an absolute address; the two movs after it keep the flags for the jne.
 static void FemGenderInstall() {
   g_femGTried = true;
-  auto off = [](void* k, const char* n) { void* f = k ? il2cpp_class_get_field_from_name(k, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
   void* cc = FindClass("Core", "CrewCharacter"); void* pk = FindClass("Cotanius.Modules.Data", "Parameter");
-  int dm = off(cc, "dirtyMesh"), ub = off(cc, "usedByMember");
-  g_fgd.offName = off(cc, "name"); g_fgd.offNameCustom = off(cc, "nameCustom");
-  g_fgd.offPName = off(pk, "name"); g_fgd.offPValue = off(pk, "value"); g_fgd.paramCls = pk;
+  int dm = FieldOffset(cc, "dirtyMesh"), ub = FieldOffset(cc, "usedByMember");
+  g_fgd.offName = FieldOffset(cc, "name"); g_fgd.offNameCustom = FieldOffset(cc, "nameCustom");
+  g_fgd.offPName = FieldOffset(pk, "name"); g_fgd.offPValue = FieldOffset(pk, "value"); g_fgd.paramCls = pk;
   g_fgd.arrayNew = (void* (*)(void*, size_t))GetProcAddress(g_ga, "il2cpp_array_new");
   if (dm != 0x102 || ub != 0x108 || g_fgd.offName <= 0 || g_fgd.offNameCustom <= 0) {
     Log("female crew: stored gender off: CrewCharacter layout changed (dirtyMesh +0x%X, usedByMember +0x%X, name +0x%X); women are decided by name each time", dm, ub, g_fgd.offName);
@@ -11509,7 +11485,7 @@ static void FemGenderInstall() {
   g_fgd.offG = 0x103;                                                      // padding between dirtyMesh and usedByMember
   if (!pk || g_fgd.offPName < 0 || g_fgd.offPValue < 0 || !g_fgd.arrayNew) { Log("female crew: Parameter lookups failed; the stored gender is not saved (decided by name each launch)"); return; }
   void* gmi = il2cpp_class_get_method_from_name(cc, "getParameters", 0);
-  g_cidOffEye = off(cc, "selectedEye"); g_cidOffBrow = off(cc, "selectedEyeBrow");
+  g_cidOffEye = FieldOffset(cc, "selectedEye"); g_cidOffBrow = FieldOffset(cc, "selectedEyeBrow");
   if (gmi && PatchVtableEntry(cc, gmi, (void*)&Hooked_GetParams, (void**)&g_getParamsOrig)) g_femSaveOn = g_cidSaveOn = true;
   else Log("female crew: CrewCharacter.getParameters could not be hooked; the stored gender is not saved");
   void* smi = il2cpp_class_get_method_from_name(cc, "setParameters", 1);
@@ -11638,8 +11614,7 @@ static const float kOrbitReach = 1500.0f;
 static float LeaveDistance() {
   static int off = -2;
   if (off == -2) {
-    void* k = FindClass("Core.World", "WorldEngagementManager"); void* f = k ? il2cpp_class_get_field_from_name(k, "enemyDistanceLimitLeave") : nullptr;
-    off = f ? (int)il2cpp_field_get_offset(f) : -1;
+    off = FieldOffset("Core.World", "WorldEngagementManager", "enemyDistanceLimitLeave");
   }
   void* eng = EngagementInstance();
   float d = eng && off >= 0 ? *(float*)((char*)eng + off) : 0;
@@ -12132,10 +12107,10 @@ static void* EntityPooler() {
   if (g_offGmPooler == -2) {
     void* gm = FindClass("Core", "GameManager"); void* op = FindClass("", "ObjPooler"); void* es = FindClass("Core", "EntitySpawn"); void* le = FindClass("Core", "LiveEntity");
     g_gmInst = gm ? il2cpp_class_get_field_from_name(gm, "instance") : nullptr;
-    void* f = gm ? il2cpp_class_get_field_from_name(gm, "entityPooler") : nullptr; g_offGmPooler = f ? (int)il2cpp_field_get_offset(f) : -1;
+    g_offGmPooler = FieldOffset(gm, "entityPooler");
     void* ft = op ? il2cpp_class_get_field_from_name(op, "types") : nullptr; g_offPoolTypes = ft ? (int)il2cpp_field_get_offset(ft) : 0x28;
-    void* fp = le ? il2cpp_class_get_field_from_name(le, "poolableObject") : nullptr; g_offLePool = fp ? (int)il2cpp_field_get_offset(fp) : -1;
-    void* fe = le ? il2cpp_class_get_field_from_name(le, "entityCode") : nullptr; g_offLeEntityCode = fe ? (int)il2cpp_field_get_offset(fe) : -1;
+    g_offLePool = FieldOffset(le, "poolableObject");
+    g_offLeEntityCode = FieldOffset(le, "entityCode");
     g_spawnFromM = es ? FindMethod(es, "spawnFrom", 5) : nullptr;
     DLog("spawner: GameManager.instance %p entityPooler +0x%X types +0x%X spawnFrom %p", g_gmInst, g_offGmPooler, g_offPoolTypes, g_spawnFromM);
   }
@@ -12146,9 +12121,9 @@ static void* FindEntityPrefab(void* pooler, const char* want) {
   static std::map<std::string, void*> cache; static bool listed = false;
   auto c = cache.find(want); if (c != cache.end()) return c->second;
   void* arr = *(void**)((char*)pooler + g_offPoolTypes);
-  int n = arr ? *(int*)((char*)arr + 0x18) : 0; std::string all; void* hit = nullptr;
+  int n = ArrLen(arr); std::string all; void* hit = nullptr;
   for (int i = 0; i < n; i++) {
-    void* ot = ((void**)((char*)arr + 0x20))[i]; if (!ot) continue;
+    void* ot = ArrAt(arr, i); if (!ot) continue;
     void* nm = *(void**)((char*)ot + 0x10); void* pf = *(void**)((char*)ot + 0x18);
     std::string s = nm ? Str(nm) : (pf ? NameOf(pf) : "");
     if (!listed) all += s + "; ";
@@ -12211,8 +12186,8 @@ static void* BigBrotherCall(V3 boat, V3 flat, bool forOther, bool* asCallin) {
   if (offCm == -2) {
     void* cmK = FindClass("Core", "CallInManager"); void* cmM = FindClass("Core", "CallinMethods");
     mgrInst = cmK ? il2cpp_class_get_field_from_name(cmK, "instance") : nullptr;
-    void* f = cmK ? il2cpp_class_get_field_from_name(cmK, "callinMethods") : nullptr; offCm = f ? (int)il2cpp_field_get_offset(f) : -1;
-    void* fc = cmM ? il2cpp_class_get_field_from_name(cmM, "spawnCenter") : nullptr; offCenter = fc ? (int)il2cpp_field_get_offset(fc) : -1;
+    offCm = FieldOffset(cmK, "callinMethods");
+    offCenter = FieldOffset(cmM, "spawnCenter");
     mSearch = cmM ? FindMethod(cmM, "setSurfaceSpawnBySearch", 2) : nullptr; mCall = cmM ? FindMethod(cmM, "callInBoat", 2) : nullptr;
     Log("big brother: CallInManager.instance %p callinMethods +0x%X spawnCenter +0x%X setSurfaceSpawnBySearch %p callInBoat %p", mgrInst, offCm, offCenter, mSearch, mCall);
   }
@@ -12412,9 +12387,9 @@ static int GullSteer(Minion& m, UnuStats& st, V3 p, float now, DWORD tick) {
     init = true;
     void* pl = FindClass("Core", "Plane"); mGetAi = pl ? FindMethod(pl, "get_PlaneController", 0) : nullptr; mGetFo = pl ? FindMethod(pl, "get_FlightObject", 0) : nullptr;
     void* fl = FindClass("Cotanius.Modules.HybridFlight", "FlightObject"); mReset = fl ? FindMethod(fl, "resetVelocity", 1) : nullptr;
-    void* f = fl ? il2cpp_class_get_field_from_name(fl, "targetCoordinate") : nullptr; offTc = f ? (int)il2cpp_field_get_offset(f) : -1;
-    f = fl ? il2cpp_class_get_field_from_name(fl, "useTargetAlitude") : nullptr; offUta = f ? (int)il2cpp_field_get_offset(f) : -1;
-    void* le = FindClass("Core", "LiveEntity"); f = le ? il2cpp_class_get_field_from_name(le, "realtimeVelocity") : nullptr; offTVel = f ? (int)il2cpp_field_get_offset(f) : -1;
+    offTc = FieldOffset(fl, "targetCoordinate");
+    offUta = FieldOffset(fl, "useTargetAlitude");
+    void* le = FindClass("Core", "LiveEntity"); offTVel = FieldOffset(le, "realtimeVelocity");
     ready = mGetAi && mGetFo && mReset && offTc >= 0 && g_offLeAlive >= 0;
     Log("kamikaze gull: steering %s (get_PlaneController %p get_FlightObject %p resetVelocity %p targetCoordinate +0x%X useTargetAlitude +0x%X realtimeVelocity +0x%X)",
         ready ? "ready" : "MISSING PIECES, gulls fly on the game's dive bomber AI", mGetAi, mGetFo, mReset, offTc, offUta, offTVel);
@@ -12829,10 +12804,9 @@ static void RepairVisual(void* craft, void* part) {
   static void *mAdd = nullptr, *mRatio = nullptr, *mTime = nullptr, *mPos = nullptr;
   static int offDv = -2, offParams = -1, offLen = -1, offWid = -1, offAllow = -1;
   if (offDv == -2) {
-    auto off = [](void* k, const char* n) { void* f = k ? il2cpp_class_get_field_from_name(k, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
     void* ce = FindClass("Core", "CombatEntity"); void* et = FindClass("Core", "EntityType"); void* hp = FindClass("Core", "HealthPart");
     void* md = FindClass("Core", "MeshDamageMultipoint"); void* tm = FindClass("UnityEngine", "Time"); void* tr = FindClass("UnityEngine", "Transform");
-    offDv = off(ce, "damageVisual"); offParams = off(ce, "parameters"); offLen = off(et, "estimatedLength"); offWid = off(et, "estimatedWidth"); offAllow = off(hp, "allowDamageVisual");
+    offDv = FieldOffset(ce, "damageVisual"); offParams = FieldOffset(ce, "parameters"); offLen = FieldOffset(et, "estimatedLength"); offWid = FieldOffset(et, "estimatedWidth"); offAllow = FieldOffset(hp, "allowDamageVisual");
     mAdd = md ? FindMethod(md, "addDamagePoint", 9) : nullptr; mRatio = hp ? FindMethod(hp, "healthRatio", 0) : nullptr;
     mTime = tm ? FindMethod(tm, "get_time", 0) : nullptr; mPos = tr ? FindMethod(tr, "get_position", 0) : nullptr;
     if (offDv < 0 || !mAdd || !mRatio || !mTime || !mPos) Log("repair visuals: lookups failed (damageVisual %d, addDamagePoint %p); the hull's look will not follow on-kill repairs", offDv, mAdd);
@@ -12885,7 +12859,7 @@ static void OnKillCredit(void* mount, void* killed, float factor) {
       void* hp = FindClass("Core", "HealthPart"); void* ce = FindClass("Core", "CombatEntity"); void* pc = FindClass("Core.Player", "Player");
       mGetHp = hp ? FindMethod(hp, "get_HP", 0) : nullptr; mSetHp = hp ? FindMethod(hp, "set_HP", 1) : nullptr; mMaxHp = hp ? FindMethod(hp, "get_maxHP", 0) : nullptr;
       mCraft = pc ? FindMethod(pc, "get_playerCraft", 0) : nullptr;
-      void* fh = ce ? il2cpp_class_get_field_from_name(ce, "hull") : nullptr; offHull = fh ? (int)il2cpp_field_get_offset(fh) : -1;
+      offHull = FieldOffset(ce, "hull");
     }
     void* craft = mCraft ? Invoke(mCraft, nullptr) : nullptr;
     void* hull = craft && offHull >= 0 ? *(void**)((char*)craft + offHull) : nullptr;
@@ -13045,7 +13019,6 @@ static void Hooked_CrewHit(void* self, bool hit, float d, void* mi);
 static uintptr_t g_raCrewDirect = 0, g_raCrewSplash = 0;              // crew log: return addresses of CrewMember.hitFlash's two hit callers
 static void CrewLogInit();
 
-static int GfxOff(void* k, const char* n) { void* f = k ? il2cpp_class_get_field_from_name(k, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; }
 // The element class of an array field (Seat[] -> Seat): nested classes are not found by name.
 static void* GfxElemClass(void* k, const char* field) {
   static auto elementClass = (void* (*)(void*))GetProcAddress(g_ga, "il2cpp_class_get_element_class");
@@ -13150,7 +13123,7 @@ static void Hooked_SetMunitions(void* self, int value, void* mi) {
 }
 static void CratesInit() {
   void* gm = FindClass("Core", "GunMount");
-  g_oGmMunitions = GfxOff(gm, "munitions");
+  g_oGmMunitions = FieldOffset(gm, "munitions");
   void* m = gm ? FindMethod(gm, "set_Munitions", 1) : nullptr;
   void* p = m ? *(void**)m : nullptr;
   // set_Munitions: mov [rsp+10h],rbx; mov [rsp+18h],rsi; push rdi; sub rsp,20h (15 bytes, no rip-relative)
@@ -13174,19 +13147,19 @@ static void GfxInit() {
   void* gt = FindClass("Core", "GunType"); void* le = FindClass("Core", "LiveEntity"); void* ce = FindClass("Core", "CombatEntity");
   void* cm = FindClass("Core", "CrewMember"); void* mg = FindClass("Core", "CrewManager"); void* ch = FindClass("Core", "CrewCharacter");
   void* cc = FindClass("Core", "CharacterConstants"); g_clsWs = FindClass("Core", "WeaponSystem");
-  g_oHpTeam = GfxOff(hp, "teamCode"); g_oHpCe = GfxOff(hp, "combatEntity"); g_oHpHp = GfxOff(hp, "_hp"); g_oHpVital = GfxOff(hp, "vital");
-  g_oHpLastEff = GfxOff(hp, "lastEffectiveDamage"); g_oHpClient = GfxOff(hp, "clientOnlyMode"); g_oPjPosi = GfxOff(pj, "posi");
+  g_oHpTeam = FieldOffset(hp, "teamCode"); g_oHpCe = FieldOffset(hp, "combatEntity"); g_oHpHp = FieldOffset(hp, "_hp"); g_oHpVital = FieldOffset(hp, "vital");
+  g_oHpLastEff = FieldOffset(hp, "lastEffectiveDamage"); g_oHpClient = FieldOffset(hp, "clientOnlyMode"); g_oPjPosi = FieldOffset(pj, "posi");
   // this runs before CritScan's own one-time lookup on the first frame (review 2026-11-06): the two Projectile fields here too
-  if (g_offPjFrom < 0) g_offPjFrom = GfxOff(pj, "shotFrom");
-  if (g_offPjNetOwner < 0) g_offPjNetOwner = GfxOff(pj, "networkOwner");
-  g_oPjType = GfxOff(pj, "ptype"); g_oPtFrag = GfxOff(FindClass("Core", "ProjectileType"), "fragment");
-  g_oGmEntity = GfxOff(gm, "entity"); g_oGmGunType = GfxOff(gm, "gunType"); g_oGtMag = GfxOff(gt, "MagSize"); g_oGmReloading = GfxOff(gm, "reloading");
-  g_oGmBarrels = GfxOff(gm, "barrels"); g_oBarSkip = GfxOff(GfxElemClass(gm, "barrels"), "skipConsumeAmmo");
-  g_oGmSeats = GfxOff(gm, "seats"); g_oSeatMan = GfxOff(GfxElemClass(gm, "seats"), "lastMan"); g_oGmWs = GfxOff(gm, "weaponSystem"); g_oWsHull = GfxOff(g_clsWs, "hull");
-  g_oLeTeam = GfxOff(le, "teamCode"); g_oLeCode = GfxOff(le, "entityCode"); g_oLeAlive = GfxOff(le, "_alive"); g_oCeHull = GfxOff(ce, "hull"); g_oCeCrew = GfxOff(ce, "crewManager");
-  g_oMgrEnt = GfxOff(mg, "entity"); g_oMgrCrew = GfxOff(mg, "crew"); g_oCmMgr = GfxOff(cm, "crewManager"); g_oCmChar = GfxOff(cm, "_character");
-  g_oCmHp = GfxOff(cm, "hp"); g_oCmDowned = GfxOff(cm, "downedTime");
-  g_oChName = GfxOff(ch, "name"); g_oChNameCustom = GfxOff(ch, "nameCustom"); g_oChHealth = GfxOff(ch, "healthState");
+  if (g_offPjFrom < 0) g_offPjFrom = FieldOffset(pj, "shotFrom");
+  if (g_offPjNetOwner < 0) g_offPjNetOwner = FieldOffset(pj, "networkOwner");
+  g_oPjType = FieldOffset(pj, "ptype"); g_oPtFrag = FieldOffset(FindClass("Core", "ProjectileType"), "fragment");
+  g_oGmEntity = FieldOffset(gm, "entity"); g_oGmGunType = FieldOffset(gm, "gunType"); g_oGtMag = FieldOffset(gt, "MagSize"); g_oGmReloading = FieldOffset(gm, "reloading");
+  g_oGmBarrels = FieldOffset(gm, "barrels"); g_oBarSkip = FieldOffset(GfxElemClass(gm, "barrels"), "skipConsumeAmmo");
+  g_oGmSeats = FieldOffset(gm, "seats"); g_oSeatMan = FieldOffset(GfxElemClass(gm, "seats"), "lastMan"); g_oGmWs = FieldOffset(gm, "weaponSystem"); g_oWsHull = FieldOffset(g_clsWs, "hull");
+  g_oLeTeam = FieldOffset(le, "teamCode"); g_oLeCode = FieldOffset(le, "entityCode"); g_oLeAlive = FieldOffset(le, "_alive"); g_oCeHull = FieldOffset(ce, "hull"); g_oCeCrew = FieldOffset(ce, "crewManager");
+  g_oMgrEnt = FieldOffset(mg, "entity"); g_oMgrCrew = FieldOffset(mg, "crew"); g_oCmMgr = FieldOffset(cm, "crewManager"); g_oCmChar = FieldOffset(cm, "_character");
+  g_oCmHp = FieldOffset(cm, "hp"); g_oCmDowned = FieldOffset(cm, "downedTime");
+  g_oChName = FieldOffset(ch, "name"); g_oChNameCustom = FieldOffset(ch, "nameCustom"); g_oChHealth = FieldOffset(ch, "healthState");
   m_allowedDowned = ch ? FindMethod(ch, "get_AllowedDownedTime", 0) : nullptr;
   g_fOverboard = cc ? il2cpp_class_get_field_from_name(cc, "overboardChance") : nullptr;
   g_fieldStaticSet = (void (*)(void*, void*))GetProcAddress(g_ga, "il2cpp_field_static_set_value");
@@ -13250,9 +13223,9 @@ static void SteadyDecay() {
 static int GunnerKillsOn(void* mount, const Item* it) {               // Veteran's: the bonded gunner's kills while that gunner mans it
   if (!it || it->vetCrew.empty() || g_oGmSeats < 0 || g_oSeatMan < 0 || g_oCmChar < 0) return 0;
   void* seats = *(void**)((char*)mount + g_oGmSeats); if (!seats) return 0;
-  int n = *(int*)((char*)seats + 0x18);
+  int n = ArrLen(seats);
   for (int i = 0; i < n && i < 8; i++) {
-    void* seat = ((void**)((char*)seats + 0x20))[i]; void* man = seat ? *(void**)((char*)seat + g_oSeatMan) : nullptr;
+    void* seat = ArrAt(seats, i); void* man = seat ? *(void**)((char*)seat + g_oSeatMan) : nullptr;
     void* ch = man ? *(void**)((char*)man + g_oCmChar) : nullptr;
     if (ch && GfxCrewKey(ch) == it->vetCrew) return it->vetKills;
   }
@@ -13374,8 +13347,7 @@ static void BalloonLookups() {
   if (!g_hrForce) g_hrForce = rb ? FindMethod(rb, "AddForce", 2, "UnityEngine.Vector3", "UnityEngine.ForceMode") : nullptr;
   g_upVel = rb ? FindMethod(rb, "get_linearVelocity", 0) : nullptr; g_upGrav = rb ? FindMethod(rb, "get_useGravity", 0) : nullptr;
   g_upFbReg = fb ? il2cpp_class_get_field_from_name(fb, "register") : nullptr;
-  void* fe = fb ? il2cpp_class_get_field_from_name(fb, "entity") : nullptr; void* fi = fb ? il2cpp_class_get_field_from_name(fb, "_inWater") : nullptr;
-  g_upFbEnt = fe ? (int)il2cpp_field_get_offset(fe) : -1; g_upFbIn = fi ? (int)il2cpp_field_get_offset(fi) : -1;
+  g_upFbEnt = FieldOffset(fb, "entity"); g_upFbIn = FieldOffset(fb, "_inWater");
   if (!g_hrBody || !g_hrForce || !g_upVel) Log("up, up and away: a lookup failed (get_Body %p AddForce %p get_linearVelocity %p); ships swell but do not lift", g_hrBody, g_hrForce, g_upVel);
   if (!g_upFbReg || g_upFbEnt < 0 || g_upFbIn < 0) Log("up, up and away: FloatBehaviour register/entity/_inWater not found (%p %d %d); in-water state not logged", g_upFbReg, g_upFbEnt, g_upFbIn);
 }
@@ -13778,7 +13750,7 @@ static bool CrewSay(CrewRec& r, const char* why, const std::string& text, bool f
   if (text.empty() || !r.member || !Alive(r.member)) return false;
   float now = CrewLogNow();
   if (!force && CrewSayBlocked(r, priority)) { DLog("crew bubbles: %s would say \"%s\" (%s) but spoke too recently", r.name.c_str(), text.c_str(), why); return false; }
-  if (offHead == -2) offHead = GfxOff(il2cpp_object_get_class(r.member), "headText");
+  if (offHead == -2) offHead = FieldOffset(il2cpp_object_get_class(r.member), "headText");
   void* head = offHead > 0 ? *(void**)((char*)r.member + offHead) : nullptr;
   if (!mEnq && Alive(head)) {
     mEnq = FindMethod(il2cpp_object_get_class(head), "enqueueText", 1);
@@ -14219,11 +14191,11 @@ static CrewRec* CrewRecOf(void* member, void* ch) {
 }
 static void CrewLogInit() {
   void* ch = FindClass("Core", "CrewCharacter"); void* cm = FindClass("Core", "CrewMember");
-  g_oChHP = GfxOff(ch, "HP"); g_oCmRole = GfxOff(cm, "assignedRole"); g_oChSinking = GfxOff(ch, "inSinkingBoat");
+  g_oChHP = FieldOffset(ch, "HP"); g_oCmRole = FieldOffset(cm, "assignedRole"); g_oChSinking = FieldOffset(ch, "inSinkingBoat");
   m_chMaxHealth = ch ? FindMethod(ch, "maxHealth", 0) : nullptr;
-  g_oCmFeet = GfxOff(cm, "smoothPos"); g_oCmChestP = GfxOff(cm, "smoothChestPos"); g_oCmHeadP = GfxOff(cm, "smoothHeadPos");
-  g_oPjVelo = GfxOff(FindClass("Core", "Projectile"), "velocity"); g_oPjCode = GfxOff(FindClass("Core", "Projectile"), "projectileCode");
-  g_clsTorpLauncher = FindClass("Core", "TorpedoLauncher"); g_oTlEntity = GfxOff(g_clsTorpLauncher, "entity");
+  g_oCmFeet = FieldOffset(cm, "smoothPos"); g_oCmChestP = FieldOffset(cm, "smoothChestPos"); g_oCmHeadP = FieldOffset(cm, "smoothHeadPos");
+  g_oPjVelo = FieldOffset(FindClass("Core", "Projectile"), "velocity"); g_oPjCode = FieldOffset(FindClass("Core", "Projectile"), "projectileCode");
+  g_clsTorpLauncher = FindClass("Core", "TorpedoLauncher"); g_oTlEntity = FieldOffset(g_clsTorpLauncher, "entity");
   void* tr = FindClass("UnityEngine", "Transform");
   m_crewTrFwd = tr ? FindMethod(tr, "get_forward", 0) : nullptr; m_crewTrRight = tr ? FindMethod(tr, "get_right", 0) : nullptr;
   g_crewLogOn = g_gfxCrewOn && g_oChHP >= 0 && g_oChHealth >= 0 && g_oCmHp >= 0 && g_oCmChar >= 0;
@@ -14504,7 +14476,7 @@ static void SafeCrewLogKill(void* member, void* killed) {
 static void SayProbeTick() {
   static int offCur = -2; static void *mActive = nullptr, *mTr = nullptr, *mPos = nullptr, *mCam = nullptr;
   if (offCur == -2 && !g_sayProbes.empty() && Alive(g_sayProbes[0].head)) {
-    offCur = GfxOff(il2cpp_object_get_class(g_sayProbes[0].head), "currentText");
+    offCur = FieldOffset(il2cpp_object_get_class(g_sayProbes[0].head), "currentText");
     void* go = FindClass("UnityEngine", "GameObject"); mActive = go ? FindMethod(go, "get_activeInHierarchy", 0) : nullptr;
     void* c = FindClass("UnityEngine", "Component"); mTr = c ? FindMethod(c, "get_transform", 0) : nullptr;
     void* t = FindClass("UnityEngine", "Transform"); mPos = t ? FindMethod(t, "get_position", 0) : nullptr;
@@ -14904,8 +14876,8 @@ static void GfxShot(void* pj, void* mount, bool leap) {
     auto f = g_frugal.find(mount);
     if (f == g_frugal.end()) {
       FrugalState n; void* arr = *(void**)((char*)mount + g_oGmBarrels);
-      int nb = arr ? *(int*)((char*)arr + 0x18) : 0;
-      for (int i = 0; i < nb && i < 16; i++) { void* b = ((void**)((char*)arr + 0x20))[i]; if (b && !*(bool*)((char*)b + g_oBarSkip)) n.barrels.push_back(b); }
+      int nb = ArrLen(arr);
+      for (int i = 0; i < nb && i < 16; i++) { void* b = ArrAt(arr, i); if (b && !*(bool*)((char*)b + g_oBarSkip)) n.barrels.push_back(b); }
       void* hm = Pin(mount); n.pinned = hm != nullptr; n.handles.push_back(hm);
       for (void* b : n.barrels) { void* hb = Pin(b); if (!hb) n.pinned = false; n.handles.push_back(hb); }
       f = g_frugal.emplace(mount, n).first;
@@ -15112,8 +15084,8 @@ static void GfxTick(bool before) {
     g_brittleAt = now;
     void* wm = *(void**)((char*)g_gfxCraft + g_offCraftWM); void* arr = wm ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
     std::unordered_map<void*, BrittleGun> nb;
-    for (int i = 0; arr && i < *(int*)((char*)arr + 0x18) && i < 64; i++) {
-      void* ws = ((void**)((char*)arr + 0x20))[i]; if (!ws) continue;
+    for (int i = 0; arr && i < ArrLen(arr) && i < 64; i++) {
+      void* ws = ArrAt(arr, i); if (!ws) continue;
       void* sel = *(void**)((char*)ws + g_offWsSelected); void* hull = *(void**)((char*)ws + g_oWsHull); if (!sel || !hull) continue;
       const GunFx& gx = GfxOf(sel); if (gx.brittle <= 1.0f) continue;
       if (!g_brittle.count(hull)) GFXLOG(GL_BRITTLE, "brittle: '%s' takes x%.2f damage this battle", gx.name.c_str(), gx.brittle);
@@ -15235,9 +15207,8 @@ static void SafeAllKnowingOff() {
 static void AllKnowingFind(void* craft) {
   void* k = FindClass("Core", "FireControlMaster");
   if (g_akOffConstrain == -2) {
-    auto off = [](void* kk, const char* f) { void* fi = kk ? il2cpp_class_get_field_from_name(kk, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
-    g_akOffConstrain = off(k, "constrainToAssignedTargets"); g_akOffSearch = off(k, "search"); g_akOffSelf = off(k, "self");
-    g_akOffSphere = off(FindClass("Core", "EntitySphereOverlap"), "constrainTargets"); g_akOffMountEntity = off(FindClass("Core", "GunMount"), "entity");
+    g_akOffConstrain = FieldOffset(k, "constrainToAssignedTargets"); g_akOffSearch = FieldOffset(k, "search"); g_akOffSelf = FieldOffset(k, "self");
+    g_akOffSphere = FieldOffset(FindClass("Core", "EntitySphereOverlap"), "constrainTargets"); g_akOffMountEntity = FieldOffset(FindClass("Core", "GunMount"), "entity");
     Log("all-knowing: offsets FireControlMaster.constrainToAssignedTargets +0x%X search +0x%X self +0x%X, EntitySphereOverlap.constrainTargets +0x%X, GunMount.entity +0x%X",
         g_akOffConstrain, g_akOffSearch, g_akOffSelf, g_akOffSphere, g_akOffMountEntity);
   }
@@ -15249,8 +15220,8 @@ static void AllKnowingFind(void* craft) {
   if (set) SetItems(set, all);
   if (all.empty() && g_resFindAll) {
     void* a[1] = { il2cpp_type_get_object(il2cpp_class_get_type(k)) };
-    void* arr = Invoke(g_resFindAll, nullptr, a); int n = arr ? *(int*)((char*)arr + 0x18) : 0;
-    for (int i = 0; i < n; i++) all.push_back(*(void**)((char*)arr + 0x20 + 8 * (size_t)i));
+    void* arr = Invoke(g_resFindAll, nullptr, a); int n = ArrLen(arr);
+    for (int i = 0; i < n; i++) all.push_back(ArrAt(arr, i));
   }
   for (void* f : all) if (f && *(void**)((char*)f + g_akOffSelf) == craft) { g_akFcm = f; break; }
   if (!g_akFcm) return;
@@ -15276,11 +15247,10 @@ static void AllKnowingTick() {
   if (offAux == -2) {
     void* cam = FindClass("Core.Player", "PlayerCameraControlManager"); fMode = cam ? il2cpp_class_get_field_from_name(cam, "controlMode") : nullptr;
     void* ck = FindClass("Core.Player", "PlayerAuxiliaryWeaponController");
-    void* fa = ck ? il2cpp_class_get_field_from_name(ck, "weapons") : nullptr; offAux = fa ? (int)il2cpp_field_get_offset(fa) : -1;
+    offAux = FieldOffset(ck, "weapons");
     void* iter = nullptr; void* nested; void* wk = nullptr;
     while (ck && (nested = il2cpp_class_get_nested_types(ck, &iter))) if (!strcmp(il2cpp_class_get_name(nested), "Weapon")) wk = nested;
-    void* f1 = wk ? il2cpp_class_get_field_from_name(wk, "system") : nullptr; void* f2 = wk ? il2cpp_class_get_field_from_name(wk, "fireMode") : nullptr;
-    offAwSystem = f1 ? (int)il2cpp_field_get_offset(f1) : -1; offAwFire = f2 ? (int)il2cpp_field_get_offset(f2) : -1;
+    offAwSystem = FieldOffset(wk, "system"); offAwFire = FieldOffset(wk, "fireMode");
     if (!fMode || offAux < 0 || offAwSystem < 0 || offAwFire < 0) Log("all-knowing: MISSING PIECES (controlMode %p, aux weapons %d, system %d, fireMode %d); it stays off", fMode, offAux, offAwSystem, offAwFire);
   }
   if (!fMode || offAux < 0 || offAwSystem < 0 || offAwFire < 0) return;
@@ -15291,20 +15261,20 @@ static void AllKnowingTick() {
     ctlHandle = Pin(ctl);
   }
   void* aux = *(void**)((char*)ctl + offAux);                          // Weapon[]
-  int nAux = aux ? *(int*)((char*)aux + 0x18) : 0;
+  int nAux = ArrLen(aux);
   void* wm = g_offCraftWM >= 0 ? *(void**)((char*)craft + g_offCraftWM) : nullptr;
   void* systems = wm && g_offWMSystems >= 0 ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
-  int nSys = systems ? *(int*)((char*)systems + 0x18) : 0;
+  int nSys = ArrLen(systems);
   int mode = -1; il2cpp_field_static_get_value(fMode, &mode);
   void* want = nullptr; void* ready = nullptr; void* readySlot = nullptr;
   for (int j = 0; j < nAux && j < 16; j++) {
-    void* w = *(void**)((char*)aux + 0x20 + 8 * (size_t)j); if (!w) continue;
+    void* w = ArrAt(aux, j); if (!w) continue;
     void* sys = *(void**)((char*)w + offAwSystem); if (!sys) continue;
     bool aimed = *(int*)((char*)w + offAwFire) == mode;
     if (!aimed && g_akLoggedEng == eng) continue;
     std::string sysName;
     for (int i = 0; i < nSys && i < 32; i++) {
-      void* ws = *(void**)((char*)systems + 0x20 + 8 * (size_t)i); if (!ws) continue;
+      void* ws = ArrAt(systems, i); if (!ws) continue;
       if (ws != sys) {                                                 // the aux entry's system can be another object with the slot's name
         if (sysName.empty()) sysName = NameOf(sys);
         if (NameOf(ws) != sysName) continue;
@@ -15330,7 +15300,7 @@ static void AllKnowingTick() {
   if (modeEng != eng) { modeEng = eng; modeLogs = 0; lastMode = -99; }
   if (ready && mode != lastMode && modeLogs < 6) {
     int slotMode = -1;
-    for (int j = 0; j < nAux && j < 16; j++) { void* w = *(void**)((char*)aux + 0x20 + 8 * (size_t)j); void* sys = w ? *(void**)((char*)w + offAwSystem) : nullptr;
+    for (int j = 0; j < nAux && j < 16; j++) { void* w = ArrAt(aux, j); void* sys = w ? *(void**)((char*)w + offAwSystem) : nullptr;
       if (sys && (sys == readySlot || NameOf(sys) == NameOf(readySlot))) slotMode = *(int*)((char*)w + offAwFire); }
     modeLogs++; lastMode = mode;
     Log("all-knowing: camera mode %d (1 targeting, 2 rocket, 4 special, 6 magnified, 7 squadron); '%s' is aimed in mode %d, so it is %s", mode,
@@ -15368,13 +15338,12 @@ static bool KcInit() {
   if (lastTry && now - lastTry < 2000) return false;
   lastTry = now;
   KcApi& k = g_kc; k.tried = true;
-  auto off = [](void* c, const char* n) { void* f = c ? il2cpp_class_get_field_from_name(c, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
   void* tc = FindClass("Core", "Torpedo"); void* lc = FindClass("Core", "TorpedoLauncher"); void* le = FindClass("Core", "LiveEntity");
   void* rb = FindClass("UnityEngine", "Rigidbody"); void* tm = FindClass("UnityEngine", "Time"); void* cam = FindClass("UnityEngine", "Camera");
   void* comp = FindClass("UnityEngine", "Component"); void* tr = FindClass("UnityEngine", "Transform"); void* bm = FindClass("Core", "BlurModulator");
   k.regField = tc ? il2cpp_class_get_field_from_name(tc, "register") : nullptr;
-  k.body = off(tc, "body"); k.from = off(tc, "launchedFrom"); k.arm = off(tc, "armingTime"); k.elapsed = off(tc, "elapsedTime"); k.exploded = off(tc, "explodedAfterLaunch");
-  k.launcherEntity = off(lc, "entity"); k.leVel = off(le, "realtimeVelocity"); k.blurTs = off(bm, "timeScale");
+  k.body = FieldOffset(tc, "body"); k.from = FieldOffset(tc, "launchedFrom"); k.arm = FieldOffset(tc, "armingTime"); k.elapsed = FieldOffset(tc, "elapsedTime"); k.exploded = FieldOffset(tc, "explodedAfterLaunch");
+  k.launcherEntity = FieldOffset(lc, "entity"); k.leVel = FieldOffset(le, "realtimeVelocity"); k.blurTs = FieldOffset(bm, "timeScale");
   k.rbPos = rb ? FindMethod(rb, "get_position", 0) : nullptr; k.rbVel = rb ? FindMethod(rb, "get_linearVelocity", 0) : nullptr;
   k.timeGet = tm ? FindMethod(tm, "get_timeScale", 0) : nullptr; k.timeSet = tm ? FindMethod(tm, "set_timeScale", 1) : nullptr;
   k.fdtGet = tm ? FindMethod(tm, "get_fixedDeltaTime", 0) : nullptr; k.fdtSet = tm ? FindMethod(tm, "set_fixedDeltaTime", 1) : nullptr;
@@ -15406,7 +15375,7 @@ static std::vector<KcTorp> KcPlayerTorpedoes() {
   std::vector<KcTorp> out;
   void* set = nullptr; il2cpp_field_static_get_value(g_kc.regField, &set); if (!set) return out;
   void* arr = *(void**)((char*)set + g_kc.hl.slots); if (!arr) return out;
-  int n = (int)*(size_t*)((char*)arr + 0x18);
+  int n = ArrLen(arr);
   if (g_kc.hl.count >= 0) { int l = *(int*)((char*)set + g_kc.hl.count); if (l >= 0 && l < n) n = l; }
   void* me = PlayerCraft(); if (!me) return out;
   for (int i = 0; i < n; i++) {
@@ -15444,8 +15413,8 @@ static bool TorpHittable(void* ent) {
   static int offParams = -2, offFlag = -1; static void* nut = nullptr;
   if (offParams == -2) {
     void* ce = FindClass("Core", "CombatEntity"); nut = FindClass("Core", "NavalUnitType");
-    void* f = ce ? il2cpp_class_get_field_from_name(ce, "parameters") : nullptr; offParams = f ? (int)il2cpp_field_get_offset(f) : -1;
-    void* g = nut ? il2cpp_class_get_field_from_name(nut, "underwaterRadarSusceptible") : nullptr; offFlag = g ? (int)il2cpp_field_get_offset(g) : -1;
+    offParams = FieldOffset(ce, "parameters");
+    offFlag = FieldOffset(nut, "underwaterRadarSusceptible");
     if (offParams < 0 || offFlag < 0) Log("torpedoes: the hit check lookup failed (parameters %d, underwaterRadarSusceptible %d); homing takes every ship", offParams, offFlag);
   }
   if (offParams < 0 || offFlag < 0 || !ent) return true;
@@ -15478,14 +15447,13 @@ static std::unordered_map<void*, KcHullCache> g_khCache; static void* g_khEng = 
 static bool KhInit() {
   if (g_kh.tried) return g_kh.ok;
   g_kh.tried = true;
-  auto off = [](void* c, const char* n) { void* f = c ? il2cpp_class_get_field_from_name(c, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
   void* go = FindClass("UnityEngine", "GameObject"); void* bc = FindClass("UnityEngine", "BoxCollider"); void* col = FindClass("UnityEngine", "Collider");
   void* tr = FindClass("UnityEngine", "Transform"); void* tc = FindClass("Core", "Torpedo"); void* tt = FindClass("Core", "TorpedoType");
   g_kh.inCh = go ? FindMethod(go, "GetComponentsInternal", 6) : nullptr; g_kh.layer = go ? FindMethod(go, "get_layer", 0) : nullptr;
   g_kh.boxType = bc ? il2cpp_type_get_object(il2cpp_class_get_type(bc)) : nullptr;
   g_kh.center = bc ? FindMethod(bc, "get_center", 0) : nullptr; g_kh.size = bc ? FindMethod(bc, "get_size", 0) : nullptr;
   g_kh.enabled = col ? FindMethod(col, "get_enabled", 0) : nullptr; g_kh.l2w = tr ? FindMethod(tr, "get_localToWorldMatrix", 0) : nullptr;
-  g_kh.ttype = off(tc, "torpedoType"); g_kh.hbr = off(tt, "hitboxRadius"); g_kh.det = off(tt, "detectionDistance");
+  g_kh.ttype = FieldOffset(tc, "torpedoType"); g_kh.hbr = FieldOffset(tt, "hitboxRadius"); g_kh.det = FieldOffset(tt, "detectionDistance");
   g_kh.ok = g_kh.inCh && g_kh.layer && g_kh.boxType && g_kh.center && g_kh.size && g_kh.l2w && m_getGameObject && m_getTransform;
   if (g_kh.ok) Log("kill cam: hit prediction uses the ships' torpedo triggers (the layer-21 box the game's hit check casts for)");
   else Log("kill cam: hit prediction falls back to a hull box estimated from the ship's colliders, or the old circle test (a lookup is missing: "
@@ -15505,9 +15473,9 @@ static int KcHullBoxes(void* ent, V3 pos, void* eng, std::vector<KcBox>& out) {
     if (it == g_khCache.end() || (it->second.cols.empty() && now - it->second.at > 10000)) {   // none found: look again after 10 s
       KcHullCache& c = g_khCache[ent]; for (void* h : c.hs) Unpin(h); Unpin(c.entH); c = KcHullCache(); c.at = now; c.entH = Pin(ent);
       bool typed = true, recursive = true, inactive = false, reverse = false; void* a[6] = { g_kh.boxType, &typed, &recursive, &inactive, &reverse, nullptr };
-      void* goEnt = Invoke(m_getGameObject, ent); void* arr = goEnt ? Invoke(g_kh.inCh, goEnt, a) : nullptr; int n = arr ? *(int*)((char*)arr + 0x18) : 0;
+      void* goEnt = Invoke(m_getGameObject, ent); void* arr = goEnt ? Invoke(g_kh.inCh, goEnt, a) : nullptr; int n = ArrLen(arr);
       for (int i = 0; i < n && i < 64; i++) {
-        void* b = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); if (!b) continue;
+        void* b = ArrAt(arr, i); if (!b) continue;
         void* g = Invoke(m_getGameObject, b); void* l = g ? Invoke(g_kh.layer, g) : nullptr; if (!l || *(int*)((char*)l + 0x10) != 21) continue;
         void* ce = Invoke(g_kh.center, b); void* sz = Invoke(g_kh.size, b); if (!ce || !sz) continue;
         c.cols.push_back(b); c.hs.push_back(Pin(b)); c.ctr.push_back(*(V3*)((char*)ce + 0x10)); c.size.push_back(*(V3*)((char*)sz + 0x10));
@@ -15725,10 +15693,9 @@ static void Hooked_CrewFixed(void* self, float fdt, void* method) {
 // On the game thread (the camera's LateUpdate), so FixedUpdateMe is not running while it is patched.
 static void CgInstall() {
   g_cgTried = true;
-  auto off = [](void* k, const char* n) { void* f = k ? il2cpp_class_get_field_from_name(k, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
   void* cm = FindClass("Core", "CrewMember"); void* mg = FindClass("Core", "CrewManager"); void* fc = FindClass("Core", "FloatPoint");
-  g_cgOffMgr = off(cm, "crewManager"); g_cgOffFp = off(cm, "floatPoint"); g_cgOffChest = off(cm, "smoothChestPos"); g_cgOffCount = off(cm, "framesUntilUnderwater");
-  g_cgOffEnt = off(mg, "entity"); g_cgOffDepth = off(fc, "_depth");
+  g_cgOffMgr = FieldOffset(cm, "crewManager"); g_cgOffFp = FieldOffset(cm, "floatPoint"); g_cgOffChest = FieldOffset(cm, "smoothChestPos"); g_cgOffCount = FieldOffset(cm, "framesUntilUnderwater");
+  g_cgOffEnt = FieldOffset(mg, "entity"); g_cgOffDepth = FieldOffset(fc, "_depth");
   void* mi = cm ? il2cpp_class_get_method_from_name(cm, "FixedUpdateMe", 1) : nullptr;
   if (!mi || g_cgOffMgr < 0 || g_cgOffFp < 0 || g_cgOffChest < 0 || g_cgOffCount < 0 || g_cgOffEnt < 0 || g_cgOffDepth < 0) {
     Log("kill cam: no crew guard (CrewMember.FixedUpdateMe %p, crewManager +0x%X floatPoint +0x%X smoothChestPos +0x%X framesUntilUnderwater +0x%X entity +0x%X _depth +0x%X); "
@@ -15919,24 +15886,23 @@ static int g_torpInjectFaults = 0, g_torpRunFaults = 0, g_torpLookFaults = 0;
 static bool TorpSetup() {
   if (g_tp.tried) return g_tp.ok;
   TorpApi& a = g_tp; a.tried = true;
-  auto off = [](void* c, const char* n) { void* f = c ? il2cpp_class_get_field_from_name(c, n) : nullptr; return f ? (int)il2cpp_field_get_offset(f) : -1; };
   a.launcherCls = FindClass("Core", "TorpedoLauncher"); a.torpCls = FindClass("Core", "Torpedo");
   void* ty = FindClass("Core", "TorpedoType"); void* fp = FindClass("Core", "FloatPoint"); void* wm = FindClass("Core", "WeaponManager"); void* le = FindClass("Core", "LiveEntity");
   if (a.launcherCls) { void* it = nullptr; void* nk; while ((nk = il2cpp_class_get_nested_types(a.launcherCls, &it))) if (!strcmp(il2cpp_class_get_name(nk), "TorpedoTier")) a.tierCls = nk; }
   a.tierCtor = a.tierCls ? FindMethod(a.tierCls, ".ctor", 0) : nullptr; a.tierGetType = a.tierCls ? FindMethod(a.tierCls, "get_type", 0) : nullptr;
   a.regField = a.launcherCls ? il2cpp_class_get_field_from_name(a.launcherCls, "register") : nullptr;
   a.selectMI = a.launcherCls ? il2cpp_class_get_method_from_name(a.launcherCls, "selectIndex", 1) : nullptr;
-  a.lTorpedos = off(a.launcherCls, "torpedos"); a.lSelIndex = off(a.launcherCls, "selectedIndex"); a.lSymmetric = off(a.launcherCls, "symmetric"); a.lEntity = off(a.launcherCls, "entity");
-  a.wmLaunchers = off(wm, "launchers"); a.leVel = off(le, "realtimeVelocity");
-  a.tDummies = off(a.tierCls, "dummies");
-  a.tName = off(a.tierCls, "name"); a.tDisplay = off(a.tierCls, "displayName"); a.tType = off(a.tierCls, "_type"); a.tProps = off(a.tierCls, "torpedoProperties");
-  a.yIdle = off(ty, "idleDepth");
-  a.yTag = off(ty, "overrideTag"); a.yPrice = off(ty, "price"); a.yDesc = off(ty, "description"); a.yUnlock = off(ty, "unlock"); a.ySprite = off(ty, "sprite");
-  a.yDetonation = off(ty, "detonationTime"); a.yArming = off(ty, "armingTime");
-  a.pDetected = off(a.torpCls, "detectedByFactions");
-  a.pBody = off(a.torpCls, "body"); a.pFrom = off(a.torpCls, "launchedFrom"); a.pTier = off(a.torpCls, "launchedFromTier"); a.pType = off(a.torpCls, "torpedoType");
-  a.pDetonate = off(a.torpCls, "detonateTime"); a.pArm = off(a.torpCls, "armingTime"); a.pExploded = off(a.torpCls, "explodedAfterLaunch"); a.pCode = off(a.torpCls, "projectileCode");
-  a.pTend = off(a.torpCls, "tendToLine"); a.pInWater = off(a.torpCls, "timeInWater"); a.pFloat = off(a.torpCls, "floatPoint"); a.fpDepth = off(fp, "_depth");
+  a.lTorpedos = FieldOffset(a.launcherCls, "torpedos"); a.lSelIndex = FieldOffset(a.launcherCls, "selectedIndex"); a.lSymmetric = FieldOffset(a.launcherCls, "symmetric"); a.lEntity = FieldOffset(a.launcherCls, "entity");
+  a.wmLaunchers = FieldOffset(wm, "launchers"); a.leVel = FieldOffset(le, "realtimeVelocity");
+  a.tDummies = FieldOffset(a.tierCls, "dummies");
+  a.tName = FieldOffset(a.tierCls, "name"); a.tDisplay = FieldOffset(a.tierCls, "displayName"); a.tType = FieldOffset(a.tierCls, "_type"); a.tProps = FieldOffset(a.tierCls, "torpedoProperties");
+  a.yIdle = FieldOffset(ty, "idleDepth");
+  a.yTag = FieldOffset(ty, "overrideTag"); a.yPrice = FieldOffset(ty, "price"); a.yDesc = FieldOffset(ty, "description"); a.yUnlock = FieldOffset(ty, "unlock"); a.ySprite = FieldOffset(ty, "sprite");
+  a.yDetonation = FieldOffset(ty, "detonationTime"); a.yArming = FieldOffset(ty, "armingTime");
+  a.pDetected = FieldOffset(a.torpCls, "detectedByFactions");
+  a.pBody = FieldOffset(a.torpCls, "body"); a.pFrom = FieldOffset(a.torpCls, "launchedFrom"); a.pTier = FieldOffset(a.torpCls, "launchedFromTier"); a.pType = FieldOffset(a.torpCls, "torpedoType");
+  a.pDetonate = FieldOffset(a.torpCls, "detonateTime"); a.pArm = FieldOffset(a.torpCls, "armingTime"); a.pExploded = FieldOffset(a.torpCls, "explodedAfterLaunch"); a.pCode = FieldOffset(a.torpCls, "projectileCode");
+  a.pTend = FieldOffset(a.torpCls, "tendToLine"); a.pInWater = FieldOffset(a.torpCls, "timeInWater"); a.pFloat = FieldOffset(a.torpCls, "floatPoint"); a.fpDepth = FieldOffset(fp, "_depth");
   void* rb = FindClass("UnityEngine", "Rigidbody"); void* tm = FindClass("UnityEngine", "Time"); void* go = FindClass("UnityEngine", "GameObject");
   void* tr = FindClass("UnityEngine", "Transform"); void* uo = FindClass("UnityEngine", "Object");
   a.rbVel = rb ? FindMethod(rb, "get_linearVelocity", 0) : nullptr; a.rbSetVel = rb ? FindMethod(rb, "set_linearVelocity", 1) : nullptr;
@@ -15946,7 +15912,7 @@ static bool TorpSetup() {
   a.trPos = tr ? FindMethod(tr, "get_position", 0) : nullptr; a.hideFlags = uo ? FindMethod(uo, "set_hideFlags", 1) : nullptr;
   a.trSetRot = tr ? FindMethod(tr, "set_rotation", 1) : nullptr; a.trRot = tr ? FindMethod(tr, "get_rotation", 0) : nullptr;
   { void* vk = FindClass("Core", "VFXManager"); a.vfxSpawn = vk ? FindMethod(vk, "spawnVFX", 4) : nullptr; a.vfxInst = vk ? il2cpp_class_get_field_from_name(vk, "instance") : nullptr;
-    a.ySplash = off(FindClass("Core", "ProjectileType"), "impactSplashPrefab");
+    a.ySplash = FieldOffset(FindClass("Core", "ProjectileType"), "impactSplashPrefab");
     if (!a.trRot || !a.vfxSpawn || !a.vfxInst || a.ySplash < 0) Log("dolphin torpedoes: a lookup failed (get_rotation %p spawnVFX %p instance %p impactSplashPrefab %d); no leaps or no splash", a.trRot, a.vfxSpawn, a.vfxInst, a.ySplash); }
   // A found torpedo's tier is a field-by-field copy of its stock tier (TorpedoTier is a plain serialized class, so
   // Instantiate cannot copy it): references through SetRef, numbers as bytes.
@@ -15985,8 +15951,8 @@ static std::vector<void*> LaunchersOf(void* craft) {
   if (!craft || g_offCraftWM < 0 || !g_tp.ok) return out;
   void* wm = *(void**)((char*)craft + g_offCraftWM);
   void* arr = wm ? *(void**)((char*)wm + g_tp.wmLaunchers) : nullptr;
-  int n = arr ? (int)*(size_t*)((char*)arr + 0x18) : 0;
-  for (int i = 0; i < n && i < 32; i++) { void* l = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); if (l) out.push_back(l); }
+  int n = ArrLen(arr);
+  for (int i = 0; i < n && i < 32; i++) { void* l = ArrAt(arr, i); if (l) out.push_back(l); }
   return out;
 }
 static void TorpFamiliesOf(void* craft, std::vector<std::string>& out) {
@@ -16507,19 +16473,18 @@ static bool UtilReady() {
   UtilApi& a = g_ua;
   if (a.tried) return a.ok;
   a.tried = true;
-  auto off = [](void* k, const char* f) { void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
   auto typeOf = [](void* k) { return k ? il2cpp_type_get_object(il2cpp_class_get_type(k)) : nullptr; };
   void* vfx = FindClass("Core", "VFXManager");
   a.vfxInst = vfx ? il2cpp_class_get_field_from_name(vfx, "instance") : nullptr; a.spawnVfx = vfx ? FindMethod(vfx, "spawnVFX", 4) : nullptr;
   void* pm = FindClass("Core", "ProjectileManager");
   a.pmInst = pm ? il2cpp_class_get_field_from_name(pm, "instance") : nullptr; a.findProj = pm ? FindMethod(pm, "findProjectileType", 1) : nullptr;
-  a.offImpact = off(FindClass("Core", "ProjectileType"), "impactPrefab");
+  a.offImpact = FieldOffset(FindClass("Core", "ProjectileType"), "impactPrefab");
   void* o = FindClass("UnityEngine", "Object"); a.findBy = o ? FindMethod(o, "FindObjectsByType", 3, "System.Type") : nullptr;
   void* res = FindClass("UnityEngine", "Resources"); a.findAll = res ? FindMethod(res, "FindObjectsOfTypeAll", 1, "System.Type") : nullptr;
   void* cmo = FindClass("Core", "CrewMemberOverboard"); a.cmoType = typeOf(cmo);
-  a.oOwner = off(cmo, "networkOwner"); a.oFrom = off(cmo, "spawnedFrom"); a.oChar = off(cmo, "character");
+  a.oOwner = FieldOffset(cmo, "networkOwner"); a.oFrom = FieldOffset(cmo, "spawnedFrom"); a.oChar = FieldOffset(cmo, "character");
   void* cc = FindClass("Core", "CrewCharacter");
-  a.cHealth = off(cc, "healthState"); a.cHP = off(cc, "HP"); a.cSinking = off(cc, "inSinkingBoat"); a.cName = off(cc, "name"); a.cNameCustom = off(cc, "nameCustom");
+  a.cHealth = FieldOffset(cc, "healthState"); a.cHP = FieldOffset(cc, "HP"); a.cSinking = FieldOffset(cc, "inSinkingBoat"); a.cName = FieldOffset(cc, "name"); a.cNameCustom = FieldOffset(cc, "nameCustom");
   void* tr = FindClass("UnityEngine", "Transform");
   a.trPos = tr ? FindMethod(tr, "get_position", 0) : nullptr; a.trSetPos = tr ? FindMethod(tr, "set_position", 1) : nullptr; a.trSetRot = tr ? FindMethod(tr, "set_rotation", 1) : nullptr;
   a.goType = typeOf(FindClass("UnityEngine", "GameObject"));
@@ -16565,17 +16530,17 @@ static void* SmokePrefab(bool large) {
 // False when that path is not there: the caller spawns it the normal way.
 static bool SmokeSendToHost(void* vfx, void* prefab, V3* pos) {
   static int oPooler = -2, oTrig = -1, oTypes = -1, oName = -1, oPrefab = -1; static void* inv = nullptr;
-  if (oPooler == -2) { void* k = il2cpp_object_get_class(vfx); oPooler = GfxOff(k, "pooler"); oTrig = GfxOff(k, "onClientVfxTrigger"); }
+  if (oPooler == -2) { void* k = il2cpp_object_get_class(vfx); oPooler = FieldOffset(k, "pooler"); oTrig = FieldOffset(k, "onClientVfxTrigger"); }
   void* del = oTrig >= 0 ? *(void**)((char*)vfx + oTrig) : nullptr;
   void* pooler = oPooler >= 0 ? *(void**)((char*)vfx + oPooler) : nullptr;
   if (!del || !pooler) return false;
-  if (oTypes < 0) oTypes = GfxOff(il2cpp_object_get_class(pooler), "types");
+  if (oTypes < 0) oTypes = FieldOffset(il2cpp_object_get_class(pooler), "types");
   void* types = oTypes >= 0 ? *(void**)((char*)pooler + oTypes) : nullptr;
-  int n = types ? *(int*)((char*)types + 0x18) : 0;
+  int n = ArrLen(types);
   void* name = nullptr;
   for (int i = 0; i < n && !name; i++) {                               // ObjPooler.types: the pool whose prefab this is
-    void* t = *(void**)((char*)types + 0x20 + 8 * (size_t)i); if (!t) continue;
-    if (oName < 0) { void* k = il2cpp_object_get_class(t); oName = GfxOff(k, "name"); oPrefab = GfxOff(k, "prefab"); if (oName < 0 || oPrefab < 0) return false; }
+    void* t = ArrAt(types, i); if (!t) continue;
+    if (oName < 0) { void* k = il2cpp_object_get_class(t); oName = FieldOffset(k, "name"); oPrefab = FieldOffset(k, "prefab"); if (oName < 0 || oPrefab < 0) return false; }
     if (*(void**)((char*)t + oPrefab) == prefab) name = *(void**)((char*)t + oName);
   }
   if (!inv) inv = FindMethod(il2cpp_object_get_class(del), "Invoke", 2);
@@ -16672,8 +16637,8 @@ static void* RaftModel() {                                            // the shi
   if (tried) return Alive(model) ? model : nullptr;
   tried = true;
   void* a[1] = { g_ua.goType }; void* arr = Invoke(g_ua.findAll, nullptr, a);
-  int n = arr ? *(int*)((char*)arr + 0x18) : 0;
-  for (int i = 0; i < n && !model; i++) { void* go = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); if (go && NameOf(go) == "Ship_decor_lifeboat_LOD0") model = go; }
+  int n = ArrLen(arr);
+  for (int i = 0; i < n && !model; i++) { void* go = ArrAt(arr, i); if (go && NameOf(go) == "Ship_decor_lifeboat_LOD0") model = go; }
   if (model) Pin(model);
   Log("utility gear: raft model %s", model ? "is the ships' lifeboat (Ship_decor_lifeboat_LOD0)" : "not found among the game's objects; rafts are invisible but still pick crew up");
   return model;
@@ -16725,7 +16690,7 @@ static float DaveCrewScale() {
   static void *lossy = nullptr, *bounds = nullptr; static int oVis = -2, oBody = -1;
   if (!lossy) { void* tr = FindClass("UnityEngine", "Transform"); lossy = tr ? FindMethod(tr, "get_lossyScale", 0) : nullptr; }
   if (!bounds) { void* r = FindClass("UnityEngine", "Renderer"); bounds = r ? FindMethod(r, "get_bounds", 0) : nullptr; }
-  if (oVis == -2) { oVis = GfxOff(FindClass("Core", "CrewMember"), "crewMemberVisual"); oBody = GfxOff(FindClass("Core", "CrewMemberVisual"), "body"); }
+  if (oVis == -2) { oVis = FieldOffset(FindClass("Core", "CrewMember"), "crewMemberVisual"); oBody = FieldOffset(FindClass("Core", "CrewMemberVisual"), "body"); }
   void* tf = cm ? Invoke(m_getTransform, cm) : nullptr;
   V3 ls = tf && lossy ? GetV3(lossy, tf) : V3{ 1, 1, 1 };
   float k = ls.y > 0.5f && ls.y < 10 ? ls.y : 1.0f;
@@ -16734,7 +16699,7 @@ static float DaveCrewScale() {
     told = true;
     void* vis = cm && oVis >= 0 ? *(void**)((char*)cm + oVis) : nullptr;
     void* body = vis && oBody >= 0 ? *(void**)((char*)vis + oBody) : nullptr;
-    void* r0 = body && *(int*)((char*)body + 0x18) > 0 ? *(void**)((char*)body + 0x20) : nullptr;
+    void* r0 = body && ArrLen(body) > 0 ? ArrAt(body, 0) : nullptr;
     void* b = r0 && bounds ? Invoke(bounds, r0) : nullptr;               // boxed Bounds: centre +0x10, extents +0x1C
     float h = b ? 2 * *(float*)((char*)b + 0x20) : -1;
     Log("Dave: a crew member's world scale is (%.2f, %.2f, %.2f), body %.2f m tall in the world (pose included); Dave is scaled x%.2f", ls.x, ls.y, ls.z, h, k);
@@ -16867,10 +16832,10 @@ static void UtilTick() {
   if (scan) {
     int inactive = 0, sorting = 0; void* a[3] = { g_ua.cmoType, &inactive, &sorting };
     void* arr = Invoke(g_ua.findBy, nullptr, a);
-    int n = arr ? *(int*)((char*)arr + 0x18) : 0;
+    int n = ArrLen(arr);
     g_utilSw.clear();
     for (int i = 0; i < n; i++) {
-      void* s = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); if (!s) continue;
+      void* s = ArrAt(arr, i); if (!s) continue;
       void* ch = *(void**)((char*)s + g_ua.oChar);
       if (!*(bool*)((char*)s + g_ua.oOwner) || *(void**)((char*)s + g_ua.oFrom) || !ch) continue;
       if (*(float*)((char*)ch + g_ua.cHP) <= 0 || *(int*)((char*)ch + g_ua.cHealth) != 3) continue;
@@ -17085,9 +17050,9 @@ static bool FmodReady() {
   void* arr = sai && fss ? *(void**)((char*)sai + il2cpp_field_get_offset(fss)) : nullptr;
   std::string names;
   if (arr) {
-    int n = (int)*(size_t*)((char*)arr + 0x18);
+    int n = ArrLen(arr);
     for (int i = 0; i < n && i < 8; i++) {
-      void* s = *(void**)((char*)arr + 0x20 + 8 * (size_t)i); if (!s) continue;
+      void* s = ArrAt(arr, i); if (!s) continue;
       void* nf = il2cpp_class_get_field_from_name(il2cpp_object_get_class(s), "name");
       std::string nm = nf ? Str(*(void**)((char*)s + il2cpp_field_get_offset(nf))) : "";
       float v = -1, fv = -1; if (a.param && !nm.empty()) a.param(a.studio, nm.c_str(), &v, &fv);
@@ -18000,21 +17965,20 @@ static bool CoopLookups() {
   static int state = 0;
   if (state) return state > 0;
   state = -1;
-  auto off = [](void* k, const char* f) { void* fi = k ? il2cpp_class_get_field_from_name(k, f) : nullptr; return fi ? (int)il2cpp_field_get_offset(fi) : -1; };
   void* inf = FindClass("FishNet", "InstanceFinder");
   m_ifClientManager = inf ? FindMethod(inf, "get_ClientManager", 0) : nullptr;   // only read once a co-op game is running
   void* wsk = FindClass("Core.Multiplayer", "WeaponsSync"); void* osk = FindClass("Core.Multiplayer", "ObjectSync");
   g_fWsReg = wsk ? il2cpp_class_get_field_from_name(wsk, "register") : nullptr; g_fOsReg = osk ? il2cpp_class_get_field_from_name(osk, "register") : nullptr;
-  g_offWsWM = off(wsk, "weaponManager"); g_offWsGuns = off(wsk, "guns"); g_offOsEntity = off(osk, "targetLiveEntity");
+  g_offWsWM = FieldOffset(wsk, "weaponManager"); g_offWsGuns = FieldOffset(wsk, "guns"); g_offOsEntity = FieldOffset(osk, "targetLiveEntity");
   void* nb = FindClass("FishNet.Object", "NetworkBehaviour");
   m_nbOwnerId = nb ? FindMethod(nb, "get_OwnerId", 0) : nullptr; m_nbObjectId = nb ? FindMethod(nb, "get_ObjectId", 0) : nullptr;
   m_nbIsSpawned = nb ? FindMethod(nb, "get_IsSpawned", 0) : nullptr;
-  g_offNcId = off(FindClass("FishNet.Connection", "NetworkConnection"), "ClientId");
+  g_offNcId = FieldOffset(FindClass("FishNet.Connection", "NetworkConnection"), "ClientId");
   g_clsFishy = FindClass("FishySteamworks", "FishySteamworks");
   m_fsState = g_clsFishy ? FindMethod(g_clsFishy, "GetConnectionState", 1, "System.Int32") : nullptr;   // a client: RemoteConnectionState
   m_fsLocalState = g_clsFishy ? FindMethod(g_clsFishy, "GetConnectionState", 1, "System.Boolean") : nullptr;   // this machine: server or client side
   m_fsAddress = g_clsFishy ? FindMethod(g_clsFishy, "GetConnectionAddress", 1) : nullptr;
-  g_offFsClient = off(g_clsFishy, "_client"); g_offFsServer = off(g_clsFishy, "_server");
+  g_offFsClient = FieldOffset(g_clsFishy, "_client"); g_offFsServer = FieldOffset(g_clsFishy, "_server");
   void* wsc = FindClass("Core", "WeaponSystem"); m_wsSelectMI = wsc ? FindMethod(wsc, "select", 3, "System.Int32") : nullptr;
   bool ok = m_fsLocalState && m_ifClientManager && g_fWsReg && g_fOsReg && g_offWsWM >= 0 && g_offWsGuns >= 0 && g_offOsEntity >= 0 && m_nbIsSpawned &&
             m_nbOwnerId && m_nbObjectId && g_offNcId >= 0 && g_clsFishy && m_fsState && m_fsAddress && g_offFsClient >= 0 && g_offFsServer >= 0 && m_wsSelectMI;
@@ -18035,7 +17999,7 @@ static void SetItems(void* set, std::vector<void*>& out) {
   if (!l.ok()) return;
   void* arr = *(void**)((char*)set + l.slots);
   if (!arr) return;
-  int n = (int)*(size_t*)((char*)arr + 0x18);
+  int n = ArrLen(arr);
   if (l.count >= 0) { int c = *(int*)((char*)set + l.count); if (c >= 0 && c < n) n = c; }
   for (int i = 0; i < n; i++) { void* e = *(void**)((char*)arr + 0x20 + (size_t)i * l.elem + l.val); if (e) out.push_back(e); }
 }
@@ -18052,7 +18016,7 @@ static std::vector<NetBoat> NetBoats() {
 static int MyClientId() {
   void* cm = Invoke(m_ifClientManager, nullptr);
   static int offConn = -2;
-  if (offConn == -2 && cm) { void* f = il2cpp_class_get_field_from_name(il2cpp_object_get_class(cm), "Connection"); offConn = f ? (int)il2cpp_field_get_offset(f) : -1; }
+  if (offConn == -2 && cm) { offConn = FieldOffset(il2cpp_object_get_class(cm), "Connection"); }
   void* nc = cm && offConn >= 0 ? *(void**)((char*)cm + offConn) : nullptr;
   return nc ? *(int*)((char*)nc + g_offNcId) : -1;
 }
@@ -18093,7 +18057,7 @@ static void* Fishy() {                                                // the Fis
   if (!mFind) return nullptr;
   int inactive = 0, sort = 0; void* a[3] = { il2cpp_type_get_object(il2cpp_class_get_type(g_clsFishy)), &inactive, &sort };
   void* arr = Invoke(mFind, nullptr, a);
-  if (arr && *(int*)((char*)arr + 0x18) > 0) { g_fishy = *(void**)((char*)arr + 0x20); g_fishyHandle = Pin(g_fishy); }
+  if (arr && ArrLen(arr) > 0) { g_fishy = ArrAt(arr, 0); g_fishyHandle = Pin(g_fishy); }
   return g_fishy;
 }
 
@@ -18128,15 +18092,15 @@ static void RefreshRemoteWs() {
   for (const NetBoat& b : NetBoats()) {
     if (b.owner < 0 || b.owner == g_myId || !b.wm || !Alive(b.wm) || b.wm == myWm) continue;   // never this player's own boat
     void* arr = *(void**)((char*)b.wm + g_offWMSystems);
-    for (int i = 0; arr && i < *(int*)((char*)arr + 0x18) && i < 32; i++) {
-      void* ws = ((void**)((char*)arr + 0x20))[i]; if (!ws || !Alive(ws)) continue;
+    for (int i = 0; arr && i < ArrLen(arr) && i < 32; i++) {
+      void* ws = ArrAt(arr, i); if (!ws || !Alive(ws)) continue;
       g_remoteWs[ws] = { b.sync, i, b.owner, Pin(ws), Pin(b.sync) };
       void* mounts = *(void**)((char*)ws + g_offMounts);
       for (int j = 0; j < ListCount(mounts); j++) live.insert(ListAt(mounts, j));
     }
     void* la = g_coopTorps && g_tp.ok ? *(void**)((char*)b.wm + g_tp.wmLaunchers) : nullptr;   // index i as UpdateMe and createTorpedo use it
-    for (int i = 0; la && i < *(int*)((char*)la + 0x18) && i < 32; i++) {
-      void* l = ((void**)((char*)la + 0x20))[i]; if (!l || !Alive(l)) continue;
+    for (int i = 0; la && i < ArrLen(la) && i < 32; i++) {
+      void* l = ArrAt(la, i); if (!l || !Alive(l)) continue;
       if (!g_remoteLaunchers.count(l)) g_remoteLaunchers[l] = { b.owner, i, Pin(l) };
       void* list = *(void**)((char*)l + g_tp.lTorpedos);
       for (int j = 0; j < ListCount(list); j++) live.insert(ListAt(list, j));
@@ -18161,8 +18125,8 @@ static std::string MyGunsText(int* positions, int* guns, int* tpos, int* torps) 
   void* arr = wm && g_offWMSystems >= 0 ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
   std::string text, defs; std::set<std::string> described;
   *positions = *guns = *tpos = *torps = 0;
-  for (int i = 0; g_coopGuns && arr && i < *(int*)((char*)arr + 0x18) && i < 32; i++) {
-    void* ws = ((void**)((char*)arr + 0x20))[i]; if (!ws) continue;
+  for (int i = 0; g_coopGuns && arr && i < ArrLen(arr) && i < 32; i++) {
+    void* ws = ArrAt(arr, i); if (!ws) continue;
     void* order = *(void**)((char*)ws + g_offOrder); void* mounts = *(void**)((char*)ws + g_offMounts);
     if (!order || !mounts) continue;
     std::string family = FamilyOf(order), lines;
@@ -18177,8 +18141,8 @@ static std::string MyGunsText(int* positions, int* guns, int* tpos, int* torps) 
     if (!lines.empty()) text += "S " + std::to_string(i) + " " + family + "\n" + lines;
   }
   void* la = g_coopTorps && g_tp.ok && wm ? *(void**)((char*)wm + g_tp.wmLaunchers) : nullptr;
-  for (int i = 0; la && i < (int)*(size_t*)((char*)la + 0x18) && i < 32; i++) {
-    void* l = *(void**)((char*)la + 0x20 + 8 * (size_t)i); if (!l) continue;
+  for (int i = 0; la && i < ArrLen(la) && i < 32; i++) {
+    void* l = ArrAt(la, i); if (!l) continue;
     void* order = *(void**)((char*)l + g_offOrder); if (!order) continue;
     void* list = *(void**)((char*)l + g_tp.lTorpedos);
     std::string family = FamilyOf(order), lines;
@@ -18574,8 +18538,8 @@ static bool MountPlace(void* mount, int* sys, int* pos) {             // where a
   for (const NetBoat& b : NetBoats()) if (g_myId >= 0 && b.owner == g_myId && b.wm) wm = b.wm;
   if (!wm) { void* craft = PlayerCraft(); wm = craft && g_offCraftWM >= 0 ? *(void**)((char*)craft + g_offCraftWM) : nullptr; }
   void* arr = wm && g_offWMSystems >= 0 ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
-  for (int i = 0; arr && i < *(int*)((char*)arr + 0x18) && i < 32; i++) {
-    void* ws = ((void**)((char*)arr + 0x20))[i]; void* mounts = ws ? *(void**)((char*)ws + g_offMounts) : nullptr;
+  for (int i = 0; arr && i < ArrLen(arr) && i < 32; i++) {
+    void* ws = ArrAt(arr, i); void* mounts = ws ? *(void**)((char*)ws + g_offMounts) : nullptr;
     for (int j = 0; j < ListCount(mounts); j++) if (ListAt(mounts, j) == mount) { *sys = i; *pos = j; return true; }
   }
   return false;
@@ -18601,7 +18565,7 @@ static void CoopSpawnIn(int from, const std::string& body) {
   for (const NetBoat& b : NetBoats()) {
     if (b.owner != from || !b.wm) continue;
     void* arr = *(void**)((char*)b.wm + g_offWMSystems);
-    void* ws = arr && sys >= 0 && sys < *(int*)((char*)arr + 0x18) ? ((void**)((char*)arr + 0x20))[sys] : nullptr;
+    void* ws = arr && sys >= 0 && sys < ArrLen(arr) ? ArrAt(arr, sys) : nullptr;
     void* mounts = ws ? *(void**)((char*)ws + g_offMounts) : nullptr;
     if (mounts && pos >= 0 && pos < ListCount(mounts)) mount = ListAt(mounts, pos);
   }
@@ -18738,7 +18702,7 @@ static void CoopSession() {
   if (fs && server) {
     void* srv = *(void**)((char*)fs + g_offFsServer);
     static int offNext = -2;
-    if (offNext == -2 && srv) { void* f = il2cpp_class_get_field_from_name(il2cpp_object_get_class(srv), "_nextConnectionId"); offNext = f ? (int)il2cpp_field_get_offset(f) : -1; }
+    if (offNext == -2 && srv) { offNext = FieldOffset(il2cpp_object_get_class(srv), "_nextConnectionId"); }
     int next = srv && offNext >= 0 ? *(int*)((char*)srv + offNext) : 0;
     for (int id = 0; id < next && id < 64; id++) {
       void* a[1] = { &id }; void* st = Invoke(m_fsState, fs, a);
@@ -18751,7 +18715,7 @@ static void CoopSession() {
   } else if (fs && clientOnly) {
     void* cl = *(void**)((char*)fs + g_offFsClient);
     static int offHost = -2;
-    if (offHost == -2 && cl) { void* f = il2cpp_class_get_field_from_name(il2cpp_object_get_class(cl), "_hostSteamID"); offHost = f ? (int)il2cpp_field_get_offset(f) : -1; }
+    if (offHost == -2 && cl) { offHost = FieldOffset(il2cpp_object_get_class(cl), "_hostSteamID"); }
     unsigned long long steam = cl && offHost >= 0 ? *(unsigned long long*)((char*)cl + offHost) : 0;
     if (steam) now.push_back({ -1, steam });                           // the host's ClientId comes with its messages
   }
@@ -18971,8 +18935,7 @@ static bool InstallHook() {
     else DLog("hooked WeaponSystem.creditKill for on-kill effects");
     void* cmk = FindClass("Core", "CrewMember");
     void* cmm = cmk ? il2cpp_class_get_method_from_name(cmk, "creditKill", 2) : nullptr;
-    void* fg = cmk ? il2cpp_class_get_field_from_name(cmk, "achievedGunMount") : nullptr;
-    g_offCrewGun = fg ? (int)il2cpp_field_get_offset(fg) : -1;
+    g_offCrewGun = FieldOffset(cmk, "achievedGunMount");
     if (!cmm || g_offCrewGun < 0 || !PatchVtableEntry(cmk, cmm, (void*)&Hooked_CrewCreditKill, (void**)&g_crewCreditKillOrig)) Log("could not hook CrewMember.creditKill; on-kill effects only work for crewless guns");
     else DLog("hooked CrewMember.creditKill for on-kill effects (achievedGunMount +0x%X)", g_offCrewGun);
   }
