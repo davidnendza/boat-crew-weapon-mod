@@ -1,46 +1,37 @@
 // female crew (looks, stored gender, gear flash, names) and crew id (MOD_CREWID) (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- female crew ----
-// Read out of the disassembly first: a crew member's look is built on
-// the portrait rigs only. CrewPortraiter.showUp runs CrewMemberVisual.initVisuals (face parts), CrewMemberGear.initGear
-// (hats; a removeHair hat picks hair[0], Hair_Bald) and then CrewMemberVisual.combineMesh. That merges every active
-// SkinnedMeshRenderer that is a DIRECT child of skinnedMeshHolder (BaseCharacter), on body[0]'s layer and without a
-// VisualReactor, into a NEW Mesh kept on the character (CrewCharacter.combinedMesh; rebuilt only while dirtyMesh is set,
-// else reused). MeshExtension.mergeMeshes copies the vertices raw, so the combined mesh is in the parts' shared mesh space
-// (no transform applied, checked 2026-11-06). The crew on the boat, overboard and other players' copies only take that
-// mesh by pointer (CrewMember.checkMesh -> setByMeshByCharacter), so a change made to it in place shows everywhere, and
-// the portrait photo is taken a frame later.
+// A crew member's look is built on the portrait rigs only: CrewPortraiter.showUp runs CrewMemberVisual.initVisuals (face
+// parts), CrewMemberGear.initGear (hats; a removeHair hat picks hair[0], Hair_Bald), then CrewMemberVisual.combineMesh.
+// That merges every active SkinnedMeshRenderer that is a DIRECT child of skinnedMeshHolder (BaseCharacter), on body[0]'s
+// layer and without a VisualReactor, into a NEW Mesh on the character (CrewCharacter.combinedMesh; rebuilt only while
+// dirtyMesh is set). MeshExtension.mergeMeshes copies the vertices raw, so the mesh is in the parts' shared mesh space.
+// The crew on the boat, overboard and co-op copies take that mesh by pointer (CrewMember.checkMesh ->
+// setByMeshByCharacter), so a change made to it in place shows everywhere; the portrait photo is taken a frame later.
 // combineMesh (16 plain bytes) is detoured:
 //  * before it, for a woman: facial hair 5+ becomes 0..4 (the shaven entries) and the pipe (special1 4) goes; the stock
 //    hair is switched off and 'WM female hair' on: a copy of the rig's Hair_1 renderer under BaseCharacter whose mesh
 //    comes from models\female_hair_<style>.bchair (style = selectedHair % 4, so it is saved; victory rolls become the
 //    bun under H_Helmet / H_HelmetTalker, which keep the hair). Under a hat that took the hair (Hair_Bald on with a
-//    non-bald roll, or H_HelmetBlast, the only removeHair hat) the copy stays off. For a man on the same rig (rigs are reused) the copy is switched off, and a
-//    mesh we reshaped is rebuilt.
-//  * after it: the new combined mesh is reshaped by the approved 'v2' field (deform_female.py field(): bust, waist, hips,
+//    non-bald roll, or H_HelmetBlast, the only removeHair hat) the copy stays off. For a man on the same rig (rigs are
+//    reused) the copy is switched off, and a mesh we reshaped is rebuilt.
+//  * after it: the new combined mesh is reshaped by the 'v2' field (deform_female.py field(): bust, waist, hips,
 //    shoulders, slimmer arms) in the BaseCharacter frame, one field for body and clothes alike, so they stay together.
-//    The vertices that moved get new normals, welded by position as in the prototype.
-// Who is a woman: a first name (the name up to its first space) in kFemFirst, else FNV-1a of the whole name (UTF-8)
-// % 100 < female_crew, decided ONCE per crew member and then stored with them (CrewCharacter+0x103, the MOD_FEMALE save
-// key and the co-op typeHair channel; see "stored gender" below), so a rename or a later female_crew change keeps it.
-// "UNNAMED" (the game's name when no NameImporter is loaded) is a man. New crew (phase 2, David 2026-11-06: 'keep the
-// names I have on my current crew, change the models to the correct %'): CharacterGenerator.generateCharacter is
-// detoured (FemGenName): female_crew % of new crew are women and get a first name from kFemFirst; a man keeps the
-// vanilla name when the hash calls it a man, else his whole name is rolled again, so new crew come out at the share.
-// Bra and lips (David after the first look, 2026-11-06: 'a white or greyish strip like a bra across the chest' for
-// shirt 'none', and 'make the mouth a bit more reddish.. it kinda looks like a moustache'):
-//  * bra: models\female_bra.bcbra (tools\make_female_bra_assets.py), a light grey band, cups and straps weighted to the
-//    Chest/Shoulder bones, stored in mesh space BEFORE the v2 field, so FemAfter's normal pass moves it onto the bust
-//    with the body. A second copy of Hair_1 ('WM female bra') carries it and is switched on before the bake only when
-//    the chest is bare: visual.bodyMesh is 'Body' (cutBodyAndHair picks 'Body_CutCovered' for the three shirts), no
-//    active Shirt_* / officer Uniform part, and none of the closed vests (V_VestArmor, V_VestAssault, V_FlakJacket;
-//    only the life vest and the bandolier were checked against it). A change of that state forces a rebuild.
-//  * lips: the mouth part (Mouth_1/2/3, merged raw) samples a skin-tinted khaki texel. Its vertices in the combined
-//    mesh get their UVs moved to an empty 32x32 block of the crew atlas (x 1928, y 360 from the bottom) that the mod
-//    fills with a muted rose DXT5 block on the GPU (Graphics.CopyTexture region icall; the managed overload is
-//    stripped). The block's mask is black, so it is not tinted. Without that icall: an untinted pale peach patch.
-// Not done yet: the Flasher and Body Outline renderers keep the stock 'Body' mesh; the face changes stay in the save.
-// Gear flash fix (2026-11-06): a gear change in the loadout hides the stock parts on women at once (FemGearHide, after
-// Hooked_Combine); FemAfter is timed and its normal weld sorts instead of hashing.
+//    The vertices that moved get new normals, welded by position.
+// Who is a woman: a first name (up to its first space) in kFemFirst, else FNV-1a of the whole name (UTF-8) % 100 <
+// female_crew, decided ONCE per crew member and then stored (CrewCharacter+0x103, the MOD_FEMALE save key and the co-op
+// typeHair channel; see "stored gender" below), so a rename or a later female_crew change keeps it. "UNNAMED" (the
+// game's name when no NameImporter is loaded) is a man. New crew: CharacterGenerator.generateCharacter is detoured
+// (FemGenName) so female_crew % of them are women; existing crew keep their names.
+//  * bra: models\female_bra.bcbra (tools\make_female_bra_assets.py), weighted to the Chest/Shoulder bones, stored in mesh
+//    space BEFORE the v2 field, so FemAfter moves it onto the bust with the body. A second copy of Hair_1 ('WM female
+//    bra') carries it, switched on before the bake only for a bare chest (FemBra). A change of that state forces a
+//    rebuild.
+//  * lips: the mouth part's vertices get their UVs moved to an empty 32x32 block of the crew atlas that the mod fills
+//    with a muted rose DXT5 block on the GPU (FemLipPaint, a Graphics.CopyTexture icall). Without the icall: an
+//    untinted pale peach patch.
+// shortcut: the Flasher and Body Outline renderers keep the stock 'Body' mesh; reshape them too if the outline shows.
+// The face changes (facial hair, pipe) stay in the save.
+// Gear flash: a gear change in the loadout hides the stock parts on women at once (FemGearHide, see "the gear flash").
 struct FemApi {
   int offCm, offHolder, offHair, offBodyMesh, offBodyMat, offBody;        // CrewMemberVisual
   int offName, offNameCustom, offSelHair, offSelFacial, offSelSpecial1, offCombined, offDirtyMesh;   // CrewCharacter
@@ -92,7 +83,7 @@ static void FemPrune() {
 
 // The lip paint lookups, all optional: without them the lips use the pale peach patch. The 12-argument
 // Graphics.CopyTexture is stripped from the managed side, but UnityPlayer registers its icall
-// (UnityEngine.Graphics::CopyTexture_Region_Injected, found in UnityPlayer.dll 2026-11-06). The managed 6-argument
+// (UnityEngine.Graphics::CopyTexture_Region_Injected, in UnityPlayer.dll). The managed 6-argument
 // overload shows the calling convention: the textures go in as their native objects (wrapper +0x10), the rest as ints.
 static void FemLipApi() {
   FemApi& a = g_fa;
@@ -209,7 +200,7 @@ static std::string FemName(void* c) {
   return FemUtf8(s);
 }
 // Women's first names for new crew (US names of women born 1900-1925, plus a few rarer ones to match the game's odd
-// men's names). Checked 2026-11-06 against the game's Info/names (129 men's names) and Info/surnames: no overlap, and
+// men's names). None is in the game's Info/names (129 men's names) or Info/surnames, and
 // none of the unisex names (Leslie, Lynn, Ora, Genoa, Ynez, Alex, Francis, Terry, Jay, Lavon, Clancy, Marion, Jean, ...).
 // There is no Japanese names list in the game; Japanese crews use the same English lists, so this one table serves all.
 static const char* const kFemFirst[] = {
@@ -247,9 +238,9 @@ static bool FemNameRule(const std::string& name) {
 
 // ---- female crew, stored gender ----
 // Crew can be renamed in game, and a rename must never change a crew member's gender.
-// Read out of the disassembly first: a rename (CharacterRename.handleRename) only writes
-// CrewCharacter.nameCustom; the rule reads name (+0x18), so a rename alone never flipped anyone. What the stored flag
-// fixes is a later change of female_crew, peers with another female_crew, and co-op copies that have no name at all.
+// A rename (CharacterRename.handleRename) only writes CrewCharacter.nameCustom and the rule reads name (+0x18), so a
+// rename alone never flips anyone. What the stored flag fixes is a later change of female_crew, peers with another
+// female_crew, and co-op copies that have no name at all.
 //  * The flag is one byte in CrewCharacter's padding at +0x103 (inSinkingBoat +0x100, dirty +0x101, dirtyMesh +0x102,
 //    usedByMember +0x108; no game code writes 0x103..0x107, scanned): 0 = not decided yet, 1 = man, 2 = woman. A new
 //    object is zeroed, so it starts undecided; the byte dies with the object. The offsets are checked at install.
@@ -604,7 +595,7 @@ static void FemField(double x, double y, double z, bool arm, double* D) {
   D[0] += -x * s;
   if (arm) D[0] += -(x > 0 ? 1 : (x < 0 ? -1 : 0)) * 0.012;                 // slimmer arms
 }
-// Jawline_Weak at weight 1, as the prototype bakes it. Read from the plain body mesh (visual.bodyMesh, Body or
+// Jawline_Weak at weight 1, as deform_female.py bakes it. Read from the plain body mesh (visual.bodyMesh, Body or
 // Body_CutCovered): the combined mesh's own blend shape frames are copied by index although GetSubmesh reorders the
 // vertices, so they do not line up. The body's vertices are copied bit for bit, so they are found by position.
 static int FemJaw(void* cmv, std::vector<V3>& pos) {
@@ -698,7 +689,7 @@ static bool FemIsMouth(const float* uv, const V3& p, const float* w, const int* 
   return fabsf(p.x) < 0.0004f && p.y < -0.0009f && p.z > 0.01530f && p.z < 0.01555f;
 }
 // After combineMesh: the new combined mesh is reshaped in place. Mesh space -> BaseCharacter frame: P = (100x, 100z, -100y).
-// Timed (gear flash fix, 2026-11-06): every loadout change re-bakes every woman, one per portrait rig per frame.
+// Timed, because every loadout change re-bakes every woman, one per portrait rig per frame.
 static int g_femAfterN = 0; static double g_femAfterMax = 0, g_femAfterSum = 0;
 static double FemMs(const LARGE_INTEGER& t0) {
   static LARGE_INTEGER f = {}; if (!f.QuadPart) QueryPerformanceFrequency(&f);
@@ -722,7 +713,7 @@ static void FemAfter(void* cmv, void* c) {
   int jaw = FemJaw(cmv, pos);
   // the lips: mouth vertices get the rose block's UV (or the peach one); with the softer jaw the chin recedes about
   // 1 cm while the separate mouth part stays, so it is set back by half the recession estimated at its height
-  // (mouth/atlas research: dy = 0.0001121 * (0.01562 - z) / 0.000525 mesh units), which keeps it in front of the face.
+  // (measured on the mesh: dy = 0.0001121 * (0.01562 - z) / 0.000525 mesh units), which keeps it in front of the face.
   // The bra's vertices are counted by their UV, for the log.
   void* uva = g_fa.getUv ? Invoke(g_fa.getUv, m) : nullptr;
   int nMouth = 0, nBra = 0; bool rose = false;
@@ -751,12 +742,11 @@ static void FemAfter(void* cmv, void* c) {
     double sh = sqrt(D[0] * D[0] + D[1] * D[1] + D[2] * D[2]); if (sh > maxShift) maxShift = sh;
     pos[i].x += (float)(D[0] / 100.0); pos[i].y += (float)(-D[2] / 100.0); pos[i].z += (float)(D[1] / 100.0);
     double dx = pos[i].x - orig[i].x, dy = pos[i].y - orig[i].y, dz = pos[i].z - orig[i].z;
-    if (dx * dx + dy * dy + dz * dz > 1e-14) { moved[i] = 1; nMoved++; }     // 1e-7 mesh units, as the prototype
+    if (dx * dx + dy * dy + dz * dz > 1e-14) { moved[i] = 1; nMoved++; }     // 1e-7 mesh units, as deform_female.py
   }
   // normals of the moved vertices: area-weighted face normals, summed over every vertex at the same place (rounded to
   // 0.01 mm), so split seams stay smooth; the triangles' winding matches the stock normals (checked on the export).
-  // The weld groups vertices by the same quantised key as before (a hash map until 2026-11-06), now by sorting
-  // (key, index) pairs: the same groups, no per-node allocations.
+  // The weld groups vertices by sorting (key, index) pairs, so a re-bake makes no per-node allocations.
   kv.resize(n); wid.resize(n);
   for (int i = 0; i < n; i++) {
     long long qx = llround(pos[i].x * 1e7), qy = llround(pos[i].y * 1e7), qz = llround(pos[i].z * 1e7);
@@ -830,15 +820,10 @@ static void Hooked_Combine(void* cmv, void* method) {
   __except (FaultFilter("female crew (reshape)", GetExceptionInformation())) { FemOff(); }
 }
 // ---- the gear flash ----
-// Changing a vest (or other gear) in the crew loadout made the crew member in view flash the default clothes for a moment.
-// Read out of the disassembly: a gear pick in the loadout runs GearSlot.selectIndex -> selectGear(int)
-// on the crew member ON THE BOAT. selectGear switches the stock gear objects (shirt, vest, hat ...) on and clears
-// CrewMember.lastMesh (+0x250). Nothing hides them until that member's next CrewMember.checkMesh (UpdateMe, next frame),
-// which calls setByMeshByCharacter: the old combined mesh back on body[0], every other part off. refreshCrew's
-// fillCrewRoutine then re-selects every slot of every crew member after the frame's Updates, so the whole crew renders
-// one frame with their stock parts on top of the combined mesh. On a man the parts line up with the clothes already
-// baked into it; on a woman they are the stock male-shaped, untinted clothes. The new look comes later from the portrait
-// rigs (showUp -> combineMesh) and is taken by a plain pointer swap in checkMesh.
+// A gear pick in the loadout runs GearSlot.selectIndex -> selectGear(int) on the crew member ON THE BOAT, which switches
+// the stock gear objects on and clears CrewMember.lastMesh (+0x250); nothing hides them until the next
+// CrewMember.checkMesh (next frame). For one frame the crew renders stock parts over the combined mesh, which on a woman
+// shows the male-shaped, untinted clothes. The new look comes later from the portrait rigs (showUp -> combineMesh).
 // Fix: after the original selectIndex, for a crew member whose combined mesh is one we reshaped (so never a man), that
 // is active in the scene (never a portrait rig mid-build: the rig is inactive then, and its gear goes through
 // selectGear directly), and whose lastMesh no longer matches, checkMesh is called at once: exactly what the game does a
@@ -889,7 +874,7 @@ static void FemGearInstall() {
   void* p = *(void**)mi;
   if (PatchVtableEntry(gk, mi, (void*)&Hooked_GearSelectIndex, (void**)&g_gearSelOrig)) g_femGearPath = "GearSlot.selectIndex vtable entry";
   else {
-    // xor r8d,r8d; jmp selectGear(int) (rel32 -0xA88 from 0x1809C7318, read 2026-11-06 at rva 0x9C7310); the trampoline
+    // xor r8d,r8d; jmp selectGear(int) (rel32 -0xA88 from 0x1809C7318, at rva 0x9C7310); the trampoline
     // gets the same two steps with an absolute jump
     static const unsigned char kThunk[16] = { 0x45, 0x33, 0xC0, 0xE9, 0x78, 0xF5, 0xFF, 0xFF, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC };
     unsigned char body[17] = { 0x45, 0x33, 0xC0, 0xFF, 0x25, 0, 0, 0, 0 };
@@ -902,12 +887,12 @@ static void FemGearInstall() {
   Log("female crew: hooked GearSlot.selectIndex (rva 0x%llX, %s); a gear change on a woman hides the stock parts at once", (unsigned long long)((uintptr_t)p - (uintptr_t)g_ga), g_femGearPath);
 }
 // ---- female crew, names of new crew --------------------------------------------------------------------------------
-// Read out of the disassembly first: CharacterGenerator.generateCharacter() (static, no
-// parameters; every new crew member comes from it: campaign start crew and recruits, wave mode, challenges, enemy and
-// AI crews via CrewSpawner.spawnCrew / CharacterManager.getCharacter, the co-op client's first connect) builds the name
-// as names[r] + " " + middle[r] + surnames[r] from NameImporter.instance (System.Random draws in that order; middle is
-// "A. ".."Z. " and 100 empty entries), or "UNNAMED" when there is no live NameImporter. Nothing reads the name before it
-// returns (no seed, specialCode is made on demand from it), so the post-hook rewrites CrewCharacter.name:
+// CharacterGenerator.generateCharacter() (static, no parameters; every new crew member comes from it: campaign start
+// crew and recruits, wave mode, challenges, enemy and AI crews via CrewSpawner.spawnCrew /
+// CharacterManager.getCharacter, the co-op client's first connect) builds the name as names[r] + " " + middle[r] +
+// surnames[r] from NameImporter.instance (System.Random draws in that order; middle is "A. ".."Z. " and 100 empty
+// entries), or "UNNAMED" when there is no live NameImporter. Nothing reads the name before it returns (no seed,
+// specialCode is made on demand from it), so the post-hook rewrites CrewCharacter.name:
 //  * roll < female_crew: a woman. Her first name is replaced by one from kFemFirst; middle initial and surname stay.
 //  * else a man. A vanilla name the hash calls a man is kept (75% at 25%). Otherwise the whole name is rolled again from
 //    NameImporter's live arrays, up to 32 times, then every middle x surname for his first name; if none hashes as a
@@ -1010,7 +995,7 @@ static void FemGenInstall() {
         "new crew keep the game's names", mi, g_fn.fInst, g_fn.offNames, g_fn.offSurnames, g_fn.offMiddle, g_fn.offName);
     return;
   }
-  // push rbx; sub rsp,30h; cmp byte ptr [rip+disp32],0; jne rel32 (0x8F) (read 2026-11-06 at rva 0x951CE0)
+  // push rbx; sub rsp,30h; cmp byte ptr [rip+disp32],0; jne rel32 (0x8F) (at rva 0x951CE0)
   static const unsigned char kGen[16] = { 0x40, 0x53, 0x48, 0x83, 0xEC, 0x30, 0x80, 0x3D, 0xC3, 0x7C, 0x89, 0x03, 0x00, 0x0F, 0x85, 0x8F };
   unsigned char* p = *(unsigned char**)mi;
   if (!p || memcmp(p + 16, "\0\0\0", 3) != 0) { Log("female crew: generateCharacter is not the code this version expects (game updated?); new crew keep the game's names"); return; }
@@ -1186,7 +1171,7 @@ static void FemGSummary() {
 static void SafeFemGSummary() { __try { FemGSummary(); } __except (EXCEPTION_EXECUTE_HANDLER) {} }
 
 // Co-op. Sender: ObjectSync.sendCrewToServer fills each CrewStatePersistent from its crew member's character; 17 bytes
-// at +0xF6C (rva 0xA9B7AC, read 2026-11-06: mov eax,[rax+0A4h]; mov [r13+3Ch],eax; mov rax,[r14+80h]; rax = the
+// at +0xF6C (rva 0xA9B7AC: mov eax,[rax+0A4h]; mov [r13+3Ch],eax; mov rax,[r14+80h]; rax = the
 // character, checked for null just before, r13 = the persistent, r14 = the CrewMember; rcx and the flags are dead until
 // +0x1012) jump to a stub that writes typeHair = selectedHair, or with a stored flag
 // (selectedHair & 0xFFFF) | 0xBC0000 | g << 24. Vanilla code never reads typeHair (the bare copy below skips it), so
@@ -1218,8 +1203,8 @@ static void FemCoopRecv(void* it) {
   uint8_t g = FemGGet(c);
   int og = (v >> 24) & 3;
   if (((v >> 16) & 0xFF) == 0xBC && (og == 1 || og == 2)) {
-    // the owner's flag wins also over one this PC decided by its own name rule (review 2026-11-06: a roster character
-    // relayed without MOD_FEMALE by a vanilla or 0.9.2 host, or a peer with another female_crew)
+    // the owner's flag wins also over one this PC decided by its own name rule (a roster character relayed without
+    // MOD_FEMALE by a vanilla or older host, or a peer with another female_crew)
     if (g && g != og) Log("female crew: remote crew '%s' was a %s here (name rule); the owner says %s", nm.c_str(), g == 2 ? "woman" : "man", og == 2 ? "woman" : "man");
     FemGSet(c, (uint8_t)og);
     bool hair = bare && og == 2;                                       // her own index, also right for a stock look
@@ -1254,7 +1239,7 @@ static void FemCoopInstall() {
   g_fco.offCmChar = FieldOffset(ck, "_character"); g_fco.offPsCode = FieldOffset(psk, "characterSpecialCode"); g_fco.offPsHair = FieldOffset(psk, "typeHair");
   g_fco.offSelHair = FieldOffset(cc, "selectedHair");
   g_fco.getPersistent = fk ? FindMethod(fk, "get_ItemPersistent", 0) : nullptr;
-  // the stub hard-codes these, from the 2026-11-06 disassembly
+  // the stub hard-codes these offsets, so a game update that moves them turns the channel off
   bool layout = g_fco.offCmChar == 0x80 && g_fco.offPsHair == 0x3C && g_fco.offSelHair == 0xA4 && g_fgd.offG == 0x103;
   // sender
   void* smi = osk ? il2cpp_class_get_method_from_name(osk, "sendCrewToServer", 0) : nullptr;
@@ -1314,7 +1299,7 @@ static void FemCoopInstall() {
       il2cpp_class_get_name(nk), (unsigned long long)((uintptr_t)orig - (uintptr_t)g_ga), both ? " + virtual pointer" : "", vt ? " + vtable entry" : "");
 }
 // The save key, at every launch (female_crew 0 too, so a save made at 0% keeps the flags). setParameters prologue
-// (rva 0x959810, read 2026-11-06): push rbx/rbp/rsi/rdi; sub rsp,48h; cmp byte [rip+X],0 | mov rbx,rdx; mov rsi,rcx;
+// (rva 0x959810): push rbx/rbp/rsi/rdi; sub rsp,48h; cmp byte [rip+X],0 | mov rbx,rdx; mov rsi,rcx;
 // jne. The trampoline redoes the cmp with an absolute address; the two movs after it keep the flags for the jne.
 static void FemGenderInstall() {
   g_femGTried = true;
@@ -1374,7 +1359,7 @@ static void FemInstall() {
   void* k = FindClass("Core", "CrewMemberVisual");
   void* mi = k ? il2cpp_class_get_method_from_name(k, "combineMesh", 0) : nullptr;
   if (!mi) { Log("female crew: CrewMemberVisual.combineMesh not found; the crew stay stock"); return; }
-  // mov [rsp+8],rcx; push rbx/rsi/rdi/r12/r13/r14/r15 (read 2026-11-06 at rva 0x9BD680)
+  // mov [rsp+8],rcx; push rbx/rsi/rdi/r12/r13/r14/r15 (at rva 0x9BD680)
   static const unsigned char kCombine[16] = { 0x48, 0x89, 0x4C, 0x24, 0x08, 0x53, 0x56, 0x57, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56, 0x41, 0x57 };
   void* p = *(void**)mi;
   g_combineOrig = (fn_combine)Detour(p, (void*)&Hooked_Combine, kCombine, 16, "CrewMemberVisual.combineMesh");

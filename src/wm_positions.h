@@ -19,9 +19,7 @@ static void FinishSave(FILE* f, const std::string& path) {
   if (!ok || !MoveFileExA((path + ".tmp").c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) Log("could not replace %s (error %lu)", path.c_str(), GetLastError());
 }
 
-// A found gun fits every gun slot its stock gun goes in, as in the game (David 2026-11-03: 'some of the weapons can be
-// equipped on heavy and heavy+ slots ... but my drops aren't showing up' there; then 'add the dropped guns to all the
-// slots that they should be able to go in'). Its family= is the slot it dropped for. Which stock guns each slot family
+// A found gun fits every gun slot its stock gun goes in, as in the game. Its family= is the slot it dropped for. Which stock guns each slot family
 // offers is learned from the boats as Inject fills them (LearnFamily), seeded with what the log catalogue showed so it
 // works before the first boat is built. Built-ins already list their families (SplitFamilies).
 static std::map<std::string, std::set<std::string>> g_famBases = {
@@ -135,7 +133,7 @@ static void Inject(void* wsObj) {
   std::string family = FamilyOf(order);
   LogCatalogue(family, mounts, wsObj);
   // the guns already in this system and the first mount of each stock gun, read once (a name per mount per position
-  // was a managed call each, and the position lists only grow)
+  // would be a managed call each, and the position lists only grow)
   std::unordered_set<std::string> have;
   std::unordered_map<std::string, int> at;                             // where each of them is, for RealizePlaceholder
   std::unordered_map<std::string, void*> byBase;
@@ -224,7 +222,7 @@ static void DumpRenderStyles() {
     void* fLod = il2cpp_class_get_field_from_name(rk, "LOD");
     void* lod = fLod ? *(void**)((char*)r + il2cpp_field_get_offset(fLod)) : nullptr;
     int ln = ArrLen(lod);
-    void* rt = ln ? *(void**)((char*)lod + 0x20) : nullptr;
+    void* rt = ln ? *(void**)((char*)lod + 0x20) : nullptr;           // LOD[0]: the first array element
     if (!rt) { DLog("  style %d: renderer '%s', no LOD render type", i, NameOf(r).c_str()); continue; }
     void* tk = il2cpp_object_get_class(rt);
     int oMesh = FieldOffset(tk, "mesh"), oMat = FieldOffset(tk, "material"), oColor = FieldOffset(tk, "mayColorData"), oMatrix = FieldOffset(tk, "mayMatrixData"), oSpT = FieldOffset(tk, "specialMaterialForType"), oSpB = FieldOffset(tk, "specialMaterialPerBlock");

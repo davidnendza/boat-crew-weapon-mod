@@ -5,7 +5,7 @@
 // Custom/PbrBC (3-inch, 5-inch, Oerlikon, Thunderbolt) tints a baked albedo by mask region the same way. A painted gun
 // wears copies of its materials with new _ColorN values, one copy per (stock material, scheme, slots), shared by every
 // gun that wears it (a copy per gun would pile up). A material property block is not used: VisualReactor's damage
-// material would carry it. Two game scripts would undo the paint (disassembly 2026-11-04):
+// material would carry it. Two game scripts would undo the paint:
 // - VisualReactor snapshots each renderer's first material in Awake (fetchDefaults) and puts it back on enable,
 //   highlight and repair, so every reactor under the mount (near and far LOD ones) takes a new snapshot afterwards;
 // - CustomColorSync writes the boat's hull colour into _Color{targetColorIndex} x colorBrightness through a property

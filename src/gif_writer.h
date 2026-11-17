@@ -67,8 +67,8 @@ static std::vector<uint8_t> GifStyle(const std::vector<uint8_t>& g, int w, int h
 }
 
 // Writes the frames to path. Returns the file size, or -1 when it cannot be written (a partial file is removed).
-// Streamed: o holds about one frame and is flushed to disk after each (0.9.6 review: building the whole film in memory
-// peaked at 80-160 MB on top of the ~300 MB of frames). An exception (bad_alloc) also removes the file, then rethrows.
+// Streamed: o holds about one frame and is flushed after each, since the whole film in memory adds 80-160 MB on top
+// of the frames. An exception (bad_alloc) also removes the file, then rethrows.
 static long GifWrite(const std::string& path, const GifFrames& f) {
   if (f.frames.empty() || f.w <= 0 || f.h <= 0) return -1;
   FILE* fp = fopen(path.c_str(), "wb"); if (!fp) return -1;
@@ -78,9 +78,9 @@ static long GifWrite(const std::string& path, const GifFrames& f) {
   try {
   auto u16 = [&](int v) { o.push_back((uint8_t)v); o.push_back((uint8_t)(v >> 8)); };
   const char* hdr = "GIF89a"; o.insert(o.end(), hdr, hdr + 6);
-  u16(f.w); u16(f.h); o.push_back(0xF0 | (kGifBits - 1)); o.push_back(0); o.push_back(0);
+  u16(f.w); u16(f.h); o.push_back(0xF0 | (kGifBits - 1)); o.push_back(0); o.push_back(0);   // global colour table of 2^kGifBits greys
   for (int i = 0; i < (1 << kGifBits); i++) { uint8_t c = (uint8_t)(i * 255 / ((1 << kGifBits) - 1)); o.push_back(c); o.push_back(c); o.push_back(c); }
-  const uint8_t loop[] = { 0x21, 0xFF, 0x0B, 'N','E','T','S','C','A','P','E','2','.','0', 3, 1, 0, 0, 0 };
+  const uint8_t loop[] = { 0x21, 0xFF, 0x0B, 'N','E','T','S','C','A','P','E','2','.','0', 3, 1, 0, 0, 0 };   // NETSCAPE2.0: loop forever
   o.insert(o.end(), loop, loop + sizeof(loop));
   flush();
   std::vector<float> vig((size_t)f.w * f.h);
@@ -91,7 +91,7 @@ static long GifWrite(const std::string& path, const GifFrames& f) {
   std::mt19937 rng(1942);
   for (size_t k = 0; k < f.frames.size(); k++) {
     int d = k < f.delays.size() ? f.delays[k] : 10;
-    const uint8_t gce[] = { 0x21, 0xF9, 4, 0, (uint8_t)d, (uint8_t)(d >> 8), 0, 0 };
+    const uint8_t gce[] = { 0x21, 0xF9, 4, 0, (uint8_t)d, (uint8_t)(d >> 8), 0, 0 };   // graphic control extension: the delay
     o.insert(o.end(), gce, gce + sizeof(gce));
     o.push_back(0x2C); u16(0); u16(0); u16(f.w); u16(f.h); o.push_back(0);
     GifLzw(o, GifStyle(f.frames[k], f.w, f.h, rng, vig));

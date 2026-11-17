@@ -8,7 +8,7 @@
 static int g_offPmLive = -2, g_offPjFrom = -1, g_offPjDmg = -1, g_offPjAlive = -1;
 // Shots are pooled: a shell that hits can be fired again, by any gun, before the next frame, so the same object is a
 // new shot. A life is told apart by its gun (shotFrom) and Projectile.alive, which shoot() sets to the full life and
-// iterate() counts down (both read in the disassembly, 2026-10-28): the same object with a higher alive is a new shot.
+// iterate() counts down: the same object with a higher alive is a new shot.
 struct ShotSig { void* from; float alive; unsigned frame; };
 // every pooled shell object seen this battle, with the frame it was last live: kept, not rebuilt each frame (the pool is
 // bounded, so after the first busy seconds no frame allocates)
@@ -32,7 +32,7 @@ static DWORD g_critMsgAt = 0;
 static float EliteDamageOf(void* mount);
 static void AllKnowingShot(void* mount);
 static void SafeUnusualOnShot(void* pj, void* mount);
-// 0.9.3 gun effects (the 'gun effects' section after the on-kill effects): each own new shot, and the battle change
+// gun effects (the 'gun effects' section after the on-kill effects): each own new shot, and the battle change
 static void SafeGfxShot(void* pj, void* mount, bool leap);
 static void SafeGfxBattleChange(bool hadBattle);
 // Marking: ships marked by the player's hits, drawn by EliteTags (per machine: co-op players each mark their own)
@@ -40,10 +40,9 @@ struct MarkInfo { DWORD until; float bonus; std::string by, ship; };   // by: th
 static std::unordered_map<void*, MarkInfo> g_marks;                   // CombatEntity -> its mark, per battle
 
 // The mod's turret guns in battle: shots and kills per gun, a line per kill (the first few) and a summary when the
-// battle ends, because in a fight nobody can tell which gun did what (David 2026-10-28). Automated (crewless) guns on
-// the player's boat too, with the shots the game fired at a target (Projectile.target set when the shell appears, before
-// the homing code looks at it) apart from the rest: David could not tell whether his Automated 37mm AT fired on its own
-// (2026-10-31), and only debug lines covered it.
+// battle ends, because in a fight nobody can tell which gun did what. Automated (crewless) guns on the player's boat
+// too, counting apart the shots the game fired at a target (Projectile.target is set when the shell appears, before
+// the homing code looks at it), so the log shows whether such a gun fires on its own.
 struct TurretStats { std::string name; bool automated = false, sideGrade = false; int shots = 0, kills = 0, aimed = 0, atDead = 0, lobN = 0, skyMoved = 0; double lobSum = 0, flightSum = 0, skyLeadSum = 0; };   // sideGrade: one of kSideGrades (or found on one)
 static std::unordered_map<void*, TurretStats> g_turretStats;
 static std::unordered_map<void*, bool> g_isTurret;                    // mount -> tracked here; per battle
@@ -59,14 +58,11 @@ static bool ShotHasTarget(void* pj) {
   if (off == -2) off = FieldOffset("Core", "Projectile", "target");
   return off >= 0 && *(void**)((char*)pj + off);
 }
-// Automated shots (2026-11-16, David saw the Automated mortar keep firing at a ship that had gone down): the launch angle,
-// an estimated flight time (2 vy / 9.81, no drag) and whether the target was already dead (LiveEntity._alive). The fire
-// control drops dead ships itself (fillCasters code 7 reads _alive), so a long lob in the air is the other suspect.
-// Sky shots (2026-11-16, read in GunMount.shoot 0x18097039f): a GunType with skyShot (+0x70, the player mortars) spawns
-// its shell at GunMount.skyShotPosition (+0x1C0), ~4.5 km up, falling straight down. The player's map aim sets that
-// point; the fire control never does, so an automated mortar dropped every shell on a stale point (David: "max range").
-// The shell appears at about the impact point's height and lands within a frame (battle 27: 'falls 1 m'), so
-// AutoSkyAim copies the mount's aim point (lastTarget) into skyShotPosition every frame; this logs how far off they land.
+// Automated shots: the launch angle, an estimated flight time (2 vy / 9.81, no drag) and whether the target was already
+// dead (LiveEntity._alive; the fire control drops dead ships itself, fillCasters code 7).
+// Sky shots: a GunType with skyShot (+0x70, the player mortars) spawns its shell at GunMount.skyShotPosition (+0x1C0),
+// falling straight down, at about the impact height, so it lands within a frame (GunMount.shoot 0x18097039f). Only the
+// player's map aim writes that point, never the fire control, so AutoSkyAim sets it; this logs how far off they land.
 static V3 PosOf(void* component);
 static void AutoShotInfo(void* pj, TurretStats* ts) {
   static int offTgt = -2, offVel = -1, offAlive = -1, offPos = -1;
@@ -145,12 +141,13 @@ static void TurretSummary() {
 // A gun of yours that fires steadily for barrel_smoke_after seconds smokes from its muzzle(s) for about
 // barrel_smoke_seconds once it stops. Looks only, on this machine only: nothing is sent and nothing pooled is touched.
 // Shots come from CritScan (SafeSmokeShot): heat is the time spent firing, each gap counted up to three shot cooldowns;
-// longer gaps up to gapCap (reloads) only hold the burst together, so it does not depend on the gun's rate of fire. The puffs are fed by our own code into one parked
-// copy of the game's own 'Muzzle Smoke' ParticleSystem with ParticleSystem.Emit(pos, vel, size, life, Color32); its
-// emission module stays off, so only our Emit calls make particles. The template is the system under a player barrel's
-// emmiter prefab (Barrel +0x40, the prefab Barrel.emitFlash hands to VFXManager.spawnVFX); never Barrel.pgE, the
-// pooled live flash the game keeps at each muzzle. Timed in game time (Time.time), so the smoke slows with the kill cam.
-// Co-op: other players' mod guns (IsRemoteMount) smoke here too when coop_visuals is on; enemy copies never do.
+// longer gaps up to gapCap (reloads) only hold the burst together, so it does not depend on the gun's rate of fire. The
+// puffs are fed by our own code into one parked copy of the game's own 'Muzzle Smoke' ParticleSystem with
+// ParticleSystem.Emit(pos, vel, size, life, Color32); its emission module stays off, so only our Emit calls make
+// particles. The template is the system under a player barrel's emmiter prefab (Barrel +0x40, the prefab
+// Barrel.emitFlash hands to VFXManager.spawnVFX); never Barrel.pgE, the pooled live flash the game keeps at each
+// muzzle. Timed in game time (Time.time), so the smoke slows with the kill cam. Co-op: other players' mod guns
+// (IsRemoteMount) smoke here too when coop_visuals is on; enemy copies never do.
 struct SmokeApi { void *emit, *play, *clear, *count, *goTr, *trPos, *trFwd, *trSetPos, *trSetRot, *trFind, *getComp, *psType, *pgType, *dontDestroy, *destroy, *time;
                   int offBarrels, offShoot, offLen, offCounter, offEmm, offSystems; bool tried, ok; };
 static SmokeApi g_sa = {};
@@ -462,7 +459,7 @@ static void SmokeSummary() {
   SmokeClear();
 }
 static void SafeFemGSummary();
-static void SafeCrewLogBattleChange(bool hadBattle);                  // crew battle log (crew personality, phase 1)
+static void SafeCrewLogBattleChange(bool hadBattle);                  // crew battle log
 static void SafeCrewLogKill(void* member, void* killed);
 static void SafeSmokeSummary() {
   __try { SmokeSummary(); }
@@ -483,7 +480,7 @@ static void CritScan(void* pm) {
     if (g_critEng && g_critCount) Log("crits: %d critical hits last battle", g_critCount);
     if (g_critEng) { TurretSummary(); UsesSummary(); SafeSmokeSummary(); }
     CrateBattleChange(g_critEng != nullptr);                          // crates per round: the summary, then a clean slate
-    SafeGfxBattleChange(g_critEng != nullptr);                         // gun effects (0.9.3): summary lines, then a clean slate
+    SafeGfxBattleChange(g_critEng != nullptr);                         // gun effects: summary lines, then a clean slate
     SafeCrewLogBattleChange(g_critEng != nullptr);                     // crew battle log: the report, then a clean slate
     PaintSummary();                                                    // boats are built between battles: a session count
     SafeFemGSummary();                                                 // female crew: stored genders, session totals
@@ -512,12 +509,12 @@ static void CritScan(void* pm) {
       if (g_coopVisuals && IsRemoteMount(mount) && !g_chainBoost.count(pj)) SafeSmokeShot(mount, true);   // their mod guns smoke here too (looks only; not our chain leaps); enemy copies never
       continue;
     }
-    SafeSpendUse(mount);                                                 // first, in its own guard (review 2026-11-01)
+    SafeSpendUse(mount);                                                 // first, in its own guard, so a fault below never skips the use count
     g_mountShotAt[mount] = GetTickCount();
     float ed = EliteDamageOf(mount);                                    // a shot from a Rare/Elite ship with a damage trait
     if (ed != 1.0f) *(float*)((char*)pj + g_offPjDmg) *= ed;
     SafeUnusualOnShot(pj, mount);
-    SafeGfxShot(pj, mount, g_chainBoost.count(pj) > 0);                // Opening Salvo, Frugal (0.9.3); a chain leap only clears its old life
+    SafeGfxShot(pj, mount, g_chainBoost.count(pj) > 0);                // Opening Salvo, Frugal; a chain leap only clears its old life
     if (g_chainBoost.count(pj)) continue;                              // a chain leap: its parent's hit already rolled, and counted
     SafeSmokeShot(mount, false);                                       // barrel heat (barrel_smoke); enemy guns are filtered there
     SafeTalkShot(mount);                                               // the talking crew: our guns firing is no lull
@@ -538,7 +535,7 @@ static void CritScan(void* pm) {
     *(float*)((char*)pj + g_offPjDmg) *= mult;
     g_critCount++;
     DWORD now = GetTickCount();
-    // at most every 20 s: at 4 s the kill feed filled up (David, 2026-10-25)
+    // at most every 20 s, or the kill feed fills up
     if (now - g_critMsgAt > 20000) { g_critMsgAt = now; ShowMessage("Critical hit! (x" + std::to_string((int)mult) + ")"); }
   }
 }

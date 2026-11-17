@@ -1,11 +1,9 @@
 // Automated guns in the utility slot (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- Automated guns in the utility slot ------------------------------------------------------------------------------
-// The catalogue log (2026-10-24) shows every slot family with WeaponSystem.followTargetingMode=1 except 'Utility
-// Weapon' (0); the gun flags are the same everywhere. EntityTargetingManager.Update only hands targets to systems with
-// followTargetingMode set, and PlayerAuxiliaryWeaponController.weapons[] (system, fireMode, aimingMode none/forward/full)
-// aims utility guns at the camera and fires them on the player's input. So while a crewless gun is selected in such a
-// slot, during battle: followTargetingMode=1 and that slot's aux entry gets aimingMode=none; both are put back when a gun
-// that needs crew is selected again. Every 30 frames; the aux list is logged once per battle.
+// Every slot family has WeaponSystem.followTargetingMode=1 except 'Utility Weapon' (0), and EntityTargetingManager only
+// hands targets to systems with it set; PlayerAuxiliaryWeaponController.weapons[] aims utility guns at the camera instead.
+// While a crewless gun is selected there in battle: followTargetingMode=1 and its aux entry aimingMode=none, both put
+// back when a crewed gun is selected again.
 static std::map<void*, bool> g_autoFollowOrig;                       // weapon system -> its followTargetingMode before we set it
 static std::map<void*, int> g_autoAimOrig;                           // aux Weapon entry -> its aimingMode before we set it
 static int g_autoFrames = 0, g_autoFaults = 0;
@@ -27,10 +25,9 @@ static void* AuxController() {
   }
   return nullptr;                                                      // not live yet: never edit a prefab copy (it outlives the battle)
 }
-// Hypothesis (2026-10-25): crewless guns are fired by a FireControlMaster (it calls GunMount.shootAll from
-// aimAtTargets and checks get_maxRange in fillCasters). It keeps its own List<WeaponSystem> systems (+0x40), filled in
-// Awake when autoFillAllSystems (+0x34) is set, and a parallel target list built by createTargetsList(). If the player's
-// boat has one whose list lacks the utility slot, the slot is added and the target list rebuilt. Once per battle, logged.
+// Crewless guns are fired by a FireControlMaster (GunMount.shootAll from aimAtTargets). Its List<WeaponSystem> systems
+// (+0x40) is filled in Awake when autoFillAllSystems (+0x34) is set and lacks the utility slot, so the slot is added and
+// createTargetsList() rebuilds its parallel target list. Once per battle.
 static void* g_fcmDoneEng = nullptr;
 static void* g_playerFcm = nullptr; static void* g_playerFcmHandle = nullptr;
 static void AutoUtilityFireControl(void* eng, void* craft, void* ws) {
@@ -83,8 +80,8 @@ static void AutoUtilityMountCheck(void* ws) {
   if (r && !en && mSetEn) { bool t = true; void* a[1] = { &t }; Invoke(mSetEn, mount, a); Log("auto utility:   mount was disabled: enabled it"); }
 }
 // The fire control sees ships only inside its search sphere (FireControlMaster.search +0x78, EntitySphereOverlap.Range =
-// EntityType.fireControlSystemSearchDistance x weather visibility, clamped by the weather). The player's boat has 2500
-// (2026-10-28), short of a crewless gun's kAutoRange, so while one is selected the boat's value is raised to kAutoRange
+// EntityType.fireControlSystemSearchDistance x weather visibility, clamped by the weather). The player's boat has 2500,
+// short of a crewless gun's kAutoRange, so while one is selected the boat's value is raised to kAutoRange
 // and put back when a crewed gun is selected or a new battle starts. Fog still shortens it.
 static void* g_searchEt = nullptr; static void* g_searchEtHandle = nullptr; static float g_searchOrig = 0;
 static int g_offSearchDist = -2, g_offCraftParams = -1;
@@ -112,9 +109,8 @@ static void AutoUtilitySearch(void* craft, bool on) {
 // cycle), and the gun's ammo (Automated has none of its own: loaders bring it). Offsets from the dump: FireControlMaster
 // systemCasters +0x48, systemTargets +0x50, visible +0x58, search +0x78, validTargeters +0xB8; TurretCaster system +0x10,
 // obstruction +0x1C, targetEntity +0x28; TurretTargets system +0x10, targets +0x18, fireAtWill +0x20.
-// Logged without debug since 2026-10-31: David's Automated 37mm AT never fired on its own and the log said nothing (these
-// lines were debug only, and none came while nothing was in sight). The fire control sees only enemies the player has
-// marked while constrainToAssignedTargets is on (see All-Knowing), so 'marked-only 1, 0 in sight' means nothing marked.
+// Logged without debug so a crewless gun that never fires still leaves a trace. The fire control sees only marked
+// enemies while constrainToAssignedTargets is on (see All-Knowing): 'marked-only 1, 0 in sight' means nothing marked.
 static DWORD g_autoDiagAt = 0; static int g_autoDiagN = 0; static void* g_autoDiagEng = nullptr;
 static void AutoUtilityDiag(void* eng, void* ws) {
   if (eng != g_autoDiagEng) { g_autoDiagEng = eng; g_autoDiagN = 0; }
@@ -168,8 +164,8 @@ static TurretStats* TurretOf(void* mount);
 // Every frame while an automated sky-shot gun (GunType.skyShot +0x70, the player mortars) is selected: its aim point
 // GunMount.lastTarget (+0x190, written by aimAt) goes into skyShotPosition (+0x1C0), where GunMount.shoot puts the shell.
 static V3 PosOf(void* component);
-// The ship each automated sky-shot mount last fired at (pinned), for AutoSkyAim (battle 29-30: lastTarget is the gun's
-// ballistic aim point, 124-303 m up and 97-182 m off the ship, so shells fell 130 m off on average).
+// The ship each automated sky-shot mount last fired at (pinned), for AutoSkyAim: lastTarget is the gun's ballistic aim
+// point, 100-300 m up and off the ship, so it is no place to drop a shell.
 static std::map<void*, std::pair<void*, void*>> g_skyTarget;         // mount -> (LiveEntity, GC handle)
 static void SkyRemember(void* mount, void* tgt) {
   auto it = g_skyTarget.find(mount);
@@ -180,9 +176,9 @@ static void SkyRemember(void* mount, void* tgt) {
 static void SkyForgetAll() { for (auto& kv : g_skyTarget) Unpin(kv.second.second); g_skyTarget.clear(); }
 // Frames aimed by: 0 aim point, 1 forceTarget, 2 last shell's ship; per mount, for that gun's battle summary line.
 static std::unordered_map<void*, std::array<long long, 3>> g_skySrcBy;
-// Scatter (review 2026-11-16: a shell dropped on the ship's centre never missed, at any range, with no crew): each
-// automated sky shell lands at a random point in a disk of radius kSkyScatter x range x (1 + (100 - Accuracy) / 50),
-// so Inaccuracy affixes widen it; a new point is rolled after every shot (SkyShotFired), not every frame.
+// Scatter, since a shell dropped on the ship's centre would never miss: each automated sky shell lands at a random
+// point in a disk of radius kSkyScatter x range x (1 + (100 - Accuracy) / 50), so Inaccuracy affixes widen it; a new
+// point is rolled after every shot (SkyShotFired), not every frame.
 static const float kSkyScatter = 0.04f;
 static std::unordered_map<void*, std::pair<float, float>> g_skyDisk;  // mount -> unit-disk point for its next shell
 static void SkyShotFired(void* mount) {
@@ -197,7 +193,7 @@ static void AutoSkyAim() {
     if (offSky < 0 || offLastT < 0 || offSkyPos < 0) Log("auto utility: sky aim MISSING PIECES (skyShot +0x%X lastTarget +0x%X skyShotPosition +0x%X)", offSky, offLastT, offSkyPos);
   }
   if (offSky < 0 || offLastT < 0 || offSkyPos < 0 || g_autoFollowOrig.empty()) return;
-  void* craft = PlayerCraft(); if (!craft) return;                      // only systems on the boat right now (review: a sunk or rebuilt boat)
+  void* craft = PlayerCraft(); if (!craft) return;                      // only systems on the boat right now, not those of a sunk or rebuilt boat
   void* wm = *(void**)((char*)craft + g_offCraftWM);
   void* systems = wm ? *(void**)((char*)wm + g_offWMSystems) : nullptr;
   int nSys = ArrLen(systems);
@@ -290,8 +286,7 @@ static void AutoUtilityTick() {
   for (int i = 0; i < nSys && i < 32; i++) {
     void* ws = ArrAt(systems, i); if (!ws) continue;
     int c = CrewlessMount(ws);
-    // the empty 'None' entry has no seats and no crew flag: not a gun (the 2026-10-29 battle drove it, enabled its mount
-    // and raised the search distance for nothing)
+    // the empty 'None' entry has no seats and no crew flag: not a gun
     if (c == 1 && SeatCount(*(void**)((char*)ws + g_offWsSelected)) == 0) c = -1;
     if (c == 1) TurretOf(*(void**)((char*)ws + g_offWsSelected));       // so the battle summary has it even if it never fires
     bool* follow = (bool*)((char*)ws + offFollow);
@@ -306,7 +301,7 @@ static void AutoUtilityTick() {
         void* w = ArrAt(aux, j);
         if (!w || offAwSystem < 0 || offAwAim < 0) continue;
         void* sys = *(void**)((char*)w + offAwSystem);
-        // 09:47 battle: the pointers did not match although both were named 'Utility Weapon'; fall back to the name
+        // the aux entry can point at another object named 'Utility Weapon'; fall back to the name
         if (sys != ws && !(sys && NameOf(sys) == NameOf(ws))) continue;
         if (sys != ws) DLog("auto utility:   aux[%d] system %p is not this slot %p but has its name; using it", j, sys, ws);
         g_autoAimOrig[w] = *(int*)((char*)w + offAwAim); *(int*)((char*)w + offAwAim) = 0;

@@ -102,7 +102,7 @@ static void* FmodPlay(void* sound, V3 p, float vol) {
 // The model a found torpedo shows in place of its own (TorpRun.look): 1 Chomper, 2 Chompette (two jaws), 3 the Sneaking
 // Eel's commando (six parts), 4 the Flying Fish's fish (four parts). Each part is a model copy under the torpedo's root
 // with its pivot at its origin.
-struct TorpLook { std::vector<void*> parts, ph; void *th = nullptr, *ch = nullptr; int kind = 0; bool shown = false; std::vector<void*> stock, sh; };   // sh: GC handles of stock (review 2026-11-16)
+struct TorpLook { std::vector<void*> parts, ph; void *th = nullptr, *ch = nullptr; int kind = 0; bool shown = false; std::vector<void*> stock, sh; };   // sh: GC handles of stock
 static std::unordered_map<void*, TorpLook> g_torpLooks;               // Torpedo -> its look (kept on the pooled torpedo once made)
 static const float kChompR = 1.3f;                                    // the ball's radius in the .obj files
 static const char* const kCrawlParts[] = { "commando_body", "commando_arm_l", "commando_arm_r", "commando_leg_l", "commando_leg_r", "commando_tails" };
@@ -341,8 +341,8 @@ static void TorpSplash(V3 at) {
 }
 // The leap's timing and pose (r.leapY, r.leapPitch), in game time so it slows with the kill cam. base: how far the model
 // rests below the water (0 for a chomper's ball, which rides on top). The arc falls at 30 m/s^2, not 9.81: at a
-// torpedo's 60-85 m/s a real-gravity leap was a 2 s, 170 m skim with the nose up 7 degrees (review 2026-11-04); this one
-// takes about 1.2 s, and the pitch is drawn three times the path's. No leap starts while a ship is within the ground
+// torpedo's 60-85 m/s real gravity makes a 2 s, 170 m skim; this one takes about 1.2 s, and the pitch is drawn three
+// times the path's. No leap starts while a ship is within the ground
 // it would cover (ahead, or alongside), so a torpedo is not up in the air when it goes off.
 static void TorpLeapUpdate(void* t, TorpRun& r, V3 p, float base, float now) {
   if (r.leapStart < 0) {
@@ -483,7 +483,7 @@ static void TorpBattleTick() {
     if (it->second.handle && !it->second.ended) { ++it; continue; }
     Unpin(it->second.handle); it = g_torpRuns.erase(it);
   }
-  for (auto it = g_torpOrders.begin(); it != g_torpOrders.end(); ) {   // review 2026-11-16: one copy per launcher Awake, pinned for good
+  for (auto it = g_torpOrders.begin(); it != g_torpOrders.end(); ) {   // one copy per launcher Awake, pinned for good
     auto ow = g_torpOrderOwner.find(it->first);
     void* launcher = ow != g_torpOrderOwner.end() ? ow->second.first : nullptr;
     if (ow == g_torpOrderOwner.end() || (launcher && Alive(launcher) && *(void**)((char*)launcher + g_offOrder) == it->first)) { ++it; continue; }
@@ -507,14 +507,12 @@ static void TorpBattleTick() {
   }
   g_torpEng = eng;
 }
-// The torpedoes waiting on the boat (David 2026-11-05: the Chomper, Chompette, Sneaking Eel and Flying Fish should look the part in their
-// tubes and racks too). Each is a model of its tier, TorpedoTier.dummies[i].GetChild(0); the game hides it when that
-// torpedo is fired and shows it again on a refill, and a found torpedo's tier shares the dummies list of the stock tier
-// it was copied from. So the look follows the launcher's selected tier: under each of its models goes an empty holder
-// (scaled so it has no stretch of the model's own, uniformly sized to fit) with the look's parts at rest, the commando
-// lying flat, the fish's wings folded and a chomper's mouth a little open, and the model's meshes are switched off (forceRenderingOff, as gun
-// models do). Being under the model, the look hides and shows with it, and moves with it. A tier without a look gets
-// its meshes back. Checked when a launcher's choice changes (selectIndex) and, in battle, every 20 frames.
+// The torpedoes waiting on the boat: each is a model of its tier, TorpedoTier.dummies[i].GetChild(0), which the game
+// hides on firing and shows on a refill; a found torpedo's tier shares the dummies of the stock tier it was copied from.
+// So the look follows the launcher's selected tier: a holder under each model (cancelling its stretch) carries the
+// look's parts at rest, and the model's meshes are switched off (forceRenderingOff), so the look hides, shows and moves
+// with it; a tier without a look gets its meshes back. Checked when a launcher's choice changes (selectIndex) and, in
+// battle, every 20 frames.
 struct TubeLook { void* holder = nullptr; void* hh = nullptr; void* mh = nullptr; std::vector<void*> stock, sh; int kind = 0; };
 static std::unordered_map<void*, TubeLook> g_tubeLooks;              // a tube's torpedo model (pinned) -> the look on it
 static std::unordered_map<void*, std::pair<void*, int>> g_tubeSeen;   // launcher -> the tier and look all its models have
@@ -677,7 +675,7 @@ static void TubeSync(void* l) {
   }
   bool wasSeen = seen != g_tubeSeen.end();                            // read before the erase below invalidates it
   if (complete) g_tubeSeen[l] = { sel, kind }; else g_tubeSeen.erase(l);
-  // only when the count changes: while a boat loads, the retry every 20 frames logged the same '0 of 1' twice a tick
+  // only when the count changes: while a boat loads, the retry every 20 frames would log the same count again
   static std::map<void*, int> logged; int code = shown * 4096 + wanting * 2 + (complete ? 1 : 0);
   auto lg = logged.find(l); bool changed = lg == logged.end() || lg->second != code; logged[l] = code;
   if (kind > 0 && (!wasSeen || complete) && changed && g_tubeLogs++ < 20)

@@ -15,19 +15,19 @@ struct Affix { std::string name, text, title; bool bad = false, suffix = false; 
   bool noScale = false;                 // no_scale=1: effect_scale leaves the roll alone (counts, not multipliers)
   bool cosmetic = false;                // kind=cosmetic: looks only; rolled separately (cosmetic_chance), no rarity, no name word
   int slot = 0;                         // slot=: 0 guns only (an affix without the key), 1 torpedo (found torpedoes only), 2 any
-};   // excludes: affix names it never rolls with   // title: the word used in the gun's name
+};   // excludes: affix names it never rolls with; title: the word used in the gun's name
 static double g_dropChance = 0;
 
-static int g_gridCols = 10, g_gridRows = 6;
-static int g_lootCols = 8, g_lootRows = 8;
-// Materials and crates (David, 2026-10-24): scrapping a gun gives a material by its rarity, a worn-out gun gives Scrap
+static int g_gridCols = 10, g_gridRows = 6;   // drops.ini grid_cols / grid_rows: the inventory grid, which is the inventory limit
+static int g_lootCols = 8, g_lootRows = 8;   // drops.ini loot_cols / loot_rows: guns found this mission, before they are kept
+// Materials and crates: scrapping a gun gives a material by its rarity, a worn-out gun gives Scrap
 // Iron, materials craft crates, a drop can also be an unopened crate, and crate guns last longer. Tier 0/1/2 = Iron,
 // Brass, Gunmetal. Both counts live at the top of inventory.ini.
 static int g_crateCost[3] = { 2, 3, 4 };                            // drops.ini crate_cost: materials of the same tier per crate
 static double g_crateChance = 0.25;                                 // drops.ini crate_chance: share of drops that are a crate instead of a gun
 static double g_crateWeight[3] = { 70, 25, 5 };                     // drops.ini crate_weights: which crate a drop is
 static int g_crateBonusUses = 2;                                    // drops.ini crate_bonus_uses: extra missions on guns from crates
-static float g_uiScaleSet = 0.0f;                                   // drops.ini ui_scale: inventory window scale (0 = screen height / 1080)                          // drops.ini loot_cols / loot_rows: guns found this mission, before they are kept                        // drops.ini grid_cols / grid_rows: the inventory grid, which is the inventory limit                                      // drops.ini max_per_family: found guns one slot family keeps (0 = no limit)
+static float g_uiScaleSet = 0.0f;                                   // drops.ini ui_scale: inventory window scale (0 = screen height / 1080)
 static double g_effectScale = 1.0, g_sizePerEffect = 0.0;           // drops.ini effect_scale / size_per_effect (testing aids)
 static double g_effectCounts[3] = { 20, 50, 30 };                   // drops.ini effect_counts: odds of 1, 2, 3 good effects
 static double g_drawbackChance = 0.15;                              // drops.ini drawback_chance: one drawback on top of them
@@ -74,7 +74,7 @@ static const char* kDefaultDrops =
   "[template]\nlabel=M1919\nfamily=Tub Turret\nbase=M1919 Browning\n\n"
   "[template]\nlabel=Browning\nfamily=Tub Turret\nbase=M2 Browning\n\n"
   "[template]\nlabel=Tub 20mm\nfamily=Tub Turret\nbase=20 mm Oerlikon\n\n"
-  // The mod's turret guns in the loot (David 2026-10-28). base= is the stock gun under each (for effect filters and grid
+  // The mod's turret guns in the loot. base= is the stock gun under each (for effect filters and grid
   // sizes); built_from= gives a found one that turret gun's stats, model, sound and price under its rolled effects.
   // Weight 0.5 each, so turret guns as a whole drop only a little more often than with the stock four alone.
   "[template]\nlabel=Vickers K\nfamily=Tub Turret\nbase=30 Cal Dual MG (Lewis)\nbuilt_from=Twin Vickers K\nweight=0.5\n\n"
@@ -109,7 +109,7 @@ static const char* kDefaultDrops =
   "[template]\nlabel=Twin Oerlikon\nfamily=Medium Weapon\nbase=20 mm Oerlikon Twin\n\n"
   "[template]\nlabel=Chopper\nfamily=Medium Weapon\nbase=M45 Meat Chopper\n\n"
   "[template]\nlabel=Elco\nfamily=Medium Weapon\nbase=20 mm Elco Thunderbolt\n\n"
-  // rocket launchers, mortars and crew weapons are GunMounts in slots like any gun (David, 2026-10-26)
+  // rocket launchers, mortars and crew weapons are GunMounts in slots like any gun
   "[template]\nlabel=Mousetrap\nfamily=Rockets\nbase=Mousetrap Mk20\nweight=0.5\n\n"
   "[template]\nlabel=X50 Rockets\nfamily=Rockets\nbase=X50 Rocket Launcher\nweight=0.5\n\n"
   "[template]\nlabel=Mk50 Rockets\nfamily=Rockets\nbase=Mk50 Rocket Launcher\nweight=0.5\n\n"
@@ -121,7 +121,7 @@ static const char* kDefaultDrops =
   "[template]\nlabel=Bazooka\nfamily=Crew Weapons\nbase=Bazooka\nweight=0.5\n\n"
   "[template]\nlabel=Handheld M1919\nfamily=Crew Weapons\nbase=M1919 Browning Handheld\nweight=0.5\n\n"
   "[template]\nlabel=Grenade Launcher\nfamily=Crew Weapons\nbase=M7 Grenade Launcher\nweight=0.5\n\n"
-  // The side-grades in the loot (2026-11-01), the same way: one template per slot family they sit in, weight 0.3 each
+  // The side-grades in the loot, the same way: one template per slot family they sit in, weight 0.3 each
   "[template]\nlabel=Pom-pom\nfamily=Heavy Weapon\nbase=40 mm Bofors\nbuilt_from=QF 2-pdr Pom-pom\nweight=0.3\n\n"
   "[template]\nlabel=Pom-pom\nfamily=Heavy+ Weapon\nbase=40 mm Bofors\nbuilt_from=QF 2-pdr Pom-pom\nweight=0.3\n\n"
   "[template]\nlabel=Flak M42\nfamily=Heavy Weapon\nbase=40 mm Bofors\nbuilt_from=3.7 cm Flak M42\nweight=0.3\n\n"
@@ -147,7 +147,7 @@ static const char* kDefaultDrops =
   "[template]\nlabel=Thompson\nfamily=Crew Weapons\nbase=M1918 BAR\nbuilt_from=Thompson M1928\nweight=0.3\n\n"
   "[template]\nlabel=Johnson\nfamily=Crew Weapons\nbase=M1918 BAR\nbuilt_from=Johnson M1941 LMG\nweight=0.3\n\n"
   "[template]\nlabel=Boys\nfamily=Crew Weapons\nbase=M1918 BAR\nbuilt_from=Boys AT Rifle\nweight=0.3\n\n"
-  // side-grades batch 2 (2026-11-15)
+  // side-grades, second set
   "[template]\nlabel=T-34 Turret\nfamily=Heavy Weapon\nbase=3-inch Gun Player\nbuilt_from=T-34 Turret 76 mm\nweight=0.3\n"
   "[template]\nlabel=T-34 Turret\nfamily=Heavy+ Weapon\nbase=3-inch Gun Player\nbuilt_from=T-34 Turret 76 mm\nweight=0.3\n"
   "[template]\nlabel=1.1-inch Quad\nfamily=Heavy Weapon\nbase=40 mm Dual Bofors\nbuilt_from=1.1-inch Chicago Piano\nweight=0.3\n"
@@ -176,7 +176,7 @@ static const char* kDefaultDrops =
   "[template]\nlabel=Bren\nfamily=Crew Weapons\nbase=M1918 BAR\nbuilt_from=Bren Mk I\nweight=0.3\n"
   "[template]\nlabel=PIAT\nfamily=Crew Weapons\nbase=Bazooka\nbuilt_from=PIAT\nweight=0.3\n"
   "[template]\nlabel=Type 89\nfamily=Crew Weapons\nbase=M7 Grenade Launcher\nbuilt_from=Type 89 Knee Mortar\nweight=0.3\n"
-  // Found torpedoes (2026-11-04): copies of the stock torpedo choices of the PT boats' and the sub chaser's torpedo slots
+  // Found torpedoes: copies of the stock torpedo choices of the PT boats' and the sub chaser's torpedo slots
   // (base= is the choice as weaponmod.log lists it under 'torpedo slot ... offers'). Effects with slot=torpedo roll on
   // them; the gun effects do not.
   "[template]\nlabel=Mk 13 Torpedo\nfamily=New Standard Torpedo Slot\nbase=Mk 13 Torpedo x1\nweight=0.6\n\n"
@@ -205,14 +205,14 @@ static const char* kDefaultDrops =
   "[affix]\nname=Homing\nkind=good\nweight=0.8\nno_scale=1\nnot_bases=Mortar,Howitzer," ROCKET_BASES "\nroll=0.45-0.60\ntext={pct}% shell speed, shells home in\nproj.mul.timeScale=$r\nproj.mul.FrameLifeTime=1/$r\nfx.set.seek=90\n\n"
   "[affix]\nname=Chaining\nkind=good\nposition=suffix\ntitle=of Chains\nweight=0.8\nno_scale=1\nroll=0.50-0.75\ntext={val}% chance a hit leaps to another ship, 30% less likely with each further leap (50% damage per leap)\nfx.set.chain=6\nfx.set.chainChance=$r\nfx.set.chainDamage=0.5\nfx.set.chainDecay=0.7\n\n"
   "[affix]\nname=Automated\nkind=good\nweight=0.6\nroll=1-1\ntext=fires on its own with no gunner, 25% wider spread\n# rockets and crew weapons already need no gunner\nnot_families=Rockets,Crew Weapons\n# 4x as likely on utility guns, where it also takes over the aiming\nfamily_weight=Utility Weapon:4\nmount.set.requiresCrew=0\nsphere.set.constrainTargets=0\nmul.Inaccuracy=1.25\n\n"
-  // All-Knowing (David 2026-10-30): only on guns the player aims by hand (utility guns, rockets); not with Automated,
+  // All-Knowing: only on guns the player aims by hand (utility guns, rockets); not with Automated,
   // whose utility gun aims itself
   "[affix]\nname=All-Knowing\nkind=good\nweight=0.8\nno_scale=1\nnot_families=Tub Turret,Heavy Weapon,Heavy+ Weapon,Medium Weapon,Crew Weapons\nexcludes=Automated\nroll=1-1\ntext=while you aim it, your crew fires at every enemy in sight, marked or not\nfx.set.allKnowing=1\n\n"
   // Homing slows a shell to a crawl, too slow for a 140-240 m/s rocket or mortar round; these just steer
   "[affix]\nname=Guided\nkind=good\nweight=1\nbases=Howitzer," ROCKET_BASES "\nno_scale=1\nroll=1-1\ntext=shots steer onto their target\nfx.set.seek=60\n\n"
-  // of Cheapness (David 2026-10-29): a cheaper gun that wears out sooner. usesCut is applied when the gun is rolled
+  // of Cheapness: a cheaper gun that wears out sooner. usesCut is applied when the gun is rolled
   "[affix]\nname=Cheap\nkind=good\nposition=suffix\ntitle=of Cheapness\nweight=0.8\nroll=0.40-0.70\ntext=costs {val}% less RP, but lasts a third fewer missions\nfx.set.priceCut=$r\nfx.set.usesCut=0.333\n\n"
-  // 0.9.3 gun effects (David 2026-11-06: 'lets go for Marking, Giant Slayer ... And more gun effects'). The damage ones
+  // Gun effects (Marking, Giant Slayer and the rest). The damage ones
   // scale a hit where the game applies it (HealthPart.hitFlash, see the 'gun effects' section), so blast damage counts
   // too; Drum and Wild are plain stat edits, Frugal and Sure-Footed have their own code there.
   "[affix]\nname=Marking\nkind=good\nweight=0.8\nno_scale=1\nroll=0.15-0.30\ntext=hits mark a ship for 8 s: all your guns do +{val}% damage to it\nfx.set.mark=$r\nfx.set.markTime=8\n\n"
@@ -234,18 +234,17 @@ static const char* kDefaultDrops =
   "[affix]\nname=Long Runner\nkind=good\nslot=torpedo\nposition=suffix\ntitle=of the Long Run\nroll=1.5-2.5\ntext={pct}% range\nmul.despawnDistance=$r\n\n"
   "[affix]\nname=Proximity Fuse\nkind=good\nslot=torpedo\ntitle=Proximity\nroll=1.6-2.4\ntext=goes off {abs}% farther from a hull\nmul.hitboxRadius=$r\n\n"
   "[affix]\nname=Seeking\nkind=good\nslot=torpedo\ntitle=Seeking\nweight=0.8\nno_scale=1\nroll=20-35\ntext=steers onto the nearest big ship ahead ({int} degrees a second)\nfx.set.torpSeek=$r\n\n"
-  // of the Dolphin (David 2026-10-26 idea, built 2026-11-04): the model leaps out of the water now and then, the torpedo
+  // of the Dolphin: the model leaps out of the water now and then, the torpedo
   // itself runs on at its depth (see TorpLeapUpdate). Not on depth charges (bases=Torpedo).
   "[affix]\nname=Dolphin\nkind=good\nslot=torpedo\nposition=suffix\ntitle=of the Dolphin\nweight=0.8\nno_scale=1\nbases=Torpedo\nroll=4-7\ntext=leaps out of the water like a dolphin about every {int} seconds, +20% engine thrust\nfx.set.leap=$r\nmul.thrust=1.2\nmul.terminalVelocity=1.2\n\n"
   "[affix]\nname=Thrifty\nkind=good\nslot=torpedo\nposition=suffix\ntitle=of Thrift\nweight=0.6\nroll=0.40-0.70\ntext=costs {val}% less RP, but lasts a third fewer missions\nfx.set.priceCut=$r\nfx.set.usesCut=0.333\n\n"
   "[affix]\nname=Sluggish\nkind=bad\nslot=torpedo\nroll=0.7-0.85\ntext={pct}% engine thrust\nmul.thrust=$r\n\n"
   "[affix]\nname=Short Run\nkind=bad\nslot=torpedo\nroll=0.6-0.8\ntext={pct}% range\nmul.despawnDistance=$r\n\n"
   "[affix]\nname=Dud Warhead\nkind=bad\nslot=torpedo\nroll=0.75-0.85\ntext={pct}% warhead damage\nmul.damage=$r\n\n"
-  // Uniques (David, 2026-10-26, after Diablo 4's unique items): hand-made guns with a fixed name, fixed effects and a
-  // flavour line. base= is a stock gun some [template] uses; the gun takes that template's slot family. built_from= puts
-  // it on one of the mod's own guns instead (2026-11-02), through that gun's loot templates.
-  // Rule since the 2026-11-02 rebalance (David: 'the Metronome seems a bit underpowered'; the four below had fallen behind
-  // the 2026-10-29 affix buff): a Unique's main effect beats the best roll of the matching affix, plus one or two extras.
+  // Uniques (after Diablo 4's unique items): hand-made guns with a fixed name, fixed effects and a flavour line. base=
+  // is a stock gun some [template] uses; the gun takes that template's slot family. built_from= puts it on one of the
+  // mod's own guns instead, through that gun's loot templates.
+  // Rule: a Unique's main effect beats the best roll of the matching affix, plus one or two extras.
   "# Uniques: rare hand-made guns and torpedoes. Each has a fixed name, base and effects (same edit keys as an affix,\n"
   "# plain numbers).\n"
   "# line= is one line of its description (as many as you like), flavor= the closing quote, uses= its missions. They drop\n"
@@ -256,13 +255,13 @@ static const char* kDefaultDrops =
   "[unique]\nname=Lazarus\nbase=M3 37 mm AT\nuses=8\nline=kills refill all of its ammo\nline=kills repair 50% of your most damaged hull part\nline=reloads twice as fast\nflavor=Every kill buys you another minute.\nfx.set.killAmmo=1\nfx.set.killRepair=0.5\nmul.reloadCooldown=0.5\n\n"
   "[unique]\nname=The Ferryman\nbase=40 mm Bofors\nuses=8\nline=-88% shell speed, shells home in and keep their range\nline=+250% damage, +100% blast radius\nflavor=He is slow. He always arrives.\nproj.mul.timeScale=0.12\nproj.mul.FrameLifeTime=8.33\nfx.set.seek=90\nproj.mul.BaseDamage=3.5\nproj.mul.SplashDamageBase=3.5\nproj.mul.SplashDamageRange=2\n\n"
   "[unique]\nname=The Metronome\nbase=20 mm Oerlikon Twin\nuses=8\nline=every 3rd shot is a x4 critical hit\nline=+50% fire rate\nline=+50% magazine\nflavor=Tick, tick, tick, BOOM.\nfx.set.nthShot=3\nfx.set.nthMult=4\nmul.roundsPerMinute=1.5\nmul.shotCooldown=0.667\nmul.MagSize=1.5\nmul.MaxAmmo=1.5\n\n"
-  // 2026-11-02: one for the slot families that had none (Rockets, Crew Weapons) and more for Medium, Heavy+ and Utility
+  // Rockets and Crew Weapons, and more for Medium, Heavy+ and Utility
   "[unique]\nname=Hailstorm\nbase=Mk50 Rocket Launcher\nuses=8\nline=rockets steer onto their target\nline=each rocket bursts into 16 fragments\nline=+100% rockets carried\nflavor=Look up.\nfx.set.seek=60\n" UQ_FRAG "proj.set.fragmentCount=16\nmul.MagSize=2\nmul.MaxAmmo=2\n\n"
   "[unique]\nname=Old Reliable\nbase=M1918 BAR\nuses=8\nline=+80% damage\nline=35% chance of a x3 critical hit\nline=+100% magazine\nflavor=Never once let me down.\nproj.mul.BaseDamage=1.8\nproj.mul.SplashDamageBase=1.8\nfx.set.critChance=0.35\nfx.set.critMult=3\nmul.MagSize=2\n\n"
   "[unique]\nname=Buzzsaw\nbase=M45 Meat Chopper\nuses=8\nline=+60% fire rate\nline=+100% magazine\nline=+200% shot size (easier hits)\nline=shots that hit the water skip off it once\nflavor=It doesn't aim. It edits.\nmul.roundsPerMinute=1.6\nmul.shotCooldown=0.625\nmul.MagSize=2\nmul.MaxAmmo=2\nproj.mul.projectileWidth=3\nproj.mul.projectileLength=3\nproj.set.deflect=1\n\n"
   "[unique]\nname=The Verdict\nbase=5-inch 25 Gun Player\nuses=8\nline=every 4th shell is a x5 critical hit\nline=+100% blast radius\nline=+50% damage\nflavor=Court is in session.\nfx.set.nthShot=4\nfx.set.nthMult=5\nproj.mul.SplashDamageRange=2\nproj.mul.BaseDamage=1.5\nproj.mul.SplashDamageBase=1.5\n\n"
   "[unique]\nname=Rainmaker\nbase=M2 107 mm Mortar\nuses=8\nline=reloads 30% faster\nline=every 3rd round is a x4 critical hit\nline=+100% blast radius\nflavor=Forecast: heavy, with scattered ships.\nmul.reloadCooldown=0.7\nfx.set.nthShot=3\nfx.set.nthMult=10\nproj.mul.SplashDamageRange=2\n\n"
-  // 2026-11-02 (David: 'lets also get uniques for the other types we added'): one on each turret gun and side-grade
+  // one on each turret gun and side-grade
   "[unique]\nname=Chatterbox\nbuilt_from=Twin Vickers K\nuses=8\nline=+60% fire rate\nline=+150% magazine\nline=shots that hit the water skip off it once\nflavor=Never shuts up. Never runs dry.\nmul.roundsPerMinute=1.6\nmul.shotCooldown=0.625\nmul.MagSize=2.5\nmul.MaxAmmo=2.5\nproj.set.deflect=1\n\n"
   "[unique]\nname=Tall Order\nbuilt_from=Twin Vickers .50\nuses=8\nline=+80% shell speed\nline=+50% damage\nline=30% chance of a x3 critical hit\nflavor=Further than you think.\nproj.mul.MuzzleVelocity=1.8\nproj.mul.MuzzleVelocityRealistic=1.8\nproj.mul.BaseDamage=1.5\nproj.mul.SplashDamageBase=1.5\nfx.set.critChance=0.3\nfx.set.critMult=3\n\n"
   "[unique]\nname=Kurogane\nbuilt_from=Twin Type 93\nuses=8\nline=+120% damage\nline=kills refill all of its ammo\nline=kills repair 25% of your most damaged hull part\nflavor=Black iron does not bend.\nproj.mul.BaseDamage=2.2\nproj.mul.SplashDamageBase=2.2\nfx.set.killAmmo=1\nfx.set.killRepair=0.25\n\n"
@@ -286,7 +285,7 @@ static const char* kDefaultDrops =
   "[unique]\nname=Chicago Typewriter\nbuilt_from=Thompson M1928\nuses=8\nline=+50% fire rate\nline=+100% drum\nline=30% chance of a x3 critical hit\nflavor=Types fast. Never makes a typo.\nmul.roundsPerMinute=1.5\nmul.shotCooldown=0.667\nmul.MagSize=2\nmul.MaxAmmo=2\nfx.set.critChance=0.3\nfx.set.critMult=3\n\n"
   "[unique]\nname=Marching Home\nbuilt_from=Johnson M1941 LMG\nuses=8\nline=kills give your downed crew 20 s more before they bleed out\nline=+80% damage\nline=reloads 3x as fast\nflavor=Johnny comes marching home.\nfx.set.rally=20\nproj.mul.BaseDamage=1.8\nproj.mul.SplashDamageBase=1.8\nmul.reloadCooldown=0.333\n\n"
   "[unique]\nname=Elephant Gun\nbuilt_from=Boys AT Rifle\nuses=8\nline=+150% damage\nline=shots seek their target, at full speed\nline=kills repair 25% of your most damaged hull part\nflavor=Overkill is underrated.\nproj.mul.BaseDamage=2.5\nproj.mul.SplashDamageBase=2.5\nfx.set.seek=90\nfx.set.killRepair=0.25\n\n"
-  // 2026-11-15: one for each batch-2 side-grade (David: "yes, make uniques for them") and the Flak 36
+  // one for each side-grade of the second set, and the Flak 36
   "[unique]\nname=Tankograd\nbuilt_from=T-34 Turret 76 mm\nuses=8\nline=+100% damage on hits within 600 m\nline=+40% damage\nline=+50% fire rate\nflavor=Straight off the factory floor and into the river.\nfx.set.closeBonus=2\nfx.set.closeDist=600\nproj.mul.BaseDamage=1.4\nproj.mul.SplashDamageBase=1.4\nmul.roundsPerMinute=1.5\nmul.shotCooldown=0.667\n\n"
   "[unique]\nname=Ragtime\nbuilt_from=1.1-inch Chicago Piano\nuses=8\nline=+100% fire rate\nline=30% chance a shot uses no ammo\nline=+40% damage\nflavor=Four hands on the keys, and nobody misses a beat.\nmul.roundsPerMinute=2\nmul.shotCooldown=0.5\nfx.set.saveAmmo=0.3\nproj.mul.BaseDamage=1.4\nproj.mul.SplashDamageBase=1.4\n\n"
   "[unique]\nname=Dawn Patrol\nbuilt_from=QF 2-pdr Single\nuses=8\nline=+150% damage for its first magazine (at least 6 shots) each battle\nline=+50% fire rate\nline=reloads twice as fast\nflavor=First in, at first light.\nfx.set.salvo=2.5\nmul.roundsPerMinute=1.5\nmul.shotCooldown=0.667\nmul.reloadCooldown=0.5\n\n"
@@ -316,21 +315,21 @@ static const char* kDefaultDrops =
   "[unique]\nname=Steady On\nbuilt_from=Bren Mk I\nuses=8\nline=each hit steadies your crew: 10% less chance a hit on your boat throws one overboard (up to 10 hits, fading)\nline=100-round pan magazine\nline=+60% damage\nflavor=Short bursts, lads. Steady.\nfx.set.steady=0.1\nfx.set.steadyCap=10\nfx.set.steadyDecay=3\nset.MagSize=100\nproj.mul.BaseDamage=1.6\nproj.mul.SplashDamageBase=1.6\n\n"
   "[unique]\nname=Jack-in-the-Box\nbuilt_from=PIAT\nuses=8\nline=+150% damage\nline=a killing hit spills 150% of its leftover damage onto the nearest enemy\nline=bombs steer onto their target\nflavor=Wound tight. Let go.\nproj.mul.BaseDamage=2.5\nproj.mul.SplashDamageBase=2.5\nfx.set.overkill=1.5\nfx.set.seek=60\n\n"
   "[unique]\nname=The Bonesetter\nbuilt_from=Type 89 Knee Mortar\nuses=8\nline=exploding rounds burst into 20 fragments\nline=reloads 3x as fast\nline=+60% blast radius\nflavor=Fire it off the deck. Never the thigh.\n" UQ_FRAG "proj.set.fragmentCount=20\nmul.reloadCooldown=0.333\nproj.mul.SplashDamageRange=1.6\n\n"
-  // The chomper torpedoes (David 2026-11-04: 'pacman and pacwomen ... they do the mouth chomping thing on the way to the
-  // ship(s) and of course home in'): an original look, a yellow ball with eyes (and a bow), not the arcade character
+  // The chomper torpedoes: they home in, chomping on the way; an original look, a yellow ball with eyes (and a bow),
+  // not the arcade character
   "[unique]\nname=Chomper\nbase=Mk 14 Torpedo x1,Mk 24 Torpedo x2\nuses=8\nline=rides the waves as a hungry yellow ball, chomping all the way\nline=homes in hard on the nearest big ship ahead\nline=+100% warhead damage\nline=+50% blast radius\nflavor=Always hungry. Never full.\nfx.set.chomp=1\nfx.set.torpSeek=60\nmul.damage=2\nmul.damageRange=1.5\n\n"
   "[unique]\nname=Chompette\nbase=Mk 18 Torpedo x1,Mk 24 Torpedo x2\nuses=8\nline=rides the waves as a hungry yellow ball with a bow\nline=homes in, preferring a ship no other homing torpedo is after\nline=+60% engine thrust\nline=+100% warhead damage\nflavor=Saving room for dessert.\nfx.set.chomp=2\nfx.set.torpSeek=60\nmul.thrust=1.6\nmul.terminalVelocity=1.6\nmul.damage=2\n\n"
-  // Flying Fish (a player's idea, David 2026-11-04: '100% visibility, but very fast and never submerges below the water
-  // at all, skipping along like a skipping stone'): the torpedo runs on at its depth as stock (see TorpSkimUpdate), its
+  // Flying Fish (fully visible, very fast, skips along the surface like a stone): the torpedo runs on at its depth as
+  // stock (see TorpSkimUpdate), its
   // model skips on the surface; the game's own spotting multiplier is set to the highest stock value and above
   "[unique]\nname=Flying Fish\nbase=Mk 13 Torpedo x1,Mk 24 Torpedo x2\nuses=8\nline=skips across the surface as a flying fish, never below the water\nline=+80% engine thrust and top speed\nline=+25% warhead damage\nline=impossible to miss: every ship spots it coming and can steer away\nflavor=Not built for stealth.\nfx.set.skim=1\nmul.thrust=1.8\nmul.terminalVelocity=1.8\nmul.damage=1.25\nset.detectionByEntityChanceMultiplier=10\n\n"
-  // Sneaking Eel (David 2026-11-05: a torpedo 'completely undetectable', its look a commando 'in the crawl/sneak pose';
-  // a generic soldier, no game's character): the game's own spotting multiplier at 0, so no ship ever spots it and none
+  // Sneaking Eel (undetectable, its look a generic commando in a crawl pose): the game's own spotting multiplier at 0,
+  // so no ship ever spots it and none
   // steer away; slower, as a crawl should be
   "[unique]\nname=Sneaking Eel\nbase=Mk 14 Torpedo x1,Mk 24 Torpedo x2\nuses=8\nline=crawls along the surface like a commando behind enemy lines\nline=never spotted: no ship sees it coming, so none steer away\nline=+50% warhead damage\nline=-15% engine thrust and top speed\nflavor=Nobody saw a thing.\nfx.set.crawl=1\nmul.damage=1.5\nmul.thrust=0.85\nmul.terminalVelocity=0.85\nset.detectionByEntityChanceMultiplier=0\n";
 // Built-in affixes taken out of the random pool. A drops.ini written by an older version still has them; one whose text
 // is unchanged from the old default is switched off at load (weight 0), one the player edited is left alone.
-// Endless: 'infinite ammo, -75% damage' read as a bad trade (Discord, 2026-10-26).
+// Endless: 'infinite ammo, -75% damage' reads as a bad trade.
 static const char* kRetiredAffixes[][2] = { { "Endless", "infinite ammo, but -75% damage" } };
 // Lines of built-in affixes that changed after a release. A line still exactly as an older version wrote it is replaced
 // (an empty newLine removes it); oldLine null adds newLine under name= when the affix has no line with that key yet.
@@ -338,18 +337,17 @@ static const char* kRetiredAffixes[][2] = { { "Endless", "infinite ammo, but -75
 // 2026-10-26: rockets, mortars and crew weapons joined the drops.
 struct AffixLineUpdate { const char* name; const char* oldLine; const char* newLine; int since = 0; };   // since: migration number, see MigrateDrops
 static const AffixLineUpdate kAffixLineUpdates[] = {
-  { "Flying Fish", "line=skips across the surface like a thrown stone, never below the water", "line=skips across the surface as a flying fish, never below the water" },   // its fish look (2026-11-05)
+  { "Flying Fish", "line=skips across the surface like a thrown stone, never below the water", "line=skips across the surface as a flying fish, never below the water" },   // 2026-11-05: its fish look
   { "Automated", "not_families=Utility Weapon", "not_families=Rockets,Crew Weapons" },
-  // crew guns have endless ammo, so killAmmo did nothing on these two (2026-11-15)
+  // 2026-11-15: crew guns have endless ammo, so killAmmo does nothing on these two
   { "Old Reliable", "line=kills refill all of its ammo", "line=+100% magazine" },
   { "Old Reliable", "fx.set.killAmmo=1", "mul.MagSize=2" },
   { "Marching Home", "line=kills refill all of its ammo", "line=kills give your downed crew 20 s more before they bleed out" },
   { "Marching Home", "fx.set.killAmmo=1", "fx.set.rally=20" },
-  { "Automated", "not_families=Utility Weapon,Rockets,Crew Weapons", "not_families=Rockets,Crew Weapons" },   // utility guns fire on their own now (2026-10-28)
-  // Automated utility guns were 1 drop in about 110 on a PT boat; x4 there makes it about 1 in 30 (David 2026-10-29)
+  { "Automated", "not_families=Utility Weapon,Rockets,Crew Weapons", "not_families=Rockets,Crew Weapons" },   // 2026-10-28: utility guns fire on their own
+  // Automated utility guns would be 1 drop in about 110 on a PT boat; x4 there makes it about 1 in 30
   { "Automated", nullptr, "family_weight=Utility Weapon:4", 1 },
-  // the 2026-10-29 buff (David: "fun and not punishing, err towards overpowered"; "fun would also be like chain or the
-  // flak one"): bigger good rolls, milder drawbacks, the special effects far more often
+  // the 2026-10-29 buff: bigger good rolls, milder drawbacks, the special effects far more often
   { "Rapid", "roll=1.15-1.5", "roll=1.25-1.75", 1 },
   { "Heavy", "roll=1.2-1.7", "roll=1.3-2.0", 1 },
   { "Blast", "roll=1.25-2.0", "roll=1.5-2.5", 1 },
@@ -383,19 +381,19 @@ static const AffixLineUpdate kAffixLineUpdates[] = {
   { "Flak", "bases=Bofors,37 mm,3-inch,5-inch,Oerlikon,Elco", "bases=Bofors,37 mm,3-inch,5-inch,Oerlikon,Elco,Mortar,Howitzer", 1 },
   { "Shrapnel", "bases=Bofors,37 mm,3-inch,5-inch,Oerlikon,Elco", "bases=Bofors,37 mm,3-inch,5-inch,Oerlikon,Elco,Mortar,Howitzer," ROCKET_BASES },
   { "Homing", nullptr, "not_bases=Mortar,Howitzer," ROCKET_BASES },
-  // fire rate and reload effects did nothing on rocket launchers: their rate is 0 and they reload at most once before
-  // resupply (Mousetrap never). David got a 'reload 51% slower' Mk50 (2026-10-29).
+  // fire rate and reload effects do nothing on rocket launchers: their rate is 0 and they reload at most once before
+  // resupply (Mousetrap never)
   { "Rapid", nullptr, "not_families=Rockets", 1 },
   { "Jammy", nullptr, "not_families=Rockets", 1 },
   { "Quick", nullptr, "not_families=Rockets", 1 },
   { "Slow", nullptr, "not_families=Rockets", 1 },
-  // -85..-90% shell speed left a Homing 3-inch (400 m/s) at 47 m/s: GunMount.maxRange is the ballistic v^2/g, about
-  // 230 m, so the gun aimed but never fired (David 2026-10-28). At most -60% now (David's call).
+  // at most -60% shell speed: GunMount.maxRange is the ballistic v^2/g, so a Homing 3-inch (400 m/s) at -88% has
+  // about 230 m and aims but never fires
   { "Homing", "roll=0.10-0.15", "roll=0.40-0.55", 1 },
   // Slow shells keep their range: ProjectileType.timeScale slows a shell's whole flight (Projectile.iterate moves it and
-  // applies gravity by dt x timeScale; read in the disassembly 2026-10-28), so it flies the stock arc, only slower, and
+  // applies gravity by dt x timeScale), so it flies the stock arc, only slower, and
   // GunMount.maxRange and the aim (both from MuzzleVelocity) stay the stock gun's. FrameLifeTime x 1/r makes up for
-  // Projectile.alive counting real time. Homing steers, so the later arrival does not spoil its aim (David 2026-10-28).
+  // Projectile.alive counting real time. Homing steers, so the later arrival does not spoil its aim.
   { "Homing", "proj.mul.MuzzleVelocity=$r", "proj.mul.timeScale=$r", 1 },
   { "Homing", "proj.mul.MuzzleVelocityRealistic=$r", "", 1 },
   { "The Ferryman", "proj.mul.MuzzleVelocity=0.12", "proj.mul.timeScale=0.12", 1 },
@@ -404,10 +402,10 @@ static const AffixLineUpdate kAffixLineUpdates[] = {
   { "Cyan Tracers", nullptr, "not_bases=" ROCKET_BASES }, { "Orange Tracers", nullptr, "not_bases=" ROCKET_BASES },
   { "Pink Tracers", nullptr, "not_bases=" ROCKET_BASES }, { "White Tracers", nullptr, "not_bases=" ROCKET_BASES },
   { "Long Tracers", nullptr, "not_bases=" ROCKET_BASES },
-  // Chaining: the first leap 50-75%, each further leap 30% less likely (David 2026-10-29)
+  // Chaining: the first leap 50-75%, each further leap 30% less likely
   { "Chaining", "roll=0.30-0.50", "roll=0.50-0.75", 2 },
   { "Chaining", "text={val}% chance a hit leaps to another ship, and again at less each time (50% damage per leap)", "text={val}% chance a hit leaps to another ship, 30% less likely with each further leap (50% damage per leap)", 2 },
-  // rocket launchers do reload between resupplies (players on Discord, via David 2026-10-30): Quick and Slow roll on
+  // rocket launchers do reload between resupplies: Quick and Slow roll on
   // them again. Rapid and Jammy stay off: every launcher's roundsPerMinute and shotCooldown are 0 in the dump.
   { "Quick", "# rocket launchers reload at most once before they need resupply", "", 4 },
   { "Quick", "not_families=Rockets", "", 4 },
@@ -419,8 +417,8 @@ static const AffixLineUpdate kAffixLineUpdates[] = {
   { "Proximity Fuse", "text=goes off {pct}% farther from a hull", "text=goes off {abs}% farther from a hull" },
   { "Seeking", "text=steers onto the nearest ship ahead ({int} degrees a second)", "text=steers onto the nearest big ship ahead ({int} degrees a second)" },
   { "Dolphin", "text=leaps out of the water like a dolphin every {int} seconds, +20% engine thrust", "text=leaps out of the water like a dolphin about every {int} seconds, +20% engine thrust" },
-  // review 2026-11-06: accuracy drawbacks scale the spread (100 - Accuracy), not the score; Wild costs nothing on seeking
-  // shells or on mortars and howitzers (no spread); Opening Salvo has a 6-shot floor; Brawling was a flat bonus on crew
+  // 2026-11-06: accuracy drawbacks scale the spread (100 - Accuracy), not the score; Wild costs nothing on seeking
+  // shells or on mortars and howitzers (no spread); Opening Salvo has a 6-shot floor; Brawling is a flat bonus on crew
   // weapons (they fire within 270 m); Drum reaches the Meat Chopper and the 37 mm autocannon, not the Boys
   { "Automated", "text=fires on its own with no gunner, -20% accuracy", "text=fires on its own with no gunner, 25% wider spread", 18 },
   { "Automated", "mul.Accuracy=0.8", "mul.Inaccuracy=1.25", 18 },
@@ -432,7 +430,7 @@ static const AffixLineUpdate kAffixLineUpdates[] = {
   { "Close Quarters", nullptr, "not_families=Crew Weapons", 18 },
   { "Drum", "bases=Bofors,Oerlikon,Elco,Browning,BAR,M1919,Lewis", "bases=Bofors,Oerlikon,Elco,Chopper,37 mm Autocannon,Browning,BAR,M1919,Lewis", 18 },
   { "Drum", nullptr, "not_built_from=Boys", 18 },
-  // balance pass 2026-11-16: mortar shells land within a frame of appearing (sky shots), so speed, steering and
+  // 2026-11-16 balance pass: mortar shells land within a frame of appearing (sky shots), so speed, steering and
   // skipping do nothing on them; crits scale only direct damage (the howitzer's is 0); 20 mm shrapnel swamped the gun
   { "Fast", nullptr, "not_bases=Mortar", 24 }, { "Bold", nullptr, "not_bases=Mortar", 24 }, { "Skipping", nullptr, "not_bases=Mortar", 24 },
   { "Deadeye", nullptr, "not_bases=Howitzer", 24 },
@@ -450,7 +448,7 @@ static const AffixLineUpdate kAffixLineUpdates[] = {
 // current default block of that name (an edited one stays). since = migration number, as above.
 struct UniqueBlockUpdate { const char* name; const char* oldBlock; int since; };
 static const UniqueBlockUpdate kUniqueBlockUpdates[] = {
-  // the 2026-11-02 rebalance: all four had fallen behind the 2026-10-29 affix buff
+  // 2026-11-02 rebalance: all four had fallen behind the 2026-10-29 affix buff
   { "Hornet's Nest", "[unique]\nname=Hornet's Nest\nbase=M2 Browning\nuses=6\nline=shots seek their target\nline=half of all hits leap to another ship, and on (35% damage per leap)\nflavor=They never stop coming.\nfx.set.seek=180\nfx.set.chain=4\nfx.set.chainChance=0.5\nfx.set.chainDamage=0.35\nfx.set.chainDecay=0.6\n", 7 },
   { "Lazarus", "[unique]\nname=Lazarus\nbase=M3 37 mm AT\nuses=3\nline=kills refill all of its ammo\nline=kills repair 30% of your most damaged hull part\nline=but only lasts 3 missions\nflavor=Every kill buys you another minute.\nfx.set.killAmmo=1\nfx.set.killRepair=0.3\n", 7 },
   { "The Ferryman", "[unique]\nname=The Ferryman\nbase=40 mm Bofors\nuses=6\nline=-88% shell speed, shells home in and keep their range\nline=+150% damage\nflavor=He is slow. He always arrives.\nproj.mul.timeScale=0.12\nproj.mul.FrameLifeTime=8.33\nfx.set.seek=90\nproj.mul.BaseDamage=2.5\nproj.mul.SplashDamageBase=2.5\n", 7 },

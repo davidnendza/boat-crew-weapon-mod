@@ -2,8 +2,8 @@
 // ---- crew files ----
 // Each crew member's battles, kept by crew id (MOD_CREWID). BoatCrewMod\crew-files.ini is the live file, rewritten
 // after every battle (CrewFilesRecord, from the crew log's summary); every game save gets a copy as
-// saves\<hash of the save>.crew, like the inventory. Loading a save puts its copy back; a save with no copy (made
-// before this) and a new campaign start with none. The old live file goes to saves\backup\crew-<time>.ini first.
+// saves\<hash of the save>.crew, like the inventory. Loading a save puts its copy back; a save with no copy and a new
+// campaign start with none. The old live file goes to saves\backup\crew-<time>.ini first.
 // Format: 'battles=N', then per crew '[crew <id>]', 'name=', 'female=', and per battle
 // 'battle=<n>|<date>|<length>|<role>|<outcome>|<kills>|<hits>|<HP lost>|<wounds>|<downs>|<overboard>' + 'p=<paragraph>'.
 // Bonds (crew_bonds.h): 'bond=<other id>|<battles>|<same gun>|<kills>|<sinkings>|<swims>|<last battle>'.
@@ -324,7 +324,8 @@ static void AfterActionGui() {
   static int lastAct = -2; static int shownSeq = 0;
   int act = LastActivity();
   if (act != lastAct) { Log("after-action report: screen %d -> %d (drawn via %s, report of %d paragraph(s))", lastAct, act, g_guiDrawHost >= 0 ? g_guiHosts[g_guiDrawHost].cls : "none", (int)g_aarParas.size()); lastAct = act; }
-  if (act != 9) { g_aarOpen = false; g_mailOpen = false; if (g_letterAct == 9) g_letterOpen = false; AarBlockStock(g_fileOpen || g_letterOpen); return; }   // the crew files window may hold the block on its screen  // shortcut: raw may stay 9 after quitting to title from this screen; guard if seen
+  // shortcut: raw may stay 9 after quitting to title from this screen; guard if seen
+  if (act != 9) { g_aarOpen = false; g_mailOpen = false; if (g_letterAct == 9) g_letterOpen = false; AarBlockStock(g_fileOpen || g_letterOpen); return; }   // the crew files window may hold the block on its screen
   int type = 0; Vec2 mouse = {};
   void* ev = ModGuiBegin(&type, &mouse); if (!ev) return;
   if (!g_storiesOn) { g_aarOpen = false; shownSeq = g_aarSeq; }        // crew_stories=0: the report stays shut, and is not owed when switched back on
@@ -348,7 +349,7 @@ static void SafeAfterActionGui() {
   static bool off = false; if (off) return;
   __try { AfterActionGui(); }
   __except (FaultFilter("after-action report", GetExceptionInformation())) { off = true; g_aarOff = true; g_aarOpen = false; g_mailOpen = false; if (g_letterAct == 9) g_letterOpen = false; GuiScale(1.0f); GuiThemeEnd(); }
-  if (off) __try { AarBlockStock(g_fileOpen || g_letterOpen); } __except (EXCEPTION_EXECUTE_HANDLER) {}   // the mail window closed with the fault   // never leave the stock screen dead (the crew files window may hold it)
+  if (off) __try { AarBlockStock(g_fileOpen || g_letterOpen); } __except (EXCEPTION_EXECUTE_HANDLER) {}   // never leave the stock screen dead after a fault (the crew files window may hold it)
 }
 // ---- the crew files window on the crew screen (CampaignTriggers.lastActivityRaw 2) ----
 // A CREW FILES tag top right opens a sheet: the whole roster on the left (the living first, then the dead, then crew on
@@ -398,7 +399,7 @@ static void CabRoster() {
     for (size_t k = 0; k < g_crewFiles.size(); k++) if (g_crewFiles[k].id == r.id) r.file = (int)k;
     if (r.name.empty()) r.name = r.file >= 0 && !g_crewFiles[r.file].name.empty() ? g_crewFiles[r.file].name : "Unnamed";
   }
-  g_cabRows.erase(std::remove_if(g_cabRows.begin(), g_cabRows.end(), [](const CabRow& r) {   // David 11-11: only crew with a battle on file
+  g_cabRows.erase(std::remove_if(g_cabRows.begin(), g_cabRows.end(), [](const CabRow& r) {   // only crew with a battle on file
     return r.file < 0 || g_crewFiles[r.file].entries.empty(); }), g_cabRows.end());
   bool changed = false;                                                // older files: facts (with traits while the roster has them), a fate
   for (CabRow& r : g_cabRows) {
@@ -525,7 +526,7 @@ static void CabWindow(void* ev, int type, Vec2 mouse) {
   if (sel < 0 && !g_cabRows.empty()) { sel = 0; g_cabSel = g_cabRows[0].id; }
   const CabRow* row = sel >= 0 ? &g_cabRows[sel] : nullptr;
   int file = row ? row->file : -1;
-  const float rowH = 44;                                               // David 11-11: the status line was clipped at 38
+  const float rowH = 44;                                               // the status line clips at 38
   float listMax = (std::max)(0.0f, g_cabRows.size() * rowH - list.h);
   const std::vector<AarLine>& lines = CabLines((int)text.w, file);
   auto lineH = [](const AarLine& l) { return l.gap ? 10.0f : l.style == 1 ? 28.0f : 20.0f; };

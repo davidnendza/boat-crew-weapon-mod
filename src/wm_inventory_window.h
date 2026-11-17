@@ -1,6 +1,5 @@
 // inventory cap, uses per gun, the inventory window (IMGUI grid) (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- inventory cap and uses per gun ---------------------------------------------------------------------------------
-// Names of the guns selected on the player's boat right now (empty until the boat exists and its loadout is applied).
 // Slot families of the boat on the loadout screen (if open) or the player's boat, by each weapon system's SelectionOrder.
 static std::vector<std::string> BoatFamilies() {
   std::vector<std::string> out;
@@ -24,6 +23,7 @@ static std::vector<std::string> BoatFamilies() {
   return out;
 }
 
+// Names of the guns selected on the player's boat right now (empty until the boat exists and its loadout is applied).
 // craft: the boat to read; null means the player's boat in battle (Player.playerCraft). The loadout screen edits its own
 // boat (CraftCustomizationManager.selectedCraft), and at port playerCraft does not show that loadout.
 static std::vector<std::string> EquippedNames(void* craft = nullptr) {
@@ -50,8 +50,7 @@ static std::vector<std::string> EquippedNames(void* craft = nullptr) {
 }
 
 // A found gun spends one use per slot the first time it fires in a battle, so a gun that never fired (the AI sank
-// everything first) costs nothing (David 2026-11-01; it used to be one use per slot equipped, counted at the start).
-// Each slot pays on its own, so one good drop still cannot fill every slot for free (David, 2026-10-24).
+// everything first) costs nothing. Each slot pays on its own, so one good drop still cannot fill every slot for free.
 static std::vector<std::string> g_battleEquipped;                   // found guns with uses, equipped at this battle's start
 static std::unordered_map<std::string, int> g_battleSpent;          // name -> slots that fired and paid this battle
 static void OnMissionStart(const std::vector<std::string>& eq) {
@@ -91,8 +90,8 @@ static void UsesSummary() {                                           // at batt
   g_battleEquipped.clear(); g_battleSpent.clear(); g_firedMounts.clear();
 }
 
-// Called every frame by the ProjectileManager hook. The ProjectileManager lives for the whole game (one 'mission start'
-// per launch was all the first version ever saw), so a battle is detected by WorldEngagementManager.instance instead:
+// Called every frame by the ProjectileManager hook. The ProjectileManager lives for the whole game (it starts once per
+// launch), so a battle is detected by WorldEngagementManager.instance instead:
 // a new non-null instance is a new battle. Then wait until the player's boat has guns selected, a little longer, and
 // count the uses.
 static void* g_missionEngagement = nullptr;
@@ -131,8 +130,8 @@ static void MissionWatch(void* manager) {
 
 // ---- inventory window (Diablo 2 style grid) ------------------------------------------------------------------------
 // Drawn with Unity IMGUI from an OnGUI handler the game already has. CharacterManager.OnGUI runs on every screen (title,
-// map, loadout, battle; probe 2026-10-24); the other hosts are fallbacks. The window only shows on the loadout screen:
-// a button at the top left or the I key opens it. First version: look only (cells, gun pictures, rarity, tooltips).
+// map, loadout, battle); the other hosts are fallbacks. The window only shows on the loadout screen: a button at the
+// top left or the I key opens it.
 struct Rect4 { float x, y, w, h; };
 struct Col4 { float r, g, b, a; };
 struct Vec2 { float x, y; };
@@ -180,8 +179,7 @@ static void* ItemSprite(const Item& it) {
   const std::string& name = it.name;
   SpriteEntry& e = g_spriteCache[name];
   if (e.sprite) return e.sprite;
-  // between retries a loot gun keeps the stock picture (returning e.sprite here drew the bare name for 3 s and the picture
-  // for one frame: the loot grid flickered, David 2026-10-29)
+  // between retries a loot gun keeps the stock picture (returning e.sprite would draw the bare name and flicker)
   if (e.tried && GetTickCount() - e.tried < 3000) return BaseSprite(it.base);
   e.tried = GetTickCount();
   void* m = FindLiveMount(name);
@@ -236,7 +234,7 @@ static std::string ItemTooltip(const Item& it) {
   return t;
 }
 
-// Where everything sits, as a field crate (David 2026-11-05: 'resize it to a size you think makes sense'): a stencil
+// Where everything sits, as a field crate: a stencil
 // band, the manifest row (the drag handle), YOUR GUNS on the left with three material slips under it, LOOT on the right
 // with the scrap box under it, a paper footer and a stencil line. The default grids (10x6 guns, 8x8 loot) make it
 // 1008 x 668: no wasted wood, and it fits a 720 px tall screen with the toggle buttons above it.
@@ -245,7 +243,7 @@ static float g_uiScale = 1.0f;                                      // GUI scale
 static float g_winX = -1, g_winY = -1;                              // -1: bottom center, 200 screen pixels up
 static float g_virtW = 1920, g_virtH = 1080;                        // screen size divided by the scale
 // slips: the workshop as three slips stacked under YOUR GUNS; false (a guns grid under 8 columns is too narrow for a
-// slip's text and tags) puts the three side by side in a strip under both grids, as before. shop is their area.
+// slip's text and tags) puts the three side by side in a strip under both grids. shop is their area.
 struct InvLayout { float cell, ix, iy, lx, ly; Rect4 panel, scrap, title, close, toggle, shop, foot, scrapAll; bool slips; };
 static const float kSlipH = 44, kSlipGap = 8, kStripSlipH = 70;   // strip slips are two rows: text, then the tags
 static InvLayout GetLayout() {
@@ -317,9 +315,8 @@ static bool DropAllowed(const Item& it, bool loot, int x, int y) {
   return GridFree(loot, x, y, w, h, &it);
 }
 
-// WeaponSystem.register does not hold every slot: on 2026-10-26 the loadout screen's Aft heavy slot was missing from it,
-// so a kept gun never reached that slot until the screen was reopened. So after the register come every slot of the
-// boat on the loadout screen and of the player's boat, each system once.
+// WeaponSystem.register does not hold every slot (the loadout screen's Aft heavy slot can be missing), so after the
+// register come every slot of the boat on the loadout screen and of the player's boat, each system once.
 static std::vector<void*> SlotSystems() {
   std::vector<void*> out;
   auto add = [&](void* ws) { if (ws && std::find(out.begin(), out.end(), ws) == out.end()) out.push_back(ws); };

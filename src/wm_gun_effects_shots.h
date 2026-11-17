@@ -70,11 +70,9 @@ static void SafeGfxShot(void* pj, void* mount, bool leap) {
 
 // Veteran's: wipes the bond of a gunner who is Dead (2), Missing (3) or Captured (4) on two checks in a row (or at the
 // battle's end), on every found gun bonded to that name.
-// A gunner thrown overboard leaves CrewManager.crew at once (CrewManager.removeMember's only caller is
-// CrewMemberOverboard.throwOverboard), so one who then drowns or is captured is never in the list with that state
-// (review 2026-11-06). A bonded gunner who vanishes from the list is kept here, his character pinned, and his
-// healthState is read on every check until he is back aboard or lost; kept across the battle change, as the game may
-// settle a man in the water after it.
+// A gunner thrown overboard leaves CrewManager.crew at once (throwOverboard -> removeMember), so his later death or
+// capture never shows in the list: he is kept here, pinned, and read on every check until back aboard or lost, across
+// the battle change too, as the game may settle a man in the water after it.
 struct VetGone { void* ch; void* handle; };
 static std::map<std::string, VetGone> g_vetGone;                      // bond key -> the gunner off the boat
 static std::map<std::string, void*> g_vetSeenCh;                      // bond key -> his character at the last check (this battle)
@@ -200,8 +198,7 @@ static void GfxTick(bool before) {
   for (auto& e : g_salvo) {                                            // a salvo ends when the gun first reloads after 6+ shots
     SalvoState& s = e.second; if (!s.active) continue;
     bool reloading = g_oGmReloading >= 0 && *(bool*)((char*)e.first + g_oGmReloading);
-    // a floor of 6 shots (review 2026-11-06): magazine-1 guns (mortars, the howitzer, the 37 mm AT) reload after every
-    // round, and got one boosted shell a battle
+    // a floor of 6 shots: magazine-1 guns (mortars, the howitzer, the 37 mm AT) reload after every round
     if ((reloading && s.shots >= (std::max)(s.mag, 6)) || s.shots >= 3 * s.mag) {
       s.active = false; s.endedAt = now;
       GFXLOG(GL_SALVO, "opening salvo: '%s' fired %d shots at x%.2f; the salvo is over (%s)", s.name.c_str(), s.shots, s.mult, reloading ? "reloading" : "no reload seen");

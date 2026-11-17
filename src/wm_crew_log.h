@@ -1,16 +1,13 @@
 // crew battle log, speech bubbles, the talking crew (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- crew battle log ----------------------------------------------------------------------------------------------
-// What happened to each crew member of the player's boat in a battle, written like a Dwarf Fortress combat log, as the
-// first step to after-action reports, a crew file cabinet, injuries and memories.
-// Log only: nothing in the game changes. Read in the disassembly first (2026-11-09):
-// crew damage is ONE HP pool (no body parts); every hit goes through CrewMember.hitFlash(true, d), whose callers tell
-// the kind apart by return address: ProjectileManager.endJobs (rva 0x9F5B22, a shell or bullet) and
-// SplashDamageManager.FixedUpdate (rva 0x983815, a blast). At the blast call that frame holds the splash copy:
-// killer [rsp+0xB8], entityCode [rsp+0xC0] (-999 = fire from a burning part), teamCode [rsp+0xC4]. Hits of 3 HP or less
-// are silent in the game (no wound event); they are 'grazes' here. Downs, deaths, overboard and rescue are polled from
+// What happened to each crew member of the player's boat in a battle, reported at the battle change
+// (Log and BoatCrewMod/crew-reports.txt); log only, nothing in the game changes.
+// Crew damage is ONE HP pool; every hit goes through CrewMember.hitFlash(true, d), told apart by return address:
+// ProjectileManager.endJobs (rva 0x9F5B22, shell or bullet) and SplashDamageManager.FixedUpdate (rva 0x983815, blast).
+// The blast frame holds the splash copy: killer [rsp+0xB8], entityCode [rsp+0xC0] (-999 = fire), teamCode [rsp+0xC4].
+// Hits of 3 HP or less raise no wound event in the game ('grazes' here). Downs, deaths and overboard are polled from
 // CrewCharacter (HP +0x5C, healthState: 0 Healthy, 1 Wounded, 2 Dead, 3 Missing (overboard), 4 Captured, 5 Recovered).
-// Output: Log lines (the first few events), a per-crew report at the battle change and the same report appended to
-// BoatCrewMod/crew-reports.txt. Own boat only (co-op: who applies crew damage is not traced).
+// Own boat only: who applies crew damage in co-op is not traced.
 struct CrewRec {
   void* ch = nullptr; void* pin = nullptr; std::string name, role, gun;
   void* member = nullptr; float sayAt = -100;                          // the CrewMember last seen (speech bubbles), the last line they said
@@ -61,13 +58,10 @@ static void CrewNote(CrewRec& r, const char* fmt, ...) {
 }
 // ---- crew speech bubbles ----
 // CrewMember.headText (CrewMemberText) is the bubble over a crew member's head. Its enqueueText(string) (0x1809B86B0)
-// switches the bubble on, sets a random delay and queues the text; Update dequeues and shows it (triggerText). Only the
-// game's own crew chatter (CrewDialogSequencer) called it so far. The test: a man who is wounded calls out, a gunner
-// who scores a kill says so; at most one line a man every 20 s and one a boat every 4 s, every line logged (held-back
-// ones at debug=1). Shown for 1.25-1.75 s + 0.06 s a letter, no distance or state check.
+// switches the bubble on, sets a random delay and queues the text; Update shows it (triggerText) for 1.25-1.75 s +
+// 0.06 s a letter, with no distance or state check. At most one line a man every 20 s and one a boat every 4 s.
 static int g_saySaid = 0, g_sayFail = 0; static float g_sayLastAny = -100; static std::set<void*> g_sayKills;
-// David 2026-11-13: 8 lines queued, none noticed. Each queued line is looked at again 1 s later (what the bubble shows,
-// whether it is switched on, how far it is from the camera), and a line at the start of the battle, before the chaos.
+// debug=1: a queued line is checked again 1 s later (what the bubble shows, whether it is on, distance to the camera).
 struct SayProbe { void* head; void* pin; std::string name, text; float at; };
 static std::vector<SayProbe> g_sayProbes; static bool g_sayOpened = false; static int g_sayProbed = 0;
 static bool CrewSayBlocked(const CrewRec& r, bool priority) {         // the 20 s a man and 4 s a boat limits
@@ -428,12 +422,12 @@ static void TalkTick() {
     CrewRec* sp = guns.empty() ? TalkOther(nullptr) : guns[(size_t)(TalkRand() * guns.size()) % guns.size()];
     if (sp) TalkSay(*sp, "battle_start", TalkCtx(), 1, true);
   }
-  // battle chatter (David 2026-11-13: "most of the stuff is during battle"): while shots fly, someone speaks every
+  // battle chatter: while shots fly, someone speaks every
   // 9-19 s (scaled by crew_chatter), in line with their job, a quarter of the time a line anyone could say
   if (t > 6 && g_talkShot && now - g_talkAction < 8 && now >= g_talkNextCombat && g_talkQ.empty()) {
     g_talkNextCombat = now + (9.0f + 10.0f * TalkRand()) / (float)g_talkChatter;
     std::string wy; CrewRec* sp = TalkOther(nullptr);
-    CrewRec* pm = sp && TalkRand() < 0.4f ? TalkClosest(CrewIdOf(sp->ch), sp, &wy) : nullptr;   // David 2026-11-14: close mates talk in battle too
+    CrewRec* pm = sp && TalkRand() < 0.4f ? TalkClosest(CrewIdOf(sp->ch), sp, &wy) : nullptr;   // close mates talk in battle too
     if (pm && now - pm->sayAt < 20) pm = nullptr;                      // the answer is forced: not on top of the mate's own last line
     if (pm && TalkPair(*sp, *pm, wy, "combat_partner", "reply_combat_partner", "reply_combat_partner_warm", 0.8f, false)) {}
     else if (sp) {

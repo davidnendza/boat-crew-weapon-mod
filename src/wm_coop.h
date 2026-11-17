@@ -1,16 +1,16 @@
 // co-op: core, another player's guns, elites, helpers, the session (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- co-op ---------------------------------------------------------------------------------------------------------
-// What the game syncs was read in the disassembly first (2026-10-29):
+// What the game syncs (from the disassembly):
 // - Shots: the owner's WeaponsSync.processShot sends (system index, list POSITION, ammo name, position, velocity). Every
 //   other machine fires guns[(system, position, 0)] of its own copy of that boat (WeaponsSync.guns +0x108, filled once
 //   by findObjects from every mount of every system) and clears the shell's networkOwner, so the copy deals no damage.
-//   Each machine had added ITS OWN found guns to every boat, so another player's boat showed (and fired) the wrong guns.
+//   Unsynced, each machine adds its own found guns to every boat, so another player's boat shows (and fires) the wrong guns.
 // - Damage: only the shooter's machine applies it (sendDamageToServer for objects it does not own); HP syncs from the host.
 // - Spawns: what the host takes from GameManager.entityPooler is networked by BridgePoolables; a client's are not.
 // - Another player's gun choice is applied with WeaponSystem.select(index, true, false), called directly from
 //   WeaponsSync.UpdateMe (not through selectIndex).
 // The mod sends its own data over Steam (ISteamNetworkingMessages on a channel FishySteamworks does not use), with the
-// host in the middle: clients talk to the host, and the host passes their data on. Four parts, each a drops.ini switch:
+// host in the middle: clients talk to the host, and the host passes their data on. Five parts, each a drops.ini switch:
 //  coop_guns:    each player sends the mod's guns on their boat (positions and definitions); the others build those guns
 //                at the same positions on that boat, so its shots and looks match.
 //  coop_elites:  the host rolls Rare/Elite enemies and sends them; clients show them (size, tag, loot when they sink it).
@@ -355,7 +355,7 @@ static void CoopGunsIn(int origin, const std::string& body, const std::string& r
   }
   ParseItemsInto(rb.items, body.substr(ip + 6), "co-op guns", false);
   // another machine's numbers, bounded to what this mod could roll: a garbled or edited value must not wreck this one
-  // (huge gun scale, a chain that never stops leaping, shells that never expire; co-op review 2026-11-01)
+  // (huge gun scale, a chain that never stops leaping, shells that never expire)
   for (Item& it : rb.items) {
     for (size_t k = 0; k < it.ops.size(); ) {
       Op& o = it.ops[k];
@@ -474,7 +474,7 @@ static bool EnsureRemoteGun(void* ws, int j) {
   return true;
 }
 // The game applies another player's choice by calling select directly (WeaponsSync.UpdateMe), so select itself is
-// hooked: the 14 bytes at its start (four plain moves into the home slots, read 2026-10-29) become a jump here.
+// hooked: the 14 bytes at its start (four plain moves into the home slots) become a jump here.
 typedef void* (*fn_wsSelect)(void*, int, bool, bool, void*);
 static fn_wsSelect g_wsSelectOrig = nullptr;
 static void CoopBeforeSelect(void* ws, int index) {
@@ -589,7 +589,7 @@ static void EnsureRemoteTorps() {
       auto bb = def ? byBase.find(def->base) : byBase.end();
       void* src = bb != byBase.end() ? bb->second : nullptr;
       // a split utility item has a copy per family, each on its own base (SplitFamilies), and they describe one copy per
-      // name (MyGunsText): this machine's own copy for this family gives the base (review 2026-11-08)
+      // name (MyGunsText): this machine's own copy for this family gives the base
       if (!src && def && def->builtIn) {
         const Item* loc = FindItemIn(name, family);
         if (loc && loc->builtIn && (bb = byBase.find(loc->base)) != byBase.end()) { src = bb->second; use = loc; }
@@ -819,7 +819,7 @@ static void CoopEnd(const char* why) {
 static void CoopSession() {
   void* fs = Fishy();
   // This game's FishNet has LocalConnectionState as an int flags enum: Stopped 1, Stopping 2, Starting 4, Started 8.
-  // Checking for 2 (a byte enum's Started) missed the first real co-op game, 2026-10-30.
+  // Started is 8 here, not 2 as in a byte enum.
   auto state = [&](bool serverSide) {
     void* a[1] = { &serverSide }; void* r = fs ? Invoke(m_fsLocalState, fs, a) : nullptr;
     return r ? *(int*)((char*)r + 0x10) : 0;
@@ -899,8 +899,7 @@ static void CoopHandle(unsigned long long from, const std::string& text) {
                         ShowMessage("Co-op: your friend runs weapon mod " + f[1] + ", you run " + kModVersion + ". Nothing is synced."); }
     return;
   }
-  // Same version, another build (David 2026-10-30, before the friend test: builds of one -dev version kept changing).
-  // Synced anyway; the warning says the two may behave differently.
+  // Same version, another build (a -dev version changes between builds): synced anyway, with a warning.
   if (f[4] != kCoopBuild && !p->buildWarned) {
     p->buildWarned = true;
     Log("co-op: player %d runs build '%s' of mod %s and you run build '%s'; syncing anyway, but the two may behave differently", p->id, f[4].c_str(), kModVersion, kCoopBuild);

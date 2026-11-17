@@ -334,8 +334,8 @@ static void StallWatchStep() {
     g_swNextSample = now + (g_swSamples < 60 ? 2000 : 10000);
   }
 }
-// The first slow load caught (2026-11-01 19:46) showed the main thread running frames the whole time: it only waits
-// ("[ECM] Waiting for world") while thread-pool tasks build the world ("Creating factions", "Loading Save", ...). So
+// During a slow load the main thread keeps running frames: it only waits ("[ECM] Waiting for world") while
+// thread-pool tasks build the world ("Creating factions", "Loading Save", ...). So
 // during the load window the game's own Player.log lines are copied here with times (Player.log has none), until
 // "Finished Loading World", and every 10 s the threads that used CPU are listed and the busiest one is sampled.
 static HANDLE g_swGameLog = INVALID_HANDLE_VALUE;
@@ -426,7 +426,7 @@ static void StallWatchExtras() {
 static DWORD WINAPI StallWatchThread(LPVOID) {
   for (;;) {
     Sleep(250);
-    if (!g_debug) continue;                                            // the load watch is a diagnostic: debug=1 only (0.9.6)
+    if (!g_debug) continue;                                            // the load watch is a diagnostic: debug=1 only
     __try { StallWatchStep(); StallWatchExtras(); } __except (EXCEPTION_EXECUTE_HANDLER) { Log("load watch: fault; it stops"); return 0; }
   }
 }

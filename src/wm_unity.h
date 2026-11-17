@@ -93,8 +93,8 @@ static std::string FamilyOf(void* order) {
 static int g_editLogs = 0;                                          // log the first few edits so the effect is visible without flooding
 static bool ApplyOp(void* obj, const Op& op) {
   void* cls = il2cpp_object_get_class(obj);
-  // Inaccuracy (review 2026-11-06): GunMount.shotVelocity spreads a shot by clamp(100 - Accuracy x ..., 0, 100), so a
-  // drawback scales that gap, not the score (mul.Accuracy=0.8 on a 95 gun was 4.8x the spread)
+  // Inaccuracy: GunMount.shotVelocity spreads a shot by clamp(100 - Accuracy x ..., 0, 100), so a drawback scales that
+  // gap, not the score (mul.Accuracy=0.8 on a 95 gun would be 4.8x the spread)
   bool spread = op.field == "Inaccuracy";
   void* f = il2cpp_class_get_field_from_name(cls, spread ? "Accuracy" : op.field.c_str());
   if (!f) { Log("  edit '%s': no such field on %s", op.field.c_str(), il2cpp_class_get_name(cls)); return false; }
@@ -221,7 +221,7 @@ static void* StockAmmo(const std::string& base) {
 // sound_from=<stock gun>: the copy fires with that gun's sounds: its shot, loop and distant events and the distance the
 // distant one takes over (its recoil click too, when it has one; else the base gun's stays). The fire rate stays the
 // copy's own, so the rhythm follows roundsPerMinute. The turret guns use it so a captured Type 96 sounds like the
-// enemy's Type 96 rather than the Oerlikon it is built on (David 2026-10-28: "make the rat-a-tat-tat sound right").
+// enemy's Type 96 rather than the Oerlikon it is built on.
 // FMOD EventReference is a 16-byte GUID in a build (no path), so the events are copied as bytes.
 static bool CopySounds(void* gt2, const Item& it) {
   static int offShot = -2, offLoop = -1, offRecoil = -1, offSwap = -1, offDistant = -1;
@@ -297,7 +297,7 @@ static void CloneProjectiles(void* origGun, void* gun2, const Item& it) {
         SetName(p2, nm.c_str());
         SetRef(p2, (char*)p2 + g_offProjTag, il2cpp_string_new(("WM_" + nm).c_str()));
         DLog("  projectile '%s' (ammo list %d)", nm.c_str(), a);
-        // the howitzer's Ammunition list also holds '75 mm Howitzer round SMOKE' (read from the game data 2026-11-15): a
+        // the howitzer's Ammunition list also holds '75 mm Howitzer round SMOKE': a
         // set damage (Pak 40 3000, RW 61 6000) is meant for the shell, so a smoke round keeps its own damage
         std::string lower = NameOf(src); for (char& ch : lower) ch = (char)tolower((unsigned char)ch);
         bool smoke = lower.find("smoke") != std::string::npos;

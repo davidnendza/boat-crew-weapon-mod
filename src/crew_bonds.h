@@ -37,7 +37,7 @@ std::string BondWhy(const BondTally& b, bool noWater = false);   // noWater: nev
 // Weights: a battle side by side counts little on its own; a gun shared, a swim and above all a sinking count most.
 inline float BondScore(const BondTally& b) { return 0.5f * b.battles + 2.0f * b.team + 0.5f * b.kills + 6.0f * b.sank + 3.0f * b.water; }
 // Keeps at most cap tallies, closest first: those shared in battle bn always stay, so a veteran with a long list of
-// old (dead) mates still bonds with this battle's newcomers (release review 0.9.6).
+// old (dead) mates still bonds with this battle's newcomers.
 inline void BondTrim(std::vector<BondTally>& v, int bn, size_t cap = 64) {
   std::sort(v.begin(), v.end(), [bn](const BondTally& a, const BondTally& b) {
     bool ra = a.last == bn, rb = b.last == bn;

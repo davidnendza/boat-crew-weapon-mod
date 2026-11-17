@@ -35,12 +35,10 @@ static EntityKind KindOf(void* ent) {
   return s->second;
 }
 
-// Every live enemy ship and ground target (AA gun, MG nest), from the game's own entity list:
 // Where a HashSet<T> of objects keeps its elements, read once per set class: the field names differ between class library
 // versions. In this game's: _slots +0x18 (Slot[], 16 bytes each: hashCode, next, value +8) and _lastIndex (HashSet.Contains
-// at 0x181C2CF50). il2cpp_class_array_element_size wants the ELEMENT class: given the Slot[] array class it answers 8, the
-// size of a pointer, and stepping 8 bytes through 16-byte slots read hashCode/next as objects (the co-op fault in
-// NetBoats on host and client, 2026-10-31).
+// at 0x181C2CF50). il2cpp_class_array_element_size wants the ELEMENT class: given the Slot[] array class it answers 8
+// (a pointer), and stepping 8 bytes through 16-byte slots reads hashCode/next as objects and faults.
 struct HashSetLayout { int slots = -1, count = -1, val = -1, elem = 0; bool ok() const { return slots >= 0 && val >= 0 && elem >= val + 8; } };
 static HashSetLayout HashSetLayoutOf(void* k) {
   static std::unordered_map<void*, HashSetLayout> layouts;
@@ -67,12 +65,9 @@ static HashSetLayout HashSetLayoutOf(void* k) {
   return l;
 }
 
-// WorldEngagementManager.enemiesNearby walks LiveEntity.register (a static HashSet<LiveEntity>, read in its disassembly).
-// Planes and submerged entities are left out. The set's slot array is read directly; its field names are looked up at
-// run time, and if they are not found the callers fall back to the old ships-only physics search and the log says so.
-// Read at most once every 10 ms, shared by the Unusual guns, seeking shots and chain leaps. A physics overlap found
-// ships only (the Orbital's ring never launched against shore guns, David 2026-10-28), and near a shore its 256-collider
-// buffer filled up with terrain: hand-aimed Homing shots at MG nests locked on 34 times in 914 searches (2026-10-30).
+// Every live enemy ship and ground target (AA gun, MG nest), from LiveEntity.register (a static HashSet<LiveEntity>, as
+// WorldEngagementManager.enemiesNearby walks it); planes are left out. If its fields are not found, callers fall back to
+// the ships-only physics search, whose 256-collider buffer fills up with terrain near a shore. Read at most every 10 ms.
 struct EnemyAt { void* ent; V3 pos; bool ship; };
 static int g_enemyListState = 0, g_offLeAlive = -1;                  // state: 0 not read yet, 1 ready, -1 missing pieces
 static std::vector<EnemyAt> g_enemiesUnder;                          // the same read's ships below the water (LiveEntity.underwater)
@@ -136,10 +131,9 @@ static void* NearestEnemyTarget(const float* at, float radius, V3* posOut, void*
 }
 
 // Where a seeking shot aims on a ground target (MG nest, AA gun, shore battery). GroundEntity.TerrainPlacement puts its
-// origin on the terrain (a raycast down, plus GroundEntity.height; read in the disassembly 2026-10-30), so the ships'
-// 3 m up flew homing shells over the sandbags and around in circles (David 2026-10-30: "some of the homing things do
-// weird things against.. sandbags?"). It aims at the middle of the target's solid colliders instead, measured once per
-// target per battle (ground targets do not move), or 1 m up if that fails. Logged once per kind of target.
+// origin on the terrain (a raycast down, plus GroundEntity.height), so aiming 3 m up as on ships flies shells over the
+// sandbags. It aims at the middle of the target's solid colliders instead, measured once per target per battle (ground
+// targets do not move), or 1 m up if that fails. Logged once per kind of target.
 static std::unordered_map<void*, V3> g_aimOffset;                    // ground target -> aim point minus origin, per battle
 // The world box around a target's enabled, solid colliders (lo, hi); returns how many colliders it took (0: none, or the
 // lookup failed).
@@ -147,8 +141,8 @@ static int ColliderBox(void* ent, float lo[3], float hi[3]) {
   static void *mInChildren = nullptr, *colType = nullptr, *mBounds = nullptr, *mTrigger = nullptr, *mEnabled = nullptr; static bool init = false;
   if (!init) {
     init = true;
-    // the game's build stripped every GetComponentsInChildren(Type, ...) overload (it never found one, 2026-10-31); the
-    // internal GameObject.GetComponentsInternal they all call is there
+    // the game's build stripped every GetComponentsInChildren(Type, ...) overload; the internal
+    // GameObject.GetComponentsInternal they all call is there
     void* go = FindClass("UnityEngine", "GameObject"); mInChildren = go ? FindMethod(go, "GetComponentsInternal", 6) : nullptr;
     void* col = FindClass("UnityEngine", "Collider"); colType = col ? il2cpp_type_get_object(il2cpp_class_get_type(col)) : nullptr;
     mBounds = col ? FindMethod(col, "get_bounds", 0) : nullptr; mTrigger = col ? FindMethod(col, "get_isTrigger", 0) : nullptr; mEnabled = col ? FindMethod(col, "get_enabled", 0) : nullptr;
@@ -190,11 +184,10 @@ static V3 GroundAimOffset(void* ent, V3 origin) {
   }
   return off;
 }
-// How high above its origin a seeking shot aims on a ship. It was a fixed 3 m, which flew homing shells over small and
-// shrunken hulls (David 2026-11-02: The Ferryman 'weren't able to hit downsized enemies'; Smol Elites are 0.55 tall,
-// and its last battle had 21 shells circle out). Now 40% up the box of the ship's solid colliders, kept between 0.5 and
-// 3 m. Only the height is used: ships turn, the box is measured in world space. Measured again after 20 s, because a
-// pooled ship can come back resized by an Elite trait. 3 m if it has no colliders. Logged once per kind and size.
+// How high above its origin a seeking shot aims on a ship: 40% up the box of its solid colliders, kept between 0.5 and
+// 3 m (a fixed 3 m flies shells over small and shrunken hulls). Only the height is used: ships turn, the box is in world
+// space. Measured again after 20 s, because a pooled ship can come back resized by an Elite trait. 3 m if it has no
+// colliders. Logged once per kind and size.
 struct ShipAim { float up; DWORD at; };
 static std::unordered_map<void*, ShipAim> g_shipAim;                 // per battle
 static float ShipAimHeight(void* ent, V3 origin) {
@@ -220,8 +213,8 @@ static float ShipAimHeight(void* ent, V3 origin) {
 // near: closest it came to its aim point; counted/ended: in the per-gun summary as steered, and as ended or circled out.
 struct SeekShot { void* target; void* handle; void* from; float alive; unsigned lastTry; float turned; float nearest; bool counted, ended; bool climbing = false, topped = false; };
 static std::unordered_map<void*, SeekShot> g_seekShot;               // projectile -> its state, per battle
-// Per gun, per battle (2026-11-02, to see how often homing shells actually reach what they steer at): shells steered, how
-// they ended (on something within 25 m of their aim point, or farther off), and how many circled out.
+// Per gun, per battle, to see how often homing shells reach what they steer at: shells steered, how they ended (on
+// something within 25 m of their aim point, or farther off), and how many circled out.
 struct SeekGunStat { int steered = 0, nearHit = 0, farHit = 0, circled = 0, apex = 0; double missSum = 0; };   // apex: flew up to the top of their arc first
 static std::map<std::string, SeekGunStat> g_seekGun;
 static unsigned g_seekFrame = 0;
@@ -236,25 +229,20 @@ static SeekShot& SeekStateOf(void* pj, void* mount) {
   return it->second;
 }
 
-// A hand-aimed shot (the utility slot, aimed with the mouse) carries no target, so Homing had nothing to steer for
-// (David 2026-10-29: "the 37mm that has homing on it ... didn't look like it was homing"). Such a shot locks onto the
-// enemy its unguided flight would pass closest to: for each live enemy ahead, the shot's ballistic height by the time
-// it gets that far, against the enemy's middle. Sideways misses count in full, up and down at half, and the miss must
-// be under 25 m plus 6% of the distance. It looks again every 15 frames until it finds one, at most 6 searches a frame.
-// (Until 2026-10-30: the enemy nearest a point 250 m ahead, which could also pick the MG nest next to the one aimed at.)
+// A hand-aimed shot (the utility slot, aimed with the mouse) carries no target, so it locks onto the enemy its unguided
+// flight would pass closest to: the shot's ballistic height by the time it gets that far, against the enemy's middle.
+// Sideways misses count in full, up and down at half, and the miss must be under 25 m plus 6% of the distance. It looks
+// again every 15 frames until it finds one, at most 6 searches a frame.
 // The lock goes into Projectile.target, so Chaining sees it too, and a GC handle holds the target while the shot lives.
 static void* SeekAcquire(void* pj, SeekShot& S, const float* ps, const float* v, int* budget) {
   if (S.target) return S.target;
   if ((S.lastTry && g_seekFrame - S.lastTry < 15) || *budget <= 0) return nullptr;
   (*budget)--; S.lastTry = g_seekFrame; g_seekSearches++;
   float vh = sqrtf(v[0] * v[0] + v[2] * v[2]);
-  // Where the shell comes down to the water is where the player aimed it (David: 'home near where the player targetted,
-  // not whatever is closest to the boat'). The game does not lob mortar rounds: it drops them from about 4.5 km straight
-  // above the spot they will hit, falling at 240 m/s (log 2026-11-03: shell at -4137,4503,3183 moving 0,-240,0), so the
-  // point under the shell is the aim point and the old arc test (vh < 1: give up) never found a target. GunMount.lastTarget
-  // is not the aim point (it was 1.1 km off). Projectile.iterate (read 2026-11-03) moves a shell by velocity x dt x
-  // ProjectileType.timeScale and adds Physics.gravity x dt x timeScale to its velocity, no drag, so the landing point does
-  // not depend on timeScale.
+  // Where the shell comes down to the water is where the player aimed it. The game does not lob mortar rounds: it drops
+  // them straight down onto the spot they will hit, so the point under the shell is the aim point (GunMount.lastTarget
+  // is not). Projectile.iterate moves a shell by velocity x dt x timeScale and adds gravity x dt x timeScale, no drag,
+  // so the landing point does not depend on timeScale.
   float disc = v[1] * v[1] + 19.62f * (ps[1] > 0 ? ps[1] : 0.0f), tl = (v[1] + sqrtf(disc)) / 9.81f;
   if (tl < 0) tl = 0;
   V3 aim = { ps[0] + v[0] * tl, 0, ps[2] + v[2] * tl };
@@ -346,8 +334,8 @@ static void SeekScan(void* pm) {
   static void *mTransform = nullptr, *mPosition = nullptr;
   if (!mTransform) { void* c = FindClass("UnityEngine", "Component"); mTransform = c ? FindMethod(c, "get_transform", 0) : nullptr; void* t = FindClass("UnityEngine", "Transform"); mPosition = t ? FindMethod(t, "get_position", 0) : nullptr; }
   if (!mTransform || !mPosition) return;
-  // aim where the target will be when the shot arrives, using LiveEntity.realtimeVelocity; slow homing shells otherwise
-  // dropped into the water behind ships moving away (David)
+  // aim where the target will be when the shot arrives (LiveEntity.realtimeVelocity), or slow shells fall behind ships
+  // moving away
   static int offTVel = -2;
   if (offTVel == -2) offTVel = FieldOffset("Core", "LiveEntity", "realtimeVelocity");
   void* live = *(void**)((char*)pm + g_offPmLive);
@@ -374,8 +362,8 @@ static void SeekScan(void* pm) {
       continue;
     }
     SeekShot& S = SeekStateOf(pj, mount);
-    // A shot that missed kept chasing its target in circles until it timed out (a weird sight, David 2026-10-30). After
-    // a full circle of turning it flies on: enough for a chain leap to come back around, or for one more pass.
+    // After a full circle of turning a shot flies on instead of circling its target until it times out: enough for a
+    // chain leap to come back around, or for one more pass.
     if (S.turned > 6.2832f) continue;
     float* v = (float*)((char*)pj + g_offPjVel); const float* ps = (const float*)((char*)pj + g_offPjPos);
     void* target = *(void**)((char*)pj + g_offPjTarget);
@@ -413,20 +401,17 @@ static void SeekScan(void* pm) {
     { float rx = tp->second.x - ps[0], ry = tp->second.y - ps[1], rz = tp->second.z - ps[2], rd = sqrtf(rx * rx + ry * ry + rz * rz);
       if (rd < S.nearest) S.nearest = rd; }
     if (dl < 0.5f || sp < 0.1f) continue;
-    // A lobbed shell steers only from the top of its arc (David 2026-11-12, Guided Mousetrap): steering from the launcher
-    // with gravity cancelled bent its steep climb into a low skim at the hull's aim point, 1-3 m up, and the waves took
-    // many of them. While it still climbs steeper than 10 degrees it flies its own ballistic arc. Chain leaps (thrown up
-    // and away on purpose) steer at once; flat shots never climb that steeply, so nothing changes for them. Only a
-    // climb steeper than the line to the aim point is held: a homing AA shot climbing toward a plane steers as before.
+    // A lobbed shell steers only from the top of its arc: steered from the launcher with gravity cancelled, its climb
+    // bends into a low skim that the waves catch. While it climbs steeper than 10 degrees and steeper than the line to
+    // the aim point it flies ballistic, so AA shots climbing at a plane still steer. Chain leaps steer at once.
     if (!S.topped && !g_chainBoost.count(pj)) {
       if (v[1] > 0.17f * sp && v[1] / sp > dy / dl + 0.05f) { S.climbing = true; continue; }
       S.topped = true;
       if (S.climbing) if (const Item* it = ItemOfMount(mount)) g_seekGun[it->name].apex++;
     }
     if (!S.counted) { S.counted = true; if (const Item* it = ItemOfMount(mount)) g_seekGun[it->name].steered++; }   // only shells that steer
-    // Close in, a shell may turn hard: at The Ferryman's 90 deg/s and about 100 m/s a shell that just missed a small hull
-    // needed a 65 m circle to come back, and gave up after one (2026-11-02). Within 60 m, or 0.6 s of flight for a fast
-    // shell, it turns at up to 360 deg/s (as chain leaps always do), which tightens that circle to about 16 m.
+    // Close in, a shell may turn hard: at 90 deg/s and 100 m/s its turn circle is 65 m, too wide to come back for a small
+    // hull. Within 60 m, or 0.6 s of flight for a fast shell, it turns at up to 360 deg/s (a circle of about 16 m).
     float closeIn = sp * ts * 0.6f; if (closeIn < 60) closeIn = 60;
     if (dl < closeIn && rate < 360.0f) rate = 360.0f;
     v[1] += 9.81f * (float)dt * ts;                                    // homing shots are powered: gravity is cancelled out
@@ -497,14 +482,14 @@ static void* NearestOtherEnemyShip(const float* at, void* exclude, float radius,
 }
 
 // ---- chaining shots: a shot that hits comes back for more -------------------------------------------------------------
-// fx.set.chain=N: when a shot from such a gun dies within 30 m of its target, a new shot of the same type is fired from
-// the impact point, at 70% of its damage, up to N times. If the gun's shots are also seeking another target, the new
-// shot pierces on toward that one; otherwise it is thrown up and away and its seek steering brings it back around into
-// the same target. Read first (2026-10-26): ProjectileManager.fetchProjectile takes a shot from the pool and adds it to
-// projectiles_live; Projectile.shoot(type, start, velocity, gun) calls reset() (clears target +0x30, dead +0x68) but not
-// damageMultiplier (+0x84), so that is set here. A dying shot's target is cleared by the game, so each chain shot's
-// target, position and velocity are remembered while it lives. Hits are resolved in ProjectileManager.Update; new shots
-// are fired in LateUpdate, after that and before the next physics step schedules its sphere casts.
+// fx.set.chain=N: when a shot from such a gun dies near its target, a new shot of the same type may be fired from the
+// impact point at chainDamage of its damage (default 50%), up to N times. With another enemy within 400 m the new shot
+// flies at that one; otherwise it is thrown up and away and its seek steering brings it back around into the same
+// target. ProjectileManager.fetchProjectile takes a shot from the pool and adds it to projectiles_live;
+// Projectile.shoot(type, start, velocity, gun) calls reset() (clears target +0x30, dead +0x68) but not damageMultiplier
+// (+0x84), so that is set here. A dying shot's target is cleared by the game, so each chain shot's target, position and
+// velocity are remembered while it lives. Hits are resolved in ProjectileManager.Update; new shots are fired in
+// LateUpdate, after that and before the next physics step schedules its sphere casts.
 // copy: from another player's shot (co-op), so its leaps are copies too: shown, never dealing damage
 // leap: 0 for the gun's own shot, 1 for its first leap, and so on (the effect streaks' log)
 struct ChainState { void* target; void* mount; void* ptype; float pos[3], vel[3]; float mult; int hops; float chance, dmg, decay; float alive; unsigned frame; bool copy; int leap; };   // alive: Projectile.alive last seen (see ShotSig)

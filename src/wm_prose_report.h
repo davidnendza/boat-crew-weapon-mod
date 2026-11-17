@@ -94,7 +94,7 @@ static RepBattle CrewRepBattle(uint32_t seed) {
   return b;
 }
 // The battle's raw data for offline re-rendering (tools/crew_report_test.exe render <folder>): BoatCrewMod\battles.
-// shortcut: one file per battle, never pruned (tens of KB each); prune when the folder gets large
+// One file per battle (tens of KB); the newest 50 are kept.
 static void CrewBattleDump(const RepBattle& b, const SYSTEMTIME& t) {
   try {
     std::string dir = g_folder + "\\battles";
@@ -106,7 +106,7 @@ static void CrewBattleDump(const RepBattle& b, const SYSTEMTIME& t) {
     fwrite(text.data(), 1, text.size(), f);
     fclose(f);
     DLog("crew report: raw battle data written to battles%s (%d bytes)", name, (int)text.size());
-    std::vector<std::string> all; WIN32_FIND_DATAA fd; HANDLE fh = FindFirstFileA((dir + "\\*.bcb").c_str(), &fd);   // the newest 50 are kept
+    std::vector<std::string> all; WIN32_FIND_DATAA fd; HANDLE fh = FindFirstFileA((dir + "\\*.bcb").c_str(), &fd);
     if (fh != INVALID_HANDLE_VALUE) { do all.push_back(fd.cFileName); while (FindNextFileA(fh, &fd)); FindClose(fh); }
     std::sort(all.begin(), all.end());                                 // names are date and time: oldest first
     for (size_t i = 0; i + 50 < all.size(); i++) DeleteFileA((dir + "\\" + all[i]).c_str());
@@ -116,7 +116,7 @@ static std::vector<RepPara> CrewRender(const RepBattle& b, const std::map<std::s
   try { return RenderReport(b, tables); }
   catch (...) { Log("crew report: the prose report failed; only the log is written"); return {}; }
 }
-// Each crew member's part of the report goes into their file (crew files, phase 4). The paragraphs after the k-th crew
+// Each crew member's part of the report goes into their file. The paragraphs after the k-th crew
 // heading (style 1) are g_crewRecs[k]'s (RenderReport keeps the crew order); a quiet battle has no headings, and then
 // everyone gets the summary.
 static void CrewFilesRecord(const std::vector<RepPara>& paras, const SYSTEMTIME& t, const RepBattle* rb, const LifeTables* report) {

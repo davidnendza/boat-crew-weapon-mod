@@ -1,16 +1,16 @@
-// Battle newsreel: a second camera, never shown on screen, films enemy planes going down (chase camera),
-// enemy ships sinking (orbit), planes or ships coming close (from the deck) and our own crew at work; at the battle's end the shots are written
-// as a black-and-white GIF to BoatCrewMod\newsreels\.
+// Battle newsreel: a second camera, never shown on screen, films enemy planes going down (chase camera), enemy ships
+// sinking (orbit), planes or ships coming close (from the deck) and our own crew at work; at the battle's end the shots
+// are written as a black-and-white GIF to BoatCrewMod\newsreels\.
 // Included from weaponmod.cpp after the kill cam (uses its helpers).
 // Planes: PlaneControllerAI.FixedUpdate is hooked to collect the live controllers; flightState 2 = Dive, 6 = Decease.
-// Camera: a disabled Camera with a 320x180 RenderTexture, drawn with Camera.Render() 10 times a second during a shot and
+// Camera: a disabled Camera with a kNrW x kNrH RenderTexture, drawn with Camera.Render() 20 times a second during a shot and
 // read back with Texture2D.ReadPixels (the texture overloads of AsyncGPUReadback are stripped from this build).
 #pragma once
 #include "gif_writer.h"
 #include "newsreel_tv.h"                                            // kNrTvHtml: the Newsreel TV page
 
-static const int kNrMaxFalls = 5, kNrMaxSwoops = 3;                   // plane caps per battle (David 2026-11-15; 07:56 film: 11 falls filled it by minute 2)
-static const int kNrW = 640, kNrH = 360, kNrMaxFrames = 1200;         // 60 s of film per battle at 20 frames/s (David 2026-11-14: double size and fps)
+static const int kNrMaxFalls = 5, kNrMaxSwoops = 3;                   // plane caps per battle: falls alone could fill the film in two minutes
+static const int kNrW = 640, kNrH = 360, kNrMaxFrames = 1200;         // 60 s of film per battle at 20 frames/s
 
 struct NrApi {
   bool ok = false, tried = false;
@@ -18,7 +18,7 @@ struct NrApi {
        *setFar = nullptr, *getFar = nullptr, *getMask = nullptr, *setMask = nullptr, *setTarget = nullptr, *render = nullptr, *camMain = nullptr,
        *compTr = nullptr, *trSetPR = nullptr, *trPos = nullptr, *rtCls = nullptr, *rtCtor = nullptr, *rtGetActive = nullptr, *rtSetActive = nullptr,
        *texCls = nullptr, *texCtor = nullptr, *readPx = nullptr, *getRaw = nullptr, *dontDestroy = nullptr,
-       *trUp = nullptr, *linecast = nullptr, *linecastHit = nullptr, *hitCollider = nullptr, *trIsChild = nullptr;   // hit: what blocks a gunner's spot                             // optional: deck shots check their camera spot with Physics.Linecast
+       *trUp = nullptr, *linecast = nullptr, *linecastHit = nullptr, *hitCollider = nullptr, *trIsChild = nullptr;   // optional: Linecast checks a deck camera spot, linecastHit names the blocker
   int ctrlPlane = -1, flight = -1, leTeam = -1, leAlive = -1;
 };
 static NrApi g_nr;
@@ -62,7 +62,7 @@ static void NewsreelInstall() {
   if (tr) a.trUp = FindMethod(tr, "get_up", 0);
   void* phys = FindClass("UnityEngine", "Physics"); a.linecast = nullptr;
   if (phys) {                                                          // the mask + trigger overload: smoke clouds (layer 12) and trigger
-    void* iter = nullptr; void* m;                                     // volumes must not block a spot (review 2026-11-14)
+    void* iter = nullptr; void* m;                                     // volumes must not block a spot
     while ((m = il2cpp_class_get_methods(phys, &iter)))
       if (!strcmp(il2cpp_method_get_name(m), "Linecast") && il2cpp_method_get_param_count(m) == 4 &&
           TypeName(il2cpp_method_get_param(m, 2)) == "System.Int32" && TypeName(il2cpp_method_get_param(m, 3)) == "UnityEngine.QueryTriggerInteraction") a.linecast = m;
@@ -105,8 +105,8 @@ static bool NrMakeCamera() {
     Pin(go); Pin(cam);                                                 // shortcut: never freed, one per session
     g_nrCam = cam; g_nrCamTr = Invoke(a.compTr, cam);
   }
-  // The textures are assets, not scene objects: the game unloads them between battles even while pinned (second battle of
-  // the 2026-11-14 19:41 session filmed 40 shots and kept 0 frames), so they are remade when gone.
+  // The textures are assets, not scene objects: the game unloads them between battles even while pinned, so they are
+  // remade when gone.
   int w = kNrW, h = kNrH, d = 24, fmt = 4 /* RGBA32 */; bool mip = false;
   void* rt = il2cpp_object_new(a.rtCls); void* ra[3] = { &w, &h, &d }; Invoke(a.rtCtor, rt, ra);
   void* tex = il2cpp_object_new(a.texCls); void* ta[4] = { &w, &h, &fmt, &mip }; Invoke(a.texCtor, tex, ta);
@@ -121,32 +121,31 @@ static GifFrames g_nrFilm;
 static void* g_nrEng = nullptr;
 static int g_nrShots = 0, g_nrDowned = 0;
 // Shot kinds, most important first: a plane going down, an enemy ship sinking, a plane diving at us or passing low, a ship close by.
-// Last: one of our own crew at work on deck, in a quiet spell (David 2026-11-14: "like a camera person on the deck").
+// Last: one of our own crew at work on deck.
 enum NrKind { kNrPlaneFall = 0, kNrShipSink = 1, kNrPlaneClose = 2, kNrShipClose = 3, kNrDeck = 4 };
 static const char* kNrKindName[] = { "plane going down", "ship sinking", "plane swooping", "ship close by", "crew on deck" };
 // ent: the filmed Plane, Ship or CrewMember (shot active when set); ctrl: its PlaneControllerAI (planes only);
 // ch: the CrewCharacter and role the job (deck shots only).
 struct NrShot { void* ent = nullptr; void* ctrl = nullptr; void* h = nullptr; int kind = 0; DWORD start = 0, lastDive = 0, downAt = 0, lastCap = 0, lastSeen = 0; std::string name;
                 V3 look{}; bool lookSet = false, gone = false, velOk = false; float closest = 1e9f, orbit0 = 0, size = 0; V3 lastP{}, vel{}, fdir{};
-                void* ch = nullptr; int role = 0; V3 camL{}; bool follow = false; DWORD gunAt = 0; int rounds = 0; };   // follow: walking behind an ammunition runner                  // camL: the deck camera's spot in the boat's frame
+                void* ch = nullptr; int role = 0; V3 camL{}; bool follow = false; DWORD gunAt = 0; int rounds = 0; };   // camL: the deck camera's spot in the boat's frame; follow: behind an ammunition runner
 static const DWORD kNrFallMs = 5000, kNrSinkMs = 7000, kNrCloseShipMs = 6000, kNrDeckMs = 4000;
-// Deck shots: at most 4 a battle (about 16 s of the 60 s film), 15 s apart, none in the first 15 s (crew still taking
-// stations), each man once; the job turns gunner (only while his gun fires) -> helmsman -> ammunition/repair/medic.
+// Deck shots: at most kNrMaxDeck a battle, only while our guns fire, 15 s apart, each man once; the job turns gunner
+// (only while his gun fires) -> helmsman -> ammunition/repair/medic.
 static const int kNrMaxDeck = 6; static int g_nrDeckShots = 0; static DWORD g_nrLastDeck = 0, g_nrBattleAt = 0, g_nrCombatAt = 0;
 static const DWORD kNrGunFireMs = 1500, kNrGunMinMs = 3000, kNrGunMaxMs = 6000;   // a gunner on film: while his gun fires, 3-6 s
 static std::unordered_set<void*> g_nrDeckFilmed;                      // CrewCharacters already filmed this battle
 static std::unordered_map<void*, V3> g_nrShipsPrev;                   // live enemy ships last frame -> position
 static std::unordered_set<void*> g_nrSunk, g_nrShipFilmed;            // ships seen dying / already given a close-by shot
-static std::unordered_set<void*> g_nrPlaneFilmed;                     // planes already given a close-by shot (review 2026-11-14)
+static std::unordered_set<void*> g_nrPlaneFilmed;                     // planes already given a close-by shot
 static void* g_nrPendSink = nullptr; static void* g_nrPendSinkH = nullptr; static V3 g_nrPendSinkP{}; static DWORD g_nrPendSinkAt = 0;   // a sinking that came while busy
 static int g_nrSinks = 0, g_nrSmallSinks = 0;
-// Small boats (Ka-Mi, landing boats, gunboats) sink by the dozen and filled the 20:21 film: at most 3 per battle.
+// Small boats (Ka-Mi, landing boats, gunboats) sink by the dozen: at most 3 per battle.
 static const float kNrSmallBoat = 25; static const int kNrMaxSmallSinks = 3;
 static std::unordered_set<void*> g_nrDownSeen;                        // planes already filmed going down (cleared when seen flying again)
-// David 2026-11-15: "a cap on the number of planes ... the ones that are 'swooping' or good action shots". Each fall is scored
-// once when the camera could take it; later falls of a battle must score higher, at most kNrMaxFalls.
+// Each fall is scored once when the camera could take it; later falls of a battle must score higher, at most kNrMaxFalls.
 static const int kNrFallBar[kNrMaxFalls] = { 15, 25, 35, 50, 65 };    // score needed by falls already filmed
-static const float kNrFallR = 2500, kNrFallMinY = 25, kNrFallNear = 500;   // below 25 m and over 500 m off: only a splash (07:56: falls from 7-16 m)
+static const float kNrFallR = 2500, kNrFallMinY = 25, kNrFallNear = 500;   // below 25 m and over 500 m off: only a splash
 static const float kNrSwoopR = 1000, kNrSwoopClosing = 15, kNrLowPassR = 350, kNrLowPassY = 150;   // closest dive measured: 627 m
 static const DWORD kNrSwoopDiveMs = 3000, kNrDiveBonusMs = 10000;
 // Per-plane flight history (keyed by PlaneControllerAI; reset when a pooled controller flies again or drops off the hook).
@@ -173,7 +172,7 @@ static void NrDropPending(const char* why) {
 static std::unordered_set<void*> g_nrSeenAll, g_nrSeenEnemy;
 static int g_nrStateFrames[8] = {}; static float g_nrClosestAny = 1e9f, g_nrClosestDive = 1e9f;
 
-// David 2026-11-15: keep only the newest newsreel_keep films, and never delete anything else. A film name is exactly
+// Keep only the newest newsreel_keep films, and never delete anything else. A film name is exactly
 // newsreel_YYYY-MM-DD_HH-MM-SS.gif (what NrWriteThread writes), so a renamed or moved GIF is safe; read-only ones too.
 static bool NrIsFilmName(const char* n) {
   static const char pat[] = "newsreel_####-##-##_##-##-##.gif";
@@ -195,7 +194,6 @@ static void NrPrune(const std::string& dir, const char* newest) {
     else Log("newsreel: could not delete newsreels\\%s (error %lu)", films[i].c_str(), GetLastError());
   }
 }
-// David 2026-11-15: "a simple HTML page ... like an old TV and you can change the 'channel' to show the different clips".
 // A page opened from disk cannot list its folder, so the mod rewrites "Newsreel TV.html" with every GIF in the folder
 // (renamed ones too) after each film and at launch. Names go in as a JSON array of UTF-8 strings, sorted (= oldest first).
 static SRWLOCK g_nrTvLock = SRWLOCK_INIT;                              // two writer threads (battles ending close together) share the .tmp
@@ -238,7 +236,7 @@ static void NrWriteTv(const std::string& dir) {
 }
 static DWORD WINAPI NrWriteThread(void* p) {
   GifFrames* f = (GifFrames*)p;
-  try {                                                                // an exception escaping a thread ends the game (0.9.6 review)
+  try {                                                                // an exception escaping a thread ends the game
   SYSTEMTIME t; GetLocalTime(&t); char name[96];
   snprintf(name, sizeof name, "newsreel_%04d-%02d-%02d_%02d-%02d-%02d.gif", t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);
   std::string dir = g_folder + "\\newsreels"; CreateDirectoryA(dir.c_str(), nullptr);
@@ -280,8 +278,7 @@ static bool NrCrewUp(const CrewRec& r) {                               // aboard
   return UnityAlive(r.member) && (r.state == 0 || r.state == 1) && !r.down;
 }
 // A crew member to film: the job in turn first, then the other jobs. Roles: 1 repair, 2 medic, 3 ammo, 4 gun, 5 helm.
-// A gunner's turn waits up to 5 s from waitFrom for a gun to fire before another job is filmed (gun shots are the best ones).
-// David 2026-11-15: "camera man shots of the crew while they are in combat, shooting at things": two turns in three are a gunner's.
+// Two turns in three are a gunner's; such a turn waits up to 5 s from waitFrom for a gun to fire before another job is filmed.
 static void* NrGunOf(void* member) { return g_offCrewGun >= 0 ? *(void**)((char*)member + g_offCrewGun) : nullptr; }
 static DWORD NrGunShotAt(void* member) { void* m = NrGunOf(member); auto f = m ? g_mountShotAt.find(m) : g_mountShotAt.end(); return f != g_mountShotAt.end() ? f->second : 0; }
 static bool NrInCombat(DWORD now) { for (auto& m : g_mountShotAt) if (now - m.second < 4000 && OnPlayerBoat(m.first)) return true; return false; }   // one of OUR guns fired lately (the map holds enemy shots too)
@@ -297,7 +294,7 @@ static CrewRec* NrPickCrew(DWORD now, DWORD waitFrom) {
       if (want == 0 && role == 4) {                                    // a gunner only while his gun is firing
         anyGunner = true;
         DWORD at = NrGunShotAt(r.member);
-        if (at && now - at < kNrGunFireMs) return &r;                   // 700 ms missed the 6-pdr between rounds
+        if (at && now - at < kNrGunFireMs) return &r;                   // kNrGunFireMs spans the 6-pdr's gap between rounds
       }
       else if (want == 1 && role == 5) return &r;
       else if (want == 2 && role >= 1 && role <= 3) return &r;
@@ -310,7 +307,7 @@ static bool NrPos(void* comp, V3& out) {
   void* t = Invoke(g_nr.compTr, comp); void* p = t ? Invoke(g_nr.trPos, t) : nullptr; if (!p) return false;
   out = *(V3*)((char*)p + 0x10); return true;
 }
-// LookRot with a given up: a camera braced on deck rolls and pitches with the hull (David 2026-11-15).
+// LookRot with a given up: a camera braced on deck rolls and pitches with the hull.
 static Q4 NrLookRotUp(V3 f, V3 u) {
   float l = sqrtf(V3Dot(f, f)); if (l < 1e-5f) return { 0, 0, 0, 1 };
   f = { f.x / l, f.y / l, f.z / l };
@@ -347,9 +344,8 @@ static void NrCapture(V3 cam, V3 look, int delay, float fov, V3 up = { 0, 1, 0 }
     const uint8_t* s = px + (size_t)(kNrH - 1 - y) * kNrW * 4;
     for (int x = 0; x < kNrW; x++, s += 4) g[(size_t)y * kNrW + x] = (uint8_t)((s[0] * 77 + s[1] * 150 + s[2] * 29) >> 8);
   }
-  // Exposure: the 2026-11-15 07:45 night film averaged 1-2 of 255 (the game's own eye adaptation never reaches this camera).
-  // The brightest 0.5% go to white and a gamma lifts the darks toward an average near 0.22; held steady within a shot.
-  // A normal daylight frame comes out unchanged (white point 255, gamma 1).
+  // Exposure: the game's eye adaptation never reaches this camera, so night frames come out near black. The brightest
+  // 0.5% go to white and a gamma lifts the darks toward a mean near 0.22, held steady within a shot; daylight is unchanged.
   int hist[256] = {}; for (uint8_t v : g) hist[v]++;
   size_t n = g.size(), acc = 0; int wp = 255; double sum = 0;
   for (int v = 255; v > 0; v--) if ((acc += hist[v]) > n / 200) { wp = v; break; }
@@ -388,7 +384,6 @@ static bool NrBlocked(V3 a, V3 b) {                                    // Physic
 // A spot to stand on deck: a clear view of the man both ways (a camera inside the cabin would see out through its back
 // faces, so the man must see the camera too), stopping 0.5 m short of him (his own colliders), and deck under foot.
 // The Collider a Linecast hit (or (void*)1 when it cannot be named), null when the line is clear; at = the hit point.
-// David 2026-11-15: Tipper on the 6-pdr had all 15 spots "something in the way" while his loader was filmed fine.
 static void* NrHitWhat(V3 a, V3 b, V3& at) {
   alignas(16) unsigned char box[0x10 + 128] = {}; unsigned char* hit = box + 0x10;   // a fake boxed RaycastHit: invoke unboxes at +0x10
   int mask = ~((1 << 12) | (1 << 2)), qti = 1;
@@ -399,7 +394,7 @@ static void* NrHitWhat(V3 a, V3 b, V3& at) {
 }
 // Blocked from a to b, looking through parts of skipTr (a gunner's own gun: in the foreground of his shot, fine); what = the blocker.
 // Going out (back = false) the parts looked through are kept in seen; coming back only those may be looked through again, so a
-// gun part between camera and man (hit both ways) is fine but a camera INSIDE the gun (hit only coming back) is not (review).
+// gun part between camera and man (hit both ways) is fine but a camera INSIDE the gun (hit only coming back) is not.
 static bool NrBlockedPast(V3 a, V3 b, void* skipTr, std::string* what, std::vector<void*>& seen, bool back) {
   if (!g_nr.linecastHit || !g_nr.hitCollider) return NrBlocked(a, b);
   for (int i = 0; i < 5; i++) {
@@ -444,7 +439,7 @@ static bool NrDeckSpot(void* me, const CrewRec& who, int role, V3& camL) {
   };
   for (CrewRec& r : g_crewRecs) {
     if (&r == &who || !NrCrewUp(r)) continue;
-    int rr = *(int*)((char*)r.member + g_oCmRole); if (rr != 4 && rr != 5) continue;   // runners walk off and through the lens (review)
+    int rr = *(int*)((char*)r.member + g_oCmRole); if (rr != 4 && rr != 5) continue;   // runners walk off and through the lens
     V3 h = *(V3*)((char*)r.member + g_oCmHeadP), dh = V3Sub(H, h); float l = sqrtf(dh.x * dh.x + dh.z * dh.z);
     if (l > 0.1f && NrDist(h, *(V3*)((char*)r.member + g_oCmFeet)) < 2.6f)
       add({ h.x + dh.x / l * 0.65f, h.y + 0.05f, h.z + dh.z / l * 0.65f }, 1, "by a crewmate");   // a step in front of him, toward the man
@@ -483,7 +478,7 @@ static bool NrDeckSpot(void* me, const CrewRec& who, int role, V3& camL) {
       gun ? "; his gun mount is " : "", gun ? CrewClean(NameOf(gun)).c_str() : "");
   return false;
 }
-// Behind a walking man (David 2026-11-15: "follow the ammo runner from behind"): 2.4 m back and a little above his head,
+// Behind a walking man: 2.4 m back and a little above his head,
 // closer when something is in the way; the line is checked from a point just behind his head (his own colliders).
 static bool NrFollowSpot(const NrBasis& bb, V3 H, V3 fdir, V3& camL) {
   V3 Hb = { H.x - fdir.x * 0.4f, H.y, H.z - fdir.z * 0.4f };
@@ -502,7 +497,7 @@ static void NewsreelTick() {
   void* eng = EngagementInstance();
   if (eng != g_nrEng) { NrFinishBattle(); g_nrEng = eng; }
   if (!g_newsreelOn) {                                                 // off: forget what it was watching, so switching it back on
-    if (g_nrShot.ent) NrEndShot("the newsreel was switched off");    // mid-battle does not film a ship that sank meanwhile (review)
+    if (g_nrShot.ent) NrEndShot("the newsreel was switched off");    // mid-battle does not film a ship that sank meanwhile
     NrDropPending("the newsreel was switched off"); g_nrShipsPrev.clear(); g_nrPlanes.clear(); g_nrHist.clear(); return;
   }   // drops.ini newsreel=0 / Mod Options; the film so far is still written at the battle's end
   if (!eng || GameTimeScale() < 0.01f) return;                         // no battle, or paused
@@ -510,8 +505,8 @@ static void NewsreelTick() {
   void* me = PlayerCraft(); V3 boat; if (!me || !NrPos(me, boat)) return;
   int myTeam = *(int*)((char*)me + g_nr.leTeam);
 
-  // Planes: one close by within 600 m (the first test's dive-state trigger filmed nothing in a battle with planes), or one
-  // starting to go down within 3 km (most are shot down before they reach the boat, David 2026-11-14).
+  // Planes: one swooping or passing low close by, or one starting to go down within 2.5 km (most are shot down before
+  // they reach the boat, so the Dive state alone films almost nothing).
   void* closeP = nullptr; float closePD = kNrSwoopR; V3 closePP{};
   void* fall = nullptr; void* fallPl = nullptr; float fallD = 0; V3 fallP{}; int fallScore = -1;
   float ts = (std::max)(GameTimeScale(), 0.05f);
@@ -561,7 +556,7 @@ static void NewsreelTick() {
     g_nrDownSeen.insert(fall); g_nrFallsSkipped++; fall = nullptr;
   }
 
-  // Ships (David 2026-11-14: follow boat attacks too): an enemy ship that drops off the live list dead within 3 km is
+  // Ships: an enemy ship that drops off the live list dead within 3 km is
   // sinking; an enemy ship within 300 m gets one close-by shot per battle.
   void* sink = nullptr; float sinkD = 3000; V3 sinkP{};
   void* closeS = nullptr; float closeSD = 300; V3 closeSP{};
@@ -578,7 +573,7 @@ static void NewsreelTick() {
     void* e = kv.first;
     if (!UnityAlive(e) || g_offLeAlive < 0 || *(bool*)((char*)e + g_offLeAlive) || !g_nrSunk.insert(e).second) continue;   // gone, or alive (submerged)
     float d = NrDist(kv.second, boat);
-    if (kv.second.y < -8) continue;                                    // already under: the 19:46 film held on empty sea
+    if (kv.second.y < -8) continue;                                    // already under: the shot would hold on empty sea
     float sz = EntitySize(e);
     if (sz > 0 && sz < kNrSmallBoat && g_nrSmallSinks >= kNrMaxSmallSinks) continue;   // g_nrSunk keeps it from coming back
     if (d < sinkD){ sinkD = d; sink = e; sinkP = kv.second; }
@@ -592,7 +587,7 @@ static void NewsreelTick() {
   if (!sink && g_nrPendSink && !g_nrShot.ent) {                       // waits up to 4 s after the busy shot ends (it can sink for a while)
     float psz = UnityAlive(g_nrPendSink) ? EntitySize(g_nrPendSink) : 0; V3 pp = g_nrPendSinkP;
     if (now - (std::max)(g_nrPendSinkAt, g_nrLastEnd) >= 4000 || !UnityAlive(g_nrPendSink) || !NrPos(g_nrPendSink, pp)) NrDropPending("it was gone or waited too long");
-    else if (pp.y < -6) NrDropPending("it went under while queued");   // review 2026-11-14: queued ships were never re-checked
+    else if (pp.y < -6) NrDropPending("it went under while queued");
     else if (psz > 0 && psz < kNrSmallBoat && g_nrSmallSinks >= kNrMaxSmallSinks) NrDropPending("small-boat sinkings already filmed");
     else {
       sink = g_nrPendSink; sinkP = pp; sinkD = NrDist(sinkP, boat);
@@ -605,7 +600,7 @@ static void NewsreelTick() {
     NrEndShot(fall ? "cut to a plane going down" : "cut to a ship sinking");
   if (!g_nrCombatAt && NrInCombat(now)) g_nrCombatAt = now;            // the first of our guns firing this battle
   if (!g_nrShot.ent) {
-    // less than a second left: a new shot would be just its splice (22:30 film)
+    // less than a second left: a new shot would be just its splice
     if ((int)g_nrFilm.frames.size() >= kNrMaxFrames - 20) { if (!g_nrFullLogged) { g_nrFullLogged = true; DLog("newsreel: the film is full (%d frames); no more shots this battle", kNrMaxFrames); } return; }
     int kind; void* ent; void* ctrl = nullptr; float d; V3 p; CrewRec* crew = nullptr; V3 deckL{}; bool follow = false;
     if (fall) { kind = kNrPlaneFall; ctrl = fall; ent = *(void**)((char*)fall + g_nr.ctrlPlane); d = fallD; p = fallP; }
@@ -621,7 +616,7 @@ static void NewsreelTick() {
         follow = true; DLog("newsreel: following '%s' from behind", crew->name.c_str());
       }
       else if (!NrDeckSpot(me, *crew, role, deckL)) {                   // nowhere clear to stand: someone else next time
-        g_nrDeckFilmed.insert(crew->ch); g_nrLastDeck = now - 10000;   // next try in 5 s (review 2026-11-14)
+        g_nrDeckFilmed.insert(crew->ch); g_nrLastDeck = now - 10000;   // next try in 5 s
         DLog("newsreel: '%s' not filmed", crew->name.c_str()); return;
       }
       kind = kNrDeck; ent = crew->member; d = NrDist(p, boat);
@@ -661,7 +656,7 @@ static void NewsreelTick() {
   float sdt = (now - s.lastSeen) / 1000.0f;
   if (read && plane && s.downAt && NrDist(q, s.lastP) > 300 + 250 * sdt) read = false;   // a pooled plane jumps away: treat as gone
   if (!read) {
-    if (!s.downAt || !plane) { NrEndShot(plane ? "the plane is gone" : s.kind == kNrDeck ? "they are gone" : "the ship is gone"); return; }   // a gone ship left empty sea (20:21 film)
+    if (!s.downAt || !plane) { NrEndShot(plane ? "the plane is gone" : s.kind == kNrDeck ? "they are gone" : "the ship is gone"); return; }   // holding on a gone ship films empty sea
     if (!s.gone) { s.gone = true; DLog("newsreel: '%s' left the scene %.1f s in; holding on the spot", s.name.c_str(), (now - s.start) / 1000.0); }
   }
   else {
@@ -676,7 +671,7 @@ static void NewsreelTick() {
       s.vel = s.velOk ? NrLerp(s.vel, v, 0.4f) : v; s.velOk = true;
       float hv = sqrtf(s.vel.x * s.vel.x + s.vel.z * s.vel.z);
       if (hv > 3 && s.kind != kNrDeck) s.fdir = { s.vel.x / hv, 0, s.vel.z / hv };   // last good heading, kept through the splash (a deck shot's
-                                                                       // fdir is the man's facing, not the boat's course: review 2026-11-14)
+                                                                       // fdir is the man's facing, not the boat's course)
       s.lastP = p; s.lastSeen = now;
     }
   }
@@ -702,26 +697,26 @@ static void NewsreelTick() {
   }
   if (d < 1100) s.lastDive = now;                                      // lastDive: last time the plane was close (a swoop starts up to 1 km off)
   if (s.kind == kNrPlaneClose && !s.downAt && d > s.closest + 300) { NrEndShot("it pulled away"); return; }
-  if (s.kind == kNrPlaneClose && !s.downAt && now - s.start > 4000 && s.closest > 800) { NrEndShot("it stayed far off"); return; }   // no 9 s of dots (07:56 film)
+  if (s.kind == kNrPlaneClose && !s.downAt && now - s.start > 4000 && s.closest > 800) { NrEndShot("it stayed far off"); return; }   // no 9 s of dots
   if (plane && !s.downAt && now - s.lastDive > 1500) { NrEndShot("it flew off"); return; }
   if ((int)g_nrFilm.frames.size() >= kNrMaxFrames) { NrEndShot("the film is full"); return; }
   if (s.lastCap && now - s.lastCap < 50) return;
-  if (plane && s.downAt && !s.velOk && !s.gone && now - s.start < 400) return;   // chase: wait for the plane's heading (review 2026-11-14)
+  if (plane && s.downAt && !s.velOk && !s.gone && now - s.start < 400) return;   // chase: wait for the plane's heading
   int delay = s.lastCap ? (int)(std::min)(20UL, (std::max)(3UL, (now - s.lastCap + 5) / 10)) : 5;
   s.lastCap = now;
   V3 cam, want, camUp = { 0, 1, 0 }; float manR = 0;
   if (plane && s.downAt) {
     // Chase camera for a falling plane: behind it along its ground track, off to the side and above, so the horizon,
-    // the smoke trail and the splash stay in frame (the first test's camera stayed put and ended up staring at the sea).
+    // the smoke trail and the splash stay in frame.
     bool haveDir = s.fdir.x != 0 || s.fdir.z != 0;                    // its last good heading; none yet: face it from the boat's side
     V3 f = haveDir ? s.fdir : (hd > 1 ? V3{ -dx / hd, 0, -dz / hd } : V3{ 0, 0, 1 });
     V3 side = { f.z, 0, -f.x };
-    // Not position-smoothed: a lagging camera fell ~40 m behind a 100 m/s plane (19:46 film). The heading is smoothed already.
+    // Not position-smoothed: a lagging camera falls ~40 m behind a 100 m/s plane. The heading is smoothed already.
     cam = { p.x - f.x * 45 + side.x * 25, (std::max)(p.y + 14, 6.0f), p.z - f.z * 45 + side.z * 25 };
     want = s.gone ? p : V3{ p.x + s.vel.x * 0.15f, p.y + s.vel.y * 0.15f, p.z + s.vel.z * 0.15f };   // a little ahead of it
   }
   else if (s.kind == kNrDeck) {
-    // A camera person standing on our deck (David 2026-11-14: "like the camera man is on the boat"): the spot picked at the
+    // A camera person standing on our deck: the spot picked at the
     // start stays put in the boat's frame, so it rolls and runs with the hull; he turns to keep the man in frame, a slight
     // sway as if hand-held. A gunner is watched past his shoulder toward where his gun points.
     NrBasis bb; if (!NrBoatBasis(me, bb)) { NrEndShot("the boat is gone"); return; }
@@ -754,7 +749,7 @@ static void NewsreelTick() {
   }
   else if (s.kind == kNrShipSink) {
     // A slow orbit around the sinking ship, starting on the boat's side. Distance from its size so a 15 m landing boat is
-    // not a few pixels (20:21 film): about 48 m out and 13 m up for that, up to 110 m out and 28 m up; unknown size = the most.
+    // not a few pixels: about 48 m out and 13 m up for that, up to 110 m out and 28 m up; unknown size = the most.
     float R = s.size > 0 ? (std::min)(110.0f, (std::max)(30.0f, s.size * 2.2f + 15)) : 110, up = R * 0.25f;
     float a = s.orbit0 + (now - s.start) / 1000.0f * 0.2f;
     cam = { p.x + cosf(a) * R, (std::max)(p.y, 0.0f) + up, p.z + sinf(a) * R };
@@ -768,9 +763,8 @@ static void NewsreelTick() {
     NrBasis cb; if (NrBoatBasis(me, cb)) camUp = cb.u;                 // standing on our deck: rolls with it
   }
   if (cam.y < 6 && s.kind != kNrPlaneClose && s.kind != kNrShipClose && s.kind != kNrDeck) cam.y = 6;   // never under the waves
-  // Deck: no world-space smoothing, the boat moves ~1 m between captures and the man drifted off centre (review 2026-11-14).
+  // Deck: no world-space smoothing, the boat moves ~1 m between captures and the man would drift off centre.
   if (!s.lookSet || s.kind == kNrDeck) { s.look = want; s.lookSet = true; } else s.look = NrLerp(s.look, want, 0.5f);
-  // Zoom: the deck camera narrows its view for a far plane or ship so it is more than a few pixels (review 2026-11-14).
   float fov = 55;
   if (s.kind == kNrDeck) { float r = manR > 0 ? manR : NrDist(cam, s.look); fov = (std::max)(s.role == 4 ? 48.0f : 34.0f, (std::min)(65.0f, 2 * atanf(1.9f / (std::max)(r, 0.5f)) * 57.2958f)); }   // the man about half the frame tall; a gunner with his gun
   if (s.kind == kNrPlaneClose || s.kind == kNrShipClose) {
@@ -779,7 +773,7 @@ static void NewsreelTick() {
   }
   NrCapture(cam, s.look, delay, fov, camUp);
 }
-static void SafeNewsreelCleanup() {                                    // after a fault: free the shot and the film (up to ~35 MB)
+static void SafeNewsreelCleanup() {                                    // after a fault: free the shot and the film (up to ~280 MB)
   __try { Unpin(g_nrShot.h); NrDropPending(nullptr); } __except (EXCEPTION_EXECUTE_HANDLER) {}
 }
 static void NrForget() { g_nrShot = NrShot(); g_nrFilm = GifFrames(); }

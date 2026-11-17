@@ -1,14 +1,11 @@
 // Big Brother, helpers' looks, Kamikaze Gull steering (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- Big Brother ------------------------------------------------------------------------------------------------------
-// The Fletcher comes the way the game's own boat call-ins do (FactionCallinSpawner's coroutine, read in the disassembly
-// 2026-11-16): CallinMethods.setSurfaceSpawnBySearch(team, distance) puts its spawnCenter on free sea that far from the
-// player boat, then callInBoat(prefab, team) (0x180945630) takes the ship from GameManager.entityPooler, sets its team,
-// rangeOfInfluence 10000 and spawnedFrom = that CallinMethods (whose getPath is an empty path, as for real call-ins) and
-// puts its Rigidbody at the spawnCenter. The CallinMethods is CallInManager.instance.callinMethods. Without one (or if
-// the call fails) the mod places it with SpawnFriendly, kBigBrotherDist to the right of the gun's line of fire.
+// The Fletcher arrives like the game's boat call-ins (FactionCallinSpawner): CallInManager.instance.callinMethods
+// .setSurfaceSpawnBySearch(team, distance) finds free sea, then callInBoat(prefab, team) (0x180945630) spawns it there.
+// Without a CallinMethods, or if the call fails, SpawnFriendly places it kBigBrotherDist right of the line of fire.
 static const float kBigBrotherDist = 300.0f;
 static int g_bbLogs = 0;                                              // destroyer events logged in full this battle (first 3)
-static float HullHp(void* ent) {                                     // the sum of a CombatEntity's hull HealthPart HP
+static float HullHp(void* ent) {
   static void* mGetHp = nullptr; if (!mGetHp) { void* hp = FindClass("Core", "HealthPart"); mGetHp = hp ? FindMethod(hp, "get_HP", 0) : nullptr; }
   void* hull = ent && g_offCeHull >= 0 ? *(void**)((char*)ent + g_offCeHull) : nullptr; float sum = 0;
   for (int i = 0; i < ListCount(hull) && mGetHp; i++) { void* part = ListAt(hull, i); void* h = part ? Invoke(mGetHp, part) : nullptr; if (h) sum += *(float*)((char*)h + 0x10); }
@@ -46,16 +43,12 @@ static void* BigBrotherCall(V3 boat, V3 flat, bool forOther, bool* asCallin) {
   return SpawnFriendly(want, p, flat, 1.0f, 0);
 }
 // ---- helpers' looks --------------------------------------------------------------------------------------------------
-// A helper is a pooled game entity: the game hands the same object out again later (a Dauntless call-in, say), and
-// nothing in the game resets a transform's scale (see the Elite notes), so a helper gets its own size back when it
-// leaves: when the mod sends it home, once it is back in its pool after being shot down or blowing up, when the game
-// has reused it, and at battle end. Before this, a 0.3x Dauntless could go back to its pool small.
-// The Kamikaze Gull's planes also wear models\gull_bomber.obj (David 2026-10-30: 'they need to be bigger' and should
-// look like the gun's gull): a copy of it hangs on the plane's root, over the real plane, whose meshes (not its radar
-// blip) are hidden with forceRenderingOff as gun models do; it comes off on the same occasions. On a co-op client the
-// host's LOOK message says which helper is a gull: the client dresses it and leaves its size to CoopLooksBack.
+// Helpers are pooled entities and the game never resets a transform's scale, so a helper gets its own size (and look)
+// back whenever it leaves: sent home, back in its pool, reused by the game, or at battle end.
+// Kamikaze Gull planes wear a gull_bomber.obj copy on the root with the plane's meshes hidden (radar blip kept).
+// On a co-op client the host's LOOK message names the gulls; their size is left to CoopLooksBack.
 // ai: the plane's PlaneControllerAI while a steered gull has it switched off (GullSteer); it is switched on again here too.
-static const float kGullPlaneScale = 0.6f;                            // the gull planes' size against a Dauntless (was 0.3)
+static const float kGullPlaneScale = 0.6f;                            // the gull planes' size against a Dauntless
 struct HelperLook { void* ent; void* handle; V3 scale; bool restoreScale; void* holder; void* holderHandle; bool sawDead; void* ai = nullptr; };
 static std::vector<HelperLook> g_helperLooks;
 static int g_gullsDressed = 0, g_looksBack = 0;
@@ -76,9 +69,8 @@ static void* DressAsGull(void* ent) {
   }
   void* entT = Invoke(m_getTransform, ent); if (!entT) return nullptr;
   void* root = LoadModelCopy(path, "gull plane"); if (!root) return nullptr;
-  // Every Dauntless has a 'Radar Display 3D' child, its radar blip: a 160 m mesh 50 m below the plane. Centring the gull
-  // on all the meshes put it 24 m below and 19 m behind the real plane (2026-11-07), and hiding it took the gulls off
-  // the radar. It stays shown now, and the gull sits at a fixed spot on the plane's root (+Z nose, +Y up, like the .obj).
+  // 'Radar Display 3D' is the radar blip (a 160 m mesh 50 m below the plane): left shown, and left out of any centring.
+  // The gull sits at a fixed spot on the plane's root instead (+Z nose, +Y up, like the .obj).
   float lo[3] = { 1e30f, 1e30f, 1e30f }, hi[3] = { -1e30f, -1e30f, -1e30f }; int hidden = 0, kept = 0;
   std::vector<void*> rs; CollectRenderersExcept(entT, 0, { "Radar Display" }, rs, &kept);
   for (void* r : rs) {
@@ -200,16 +192,10 @@ static void Despawn(Minion& m, bool explode, const V3* splashAt = nullptr, void*
 }
 
 // ---- Kamikaze Gull steering -------------------------------------------------------------------------------------------
-// David 2026-11-07: 'not sure they are actually hitting/exploding on stuff'. They were not: the game's dive bomber AI
-// (PlaneControllerAI) climbs to 550 m, only dives from over 1800 m out, drops its bomb at 550 m and pulls up at 50 m, and
-// rewrites FlightObject.targetCoordinate every physics step (read in the disassembly 2026-11-07), so a 25 s gull never
-// came within 35 m of anything and blew up in mid-air. Now a gull with an enemy boat or shore gun within 2 km has its
-// AI switched off (Behaviour.enabled) and is flown by the mod: every frame FlightObject.targetCoordinate (the nose) and
-// resetVelocity (the body and the flight simulation), turning at most 110 deg/s (220 within 150 m) at 90 -> 140 m/s,
-// aimed a little high while far out so it comes down in a dive, at the target's aim point (ShipAimHeight /
-// GroundAimOffset) plus its realtimeVelocity lead. It blows up within 14 m of the aim point, when it passes it after
-// coming within 40 m, within 12 m of any enemy collider, or just before the water; the splash goes at the aim point.
-// Target gone: the next one from the gull, or the AI back on. The AI goes back on in GullRelease and RestoreHelperLook.
+// The game's dive bomber AI (PlaneControllerAI) only dives from over 1800 m out and rewrites FlightObject.targetCoordinate
+// every physics step, so it never hits within a gull's 25 s life. A gull with an enemy within 2 km has its AI disabled and
+// is flown by the mod: targetCoordinate (nose) and resetVelocity every frame, toward the target's aim point plus lead.
+// The AI goes back on in GullRelease and RestoreHelperLook.
 static int g_gullFull = 0;                                             // gulls logged in full this battle (the first 3)
 static V3 AimPointOn(void* ent) {
   V3 o = PosOf(ent);

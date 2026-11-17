@@ -5,12 +5,12 @@
 // for it: objects named stand* or base* go under GunMount.stand, barrel* under every Barrel.transform (recoil moves
 // them), yaw* on the traverse at the pivot (turns, does not elevate), the rest under pivotPoint (turns and elevates).
 // The gun's own mesh renderers are switched off; aiming, seats, shoot points, muzzle flashes and sounds stay the stock gun's.
-// Component.GetComponentsInChildren(Type, bool) is stripped from this build (first test 2026-10-27), so renderers are
+// Component.GetComponentsInChildren(Type, bool) is stripped from this build, so renderers are
 // found by walking the transforms with GetChild and asking each for its Renderer.
 struct ModelApi { void *loaderCls, *ctor, *load, *goTransform, *childCount, *getChild, *lossy, *localEuler, *getComponent,
                   *rendererType, *forceOff, *getMat, *getMats, *setMat, *getShader, *bounds, *destroy, *dontDestroy; bool ok; };
 static ModelApi g_mapi = {};
-static void LogMethodsOf(void* klass) {                              // what a stripped class still has, for the next round
+static void LogMethodsOf(void* klass) {                              // what a stripped class still has, to pick another method
   std::string s;
   for (void* k = klass; k; k = il2cpp_class_get_parent(k)) {
     void* iter = nullptr; void* m;
@@ -160,7 +160,7 @@ static void LogModelTree(void* t, int depth, const std::vector<std::pair<void*, 
   V3 lp = GetV3(m_getLocalPos, t), le = GetV3(g_mapi.localEuler, t), ls = GetV3(g_mapi.lossy, t);
   void* r = Invoke(g_mapi.getComponent, t, (void**)&g_mapi.rendererType);
   std::string rs;
-  if (r) { void* b = Invoke(g_mapi.bounds, r); V3 ext = b ? *(V3*)((char*)b + 0x1C) : V3{ 0, 0, 0 };
+  if (r) { void* b = Invoke(g_mapi.bounds, r); V3 ext = b ? *(V3*)((char*)b + 0x1C) : V3{ 0, 0, 0 };   // boxed Bounds: center at 0x10, extents at 0x1C
            char buf[96]; snprintf(buf, sizeof buf, " %s size (%.2f, %.2f, %.2f) ", il2cpp_class_get_name(il2cpp_object_get_class(r)), ext.x * 2, ext.y * 2, ext.z * 2); rs = buf + MaterialInfo(r); }
   DLog("  %*s'%s' pos (%.2f, %.2f, %.2f) rot (%.0f, %.0f, %.0f) worldScale (%.2f, %.2f, %.2f)%s%s", depth * 2, "", NameOf(t).c_str(),
        lp.x, lp.y, lp.z, le.x, le.y, le.z, ls.x, ls.y, ls.z, rs.c_str(), tag.c_str());
@@ -237,8 +237,8 @@ static void ApplyModel(void* mount, const Item& it) {
   std::vector<void*> parts;
   for (int i = 0; i < n && i < 64; i++) { void* a[1] = { &i }; void* c = Invoke(g_mapi.getChild, rootT, a); if (c) parts.push_back(c); }
   // The stock meshes go dark through forceRenderingOff: SwapRenderersByDistance, VisualReactor, GunMountAnimation and
-  // GunMountMunitionsListener all switch Renderer.enabled back on, and nothing in the game sets forceRenderingOff (test 2,
-  // 2026-10-27). Particles (muzzle flash) stay. The gun's material (used unless model_material=own) is its most used
+  // GunMountMunitionsListener all switch Renderer.enabled back on, and nothing in the game sets forceRenderingOff.
+  // Particles (muzzle flash) stay. The gun's material (used unless model_material=own) is its most used
   // one: the first renderer on the Bofors is an empty glowing 'Red' one under pivotPoint.
   // model_keep names stock parts that stay (a turret gun's ring mount, belts, pedestal), so only the gun is replaced.
   std::map<void*, int> matUse; int hidden = 0, keptParts = 0;
@@ -289,7 +289,7 @@ static void ApplyModel(void* mount, const Item& it) {
       for (size_t i = 1; i < barrelTs.size(); i++) { void* copy = CloneObject(p); if (copy) { attach(copy, barrelTs[i]); placed++; } }
       attach(p, barrelTs[0]);
     } else if (nm.compare(0, 3, "yaw") == 0 && pivot) {
-      // yaw*: turns with the aim but does not elevate. aimAt(rotate) and turn() (read 2026-11-15) yaw yawFineTuner, or the
+      // yaw*: turns with the aim but does not elevate. aimAt(rotate) and turn() yaw yawFineTuner, or the
       // mount's own transform when it has none (the 3-inch), and give pivotPoint only its pitch. The part is authored in
       // the pivot frame, so it hangs on that traverse at the pivot's position, level.
       void* yawT = offYaw >= 0 ? *(void**)((char*)mount + offYaw) : nullptr;

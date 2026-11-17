@@ -74,8 +74,7 @@ static bool InitSeatIcons() {
   void* res = FindClass("UnityEngine", "Resources");
   g_resFindAll = res ? FindMethod(res, "FindObjectsOfTypeAll", 1, "System.Type") : nullptr;
   // Object.FindObjectsByType(type, Exclude inactive, no sorting) looks only at live scene objects; FindObjectsOfTypeAll
-  // also walks assets and prefabs; the 2026-10-29 log's 26-32 ms worst loadout frames (920k objects loaded) fit two such
-  // scans every 120 frames
+  // also walks assets and prefabs (with about 920k objects loaded, two such scans cost 26-32 ms)
   { void* o = FindClass("UnityEngine", "Object"); g_objFindBy = o ? FindMethod(o, "FindObjectsByType", 3, "System.Type") : nullptr; }
   void* ie = FindClass("Core.Customization", "ItemElementUI");
   void* se = FindClass("Core.Customization", "SlotElementUI");
@@ -129,9 +128,8 @@ static int CrewlessMount(void* obj) {                                 // 1 crewl
 
 // Gun-list rows (ItemElementUI) are collected as they wake (Hooked_ItemElemAwake), held by GC handles and dropped once
 // Unity destroys them; slot rows are read from the screen's own CraftCustomizationManager.slotGroup.slots list. One
-// include-inactive scan, the first time the screen opens, catches rows that woke before the mod's hooks. The periodic
-// scans this replaces were the screen's worst frame, 11-18 ms each even with FindObjectsByType (2026-10-29 logs).
-// The lists are refreshed every 120 frames (cheap now) and the per-frame pass reuses them.
+// include-inactive scan, the first time the screen opens, catches rows that woke before the mod's hooks (a periodic
+// scan costs 11-18 ms even with FindObjectsByType). The lists are refreshed every 120 frames and the per-frame pass reuses them.
 static std::vector<void*> g_itemEls, g_slotEls;
 static int g_seatScanFrame = -100;
 static double g_perfScanMax = 0; static int g_perfScans = 0;           // row list refreshes, for the loadout perf line
@@ -176,7 +174,7 @@ static void RefreshRowLists(void* ccm) {
   }
   void* grp = ccm && g_offCcmSlotGroup >= 0 ? *(void**)((char*)ccm + g_offCcmSlotGroup) : nullptr;
   void* slots = grp && g_offGroupSlots >= 0 ? *(void**)((char*)grp + g_offGroupSlots) : nullptr;
-  if (!slots) { ScanElements(g_typeSlotEl, g_slotEls, 1); return; }   // no list: scan as before
+  if (!slots) { ScanElements(g_typeSlotEl, g_slotEls, 1); return; }   // no list: fall back to the scan
   g_slotEls.clear();
   for (int i = 0; i < ListCount(slots); i++) { void* e = ListAt(slots, i); if (RowAlive(e)) g_slotEls.push_back(e); }
 }
@@ -235,12 +233,11 @@ static void JobSelection(void* self) {
   else DumpSelection(self, "change", true);
 }
 // every 30 frames, not only at 10 and 60: a gun scrapped while the screen is open is still in the slot's list until the
-// boat is rebuilt, and picking it again would take it into battle uncounted (review 2026-10-28)
+// boat is rebuilt, and picking it again would take it into battle uncounted
 static void JobUnequip(void* self) { if (g_diagFrames % 30 == 10) UnequipRetired(self); }
 static void JobSeats(void* self) { HideCrewlessSeatIcons(self); }
 // A gun kept from the loot grid is injected into the boats at once, but the open loadout screen can keep showing its
-// old list: the first found gun of a slot family gives that slot a new SelectionOrder copy (David, 2026-10-25: the gun
-// only appeared after leaving and reopening the screen). One frame after a keep, the screen's own
+// old list: the first found gun of a slot family gives that slot a new SelectionOrder copy. One frame after a keep, the screen's own
 // CraftCustomizationManager.fillCraftSlotsGuns() rebuilds the gun slots, as opening the screen does.
 static void JobRefreshGuns(void* self) {
   if (!g_refreshGunSlots) return;
@@ -307,7 +304,7 @@ static void BeforeSelectIndex(void* ws, int index) {
   if (g_selectLogs < 400) {
     g_selectLogs++;
     DLog("selectIndex ws=%p family '%s' index=%d mounts=%d selectedIndex=%d prevent=%d", ws, order ? FamilyOf(order).c_str() : "-", index, cnt,
-        *(int*)((char*)ws + g_offWsSelIndex), (int)*(bool*)((char*)ws + 0xB4));
+        *(int*)((char*)ws + g_offWsSelIndex), (int)*(bool*)((char*)ws + 0xB4));   // 0xB4: WeaponSystem.forcePreventSelectionChange
   }
   if (index > 0 && index >= cnt) {
     DLog("  position %d is beyond this system's %d guns; adding the missing guns first", index, cnt);
@@ -326,9 +323,8 @@ static void Hooked_SelectIndex(void* self, int index, void* method) {
 
 // The game builds the player's boat while a save loads, a moment before the mod switches to that save's inventory, so the
 // boat gets the last save's guns: this save's ones become hidden placeholders, a copy of the slot's first stock gun under
-// the gun's name. The loadout picks them by position, so all session a 'Bofors of Shrapnel' was a small stock gun (David
-// 2026-10-31; the Kamikaze Gull's placeholder still launched gulls, as that effect goes by the gun's name). Inject now
-// swaps such a placeholder for the real gun at the same position, and selects it again if the slot had picked it.
+// the gun's name, picked by position (a found gun would be a stock gun all session). Inject swaps such a placeholder
+// for the real gun at the same position, and selects it again if the slot had picked it.
 // In co-op only on this player's own boat: another player's positions are EnsureRemoteGun's, which also keeps the shot
 // sync's table pointing at the gun there, and a swap here would leave that table on the old copy.
 static bool OnPlayerBoat(void* mount);

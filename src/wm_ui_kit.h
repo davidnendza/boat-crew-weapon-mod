@@ -71,7 +71,7 @@ static void* BtnTex() {                                                // button
   return g_texBtn;
 }
 // Amber and black diagonal stripes, made at the drawn size in screen pixels; inside the border band it is clear, since
-// the crate's scrap box is see-through (2026-11-05).
+// the crate's scrap box is see-through.
 static void* HazardTex(int w, int h) {
   void*& t = g_texHazard[{ w, h }];
   if (!Alive(t)) {
@@ -86,8 +86,8 @@ static void* HazardTex(int w, int h) {
   return t;
 }
 
-// The game's own text is TextMeshPro, which IMGUI cannot use, and Jost is loaded only as a TextMeshPro asset (test
-// 2026-10-27). So the first dynamic Font in kUiFonts order is used: Jost if it ever is loaded, else Kanit, a geometric
+// The game's own text is TextMeshPro, which IMGUI cannot use, and Jost is loaded only as a TextMeshPro asset.
+// So the first dynamic Font in kUiFonts order is used: Jost if it ever is loaded, else Kanit, a geometric
 // sans close to it that the game loads for its translations, else Be Vietnam Pro; else Unity's default.
 static const char* kUiFonts[] = { "jost-regular", "jost-medium", "jost", "kanit-regular", "kanit-medium", "bevietnampro-regular" };
 static void FindGameFont() {
@@ -153,7 +153,7 @@ static bool StyledButton(Rect4 r, const std::string& label, int type, Vec2 mouse
   return click;
 }
 // ---- the Field Manual kit: paper, ink, stamps and the PNGs behind them ----
-// (moved above the inventory 2026-11-05 so the field crate look can use it; unchanged)
+// (above the inventory so the field crate look can use it)
 static const unsigned kTabOn = 0xdccdaf;   // mean of ui_paper.png's darkened top band, so the active tab joins the textured sheet
 static const unsigned kPaper = 0xe8dcc0, kInk = 0x2b2a26, kInkMuted = 0x6b5f45, kStampRed = 0xb3261e, kTabOff = 0xc9b88f, kCard = 0xf6f1e3;
 static const char *kInkHex = "#2b2a26", *kMutedHex = "#6b5f45", *kBlueHex = "#1f3f8a", *kRedHex = "#b3261e", *kTabTextHex = "#5a4f38", *kPaperHex = "#e8dcc0";

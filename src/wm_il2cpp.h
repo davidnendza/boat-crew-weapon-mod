@@ -90,12 +90,10 @@ static bool Resolve() {
   return ok;
 }
 
-// il2cpp_domain_get CREATES the domain with a GC allocation when there is none yet. Called before the game's il2cpp_init,
-// that starts the garbage collector on this thread and the game then dies with "Fatal error in GC: Exclusion ranges
-// overlap" / "Threads explicit registering is not previously enabled" (the friend's join-from-Steam launch, 2026-10-31).
-// So it is only called once two plain reads show the runtime is up: the assembly list (il2cpp_domain_get_assemblies only
-// reads a global vector and ignores its domain argument) and il2cpp_get_corlib. Runtime::Init sets corlib after starting
-// the GC and creates the domain a few class lookups later, so corlib must have been there for a second already.
+// il2cpp_domain_get CREATES the domain (a GC allocation) when there is none; called before the game's il2cpp_init it
+// starts the GC on this thread and the game dies with "Fatal error in GC: Exclusion ranges overlap" (seen on a launch
+// joined from Steam). So it waits for two plain reads: the assembly list (il2cpp_domain_get_assemblies ignores its
+// argument) and il2cpp_get_corlib, which Runtime::Init sets after starting the GC, held for a second.
 static bool DomainReady(void** domain) {
   static DWORD corlibSince = 0;
   __try {
@@ -138,8 +136,7 @@ static std::string WithNewlines(const std::string& s, const std::string& nl) {
   std::string c; for (char ch : s) { if (ch == '\n') c += '\r'; c += ch; } return c;
 }
 
-// A type's name. il2cpp_type_get_name returns a copy the caller must free with il2cpp_free (it leaked a little on every
-// edit of every boat build until 2026-10-28).
+// A type's name. il2cpp_type_get_name returns a copy the caller must free with il2cpp_free.
 static std::string TypeName(const void* type) {
   static void (*freeFn)(void*) = (void (*)(void*))GetProcAddress(g_ga, "il2cpp_free");
   const char* n = type ? il2cpp_type_get_name(type) : nullptr;
@@ -164,7 +161,7 @@ static void* FindMethod(void* klass, const char* name, int nparams, const char* 
 }
 
 // Store a managed reference into a field (or array slot) of a managed object. Unity 6's incremental GC can otherwise miss
-// a reference written in the middle of its mark phase and free the object (code review 2026-10-24, finding 1).
+// a reference written in the middle of its mark phase and free the object.
 static void SetRef(void* obj, void* addr, void* value) {
   if (il2cpp_gc_wbarrier_set_field) il2cpp_gc_wbarrier_set_field(obj, (void**)addr, value);
   else *(void**)addr = value;
@@ -183,6 +180,8 @@ static void* Invoke(void* method, void* obj, void** args = nullptr) {
 }
 
 // Il2Cpp string -> UTF-8. Four rotating buffers so several calls can share one Log line.
+// Il2CppString layout: length (int) at 0x10, UTF-16 chars from 0x14. A boxed value type (what il2cpp_runtime_invoke
+// returns for a bool, int, Vector3, ...) has its data at 0x10, after the object header.
 static const char* Str(void* s) {
   static char bufs[4][256]; static int n = 0;
   char* buf = bufs[n++ & 3];

@@ -1,29 +1,17 @@
 // found torpedoes: launchers, tiers, torpedoes in the water (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- found torpedoes -------------------------------------------------------------------------------------------------
-// Traced 2026-11-04:
-//  - A TorpedoLauncher is a SelectableObject like a WeaponSystem: its slot family is its SelectionOrder's name, the
-//    choices are its List<TorpedoTier> torpedos, and a save keeps the chosen POSITION (SLOT~Torpedo Launcher Side Tube FL
-//    = 6). So a found torpedo is a copy of a stock TorpedoTier appended at a stable position (positions.ini, as for
-//    guns), with its own TorpedoType copy in _type (TorpedoTier.type returns it: price, sprite, description, lock) and an
-//    entry in a per-launcher copy of the SelectionOrder. Filled in TorpedoLauncher.Awake (before the game or a save
-//    selects anything) and in selectIndex (a saved position beyond the list fills it first, as for guns). A launcher and
-//    its mirror (symmetric, FL/FR) get the same list, and select() copies the choice across.
-//  - A launched Torpedo is a pooled copy of tier.prefab and keeps the TYPE OF ITS PREFAB (+0x48): TorpedoLauncher.launch
-//    never sets it, and a copied prefab would not be in the pool (ObjPooler.fetchObj returns null). FixedUpdate reads the
-//    type live every frame (damage, blast radius, thrust, range, hitbox), and Torpedo.launch copied only detonateTime and
-//    armingTime from it. So the Torpedo.FixedUpdate hook gives each new launch (a new projectileCode) its tier's type and
-//    those two times, which also puts the stock type back on a pooled torpedo fired next as a stock one.
-//  - Homing (fx torpSeek, degrees a second) turns the torpedo after the game's FixedUpdate: tendToLine off, the body's
-//    yaw and flat velocity toward the target's lead point. The game's own radar homing (TorpedoType.radarGuided) only
-//    takes ships that are moving with a working engine, inside an arc, with a weak torque, so it is switched off
-//    (radarGuided = false on the copy) on every torpedo the mod steers.
-//  - Chomp (fx chomp 1 = Chomper, 2 = Chompette): the torpedo runs 2.5-4 m deep, so its look is a yellow ball (two jaws,
-//    models\chomper_*.obj from tools/make_chomper_assets.py) riding on the water above it, opening and closing, with a
-//    chomp loop and a gulp where it hits (sounds\*.wav, played with the FMOD core API in fmodstudio.dll: Unity's own
-//    audio is stripped from this build).
-//  - Crawl (fx crawl 1 = the Sneaking Eel): the same swap for a commando crawling on the water (models\commando_*.obj
-//    from tools/make_commando_assets.py, six parts turned at their pivots, no sound). Its type copy sets the game's
-//    spotting multiplier (detectionByEntityChanceMultiplier) to 0: no ship ever spots it, so none steer away.
+//  - A TorpedoLauncher is a SelectableObject like a WeaponSystem, and a save keeps the chosen POSITION in its
+//    List<TorpedoTier> torpedos. A found torpedo is a copy of a stock TorpedoTier at a stable position (positions.ini, as
+//    for guns) with its own TorpedoType copy, filled in TorpedoLauncher.Awake and in selectIndex (a saved position beyond
+//    the list fills it first). A launcher and its mirror (symmetric, FL/FR) get the same list.
+//  - A launched Torpedo is a pooled copy of tier.prefab and keeps its PREFAB's type (+0x48), which FixedUpdate reads
+//    live; a copied prefab would not be in the pool. So the Torpedo.FixedUpdate hook gives each new launch (projectileCode)
+//    its tier's type plus detonateTime/armingTime, and puts the stock type back for a stock launch.
+//  - Homing (fx torpSeek, deg/s) steers after the game's FixedUpdate; the game's own radarGuided homing is switched off
+//    on every torpedo the mod steers.
+//  - Chomp / Crawl: the torpedo runs 2.5-4 m deep, so a model (models\chomper_*.obj, commando_*.obj) rides the water
+//    above it. Sounds use the FMOD core API in fmodstudio.dll: Unity's own audio is stripped from this build. The Crawl
+//    type sets detectionByEntityChanceMultiplier 0, so no ship spots it or steers away.
 // Torpedoes give no kill credit (TorpedoLauncher.creditKill is an empty stub), so no on-kill effects roll on them.
 // Co-op: every machine fires its own copy of a torpedo from its own launcher's list (ClaimFiredTorpedoes sends only the
 // launcher index), so another player sees a found torpedo as whatever sits at that position on their machine. Not synced.
@@ -163,7 +151,7 @@ static void* TorpTypeFor(const Item& it, void* stock, int owner = -1, unsigned l
     if (g_tp.hideFlags) { int keep = 32; void* a[1] = { &keep }; Invoke(g_tp.hideFlags, t, a); }   // DontUnloadUnusedAsset
     if (!it.retired) for (const Op& op : it.ops) if (!op.fx && !op.proj && !op.mount && !op.sphere) ApplyOp(t, op);
     // the mod steers a homing one itself, so the game's own radar homing (Mk 21/24/27) is switched off on the copy; it
-    // would add its own turn and depth change toward a target of its choosing (review 2026-11-04, the sub chaser's Mk 24)
+    // would add its own turn and depth change toward a target of its choosing
     if (!it.retired && ItemFx(it, "torpSeek") > 0) { Op off; off.field = "radarGuided"; off.mul = false; off.value = 0; ApplyOp(t, off); }
     c.type = t; c.handle = Pin(t); c.stock = stock; c.item = it.retired ? "" : it.name;
     c.owner = owner; if (owner >= 0 && !it.retired) c.remote = it;    // a co-op placeholder keeps item empty, as a hidden one does
@@ -226,11 +214,11 @@ static void* MakeTier(void* src, const Item& it, int owner = -1, unsigned long l
   SetRef(t, (char*)t + g_tp.tDisplay, il2cpp_string_new(shown.c_str()));
   SetRef(t, (char*)t + g_tp.tType, type);
   // torpedoProperties (+0x60) keeps the empty list the constructor made: getProperties Clear()s it before rebuilding
-  // the stat lines from the type (0x1809E940E), so a null there threw inside InfoStatUI.fillValues and the loadout
-  // list never highlighted a found torpedo (David 2026-11-04: 'it doesn't get highlighted but it does go on the boat')
+  // the stat lines from the type (0x1809E940E); a null there throws inside InfoStatUI.fillValues and breaks the
+  // loadout list's highlight
   return t;
 }
-static std::unordered_map<void*, std::pair<void*, void*>> g_torpOrderOwner;   // pinned, so its address stays this launcher           // order copy -> its launcher's GC handle, so copies of gone launchers can be let go
+static std::unordered_map<void*, std::pair<void*, void*>> g_torpOrderOwner;   // order copy -> its launcher's GC handle (pinned), so copies of gone launchers can be let go
 static std::unordered_map<void*, void*> g_torpOrders;                // SelectionOrder copies made for launchers -> their GC handle (pinned,
                                                                      // so the address never comes back as another object)
 static void InjectTorpedoes(void* launcher) {
@@ -255,7 +243,7 @@ static void InjectTorpedoes(void* launcher) {
     std::string s; for (int i = 1; i < ListCount(list); i++) { void* t = ListAt(list, i); std::string b = t ? TierBase(t) : ""; if (!b.empty()) s += (s.empty() ? "" : ", ") + b; }
     Log("torpedo slot '%s' offers (base= values): %s", family.c_str(), s.c_str());
   }
-  LearnFamily(family, byBase);                                         // David 11-11: a found Mk 8 from a Rear Torpedo Slot fits a Front Torpedo Slot that offers the Mk 8, as found guns do
+  LearnFamily(family, byBase);                                         // a found Mk 8 fits any torpedo slot that offers the Mk 8, as found guns do
   std::vector<std::string>* registered = PosList(family, false);
   if (!registered || registered->empty() || !firstReal) return;
   std::vector<std::string> names = *registered;
@@ -452,8 +440,7 @@ static int UtilKind(const Item& it, void* launcher) {
   if (ItemFx(it, "dave") > 0) return 3;                               // Dave: never in a split load
   bool sm = ItemFx(it, "smoke") > 0, rf = ItemFx(it, "raft") > 0;
   if (!sm || !rf) return sm ? 1 : rf ? 2 : 0;
-  // the PT-658 (Higgins 78) names its launchers 'Forward Left', 'Forward Right', 'Rear Left', 'Rear Right' (David 2026-11-08:
-  // its split loads showed rafts on both sides)
+  // the PT-658 (Higgins 78) names its launchers 'Forward Left', 'Forward Right', 'Rear Left', 'Rear Right'
   std::string n = launcher ? Trim(NameOf(launcher)) : "";
   bool right = n.size() >= 5 && _stricmp(n.c_str() + n.size() - 5, "Right") == 0;
   return right || (!n.empty() && n.back() == 'R') ? 1 : 2;
@@ -538,8 +525,7 @@ static void TorpBegin(void* t) {
     else Log("torpedoes: '%s' launched from %s (%s)", r.item.c_str(), r.player ? "your boat" : "another boat", how.c_str());
   }
 }
-// One line per found torpedo when its run ends: how it ended, how far it got and how close it came (David 2026-11-04:
-// three of four homing ones 'did not go off' with nothing in the log to say why).
+// One line per found torpedo when its run ends: how it ended, how far it got and how close it came.
 static void TorpRunReport(TorpRun& r) {
   if (r.reported || r.item.empty()) return;
   r.reported = true;
@@ -599,8 +585,8 @@ static void TorpSteer(void* t, TorpRun& r, void* body, V3 p, V3 v, float dt) {
   V3 h = { hx * cs - hz * sn, 0, hx * sn + hz * cs };
   r.turned += fabsf(step); r.spin += step;
   if (d < 80) r.closeTurn += fabsf(step);
-  // a circle and a half the same way round, or a full turn's worth of swinging back and forth up close (the turns of
-  // passes over the ship cancel in the signed sum: 16.6 rad turned with no give-up, 2026-11-04): it missed
+  // a circle and a half the same way round, or a full turn's worth of swinging back and forth up close (passes over
+  // the ship cancel in the signed sum): it missed
   if (fabsf(r.spin) > 9.5f || r.closeTurn > 6.3f) {
     r.gaveUp = true;
     Log("torpedoes: '%s' stopped homing: it %s '%s' (closest %.0f m across; the ship %.0f m down, the torpedo %.0f m)", r.item.c_str(),
@@ -609,8 +595,7 @@ static void TorpSteer(void* t, TorpRun& r, void* body, V3 p, V3 v, float dt) {
   *(bool*)((char*)t + g_tp.pTend) = false;                             // the game would pull it back onto the tube's line
   V3 nv = { h.x * sp, v.y, h.z * sp }; void* a1[1] = { &nv }; Invoke(g_tp.rbSetVel, body, a1);
   Q4 q = LookRot(h); void* a2[1] = { &q }; Invoke(g_tp.rbSetRot, body, a2);
-  // the game's FixedUpdate set the TRANSFORM (LookAt along its old facing, the running depth), and Unity copies a changed
-  // transform onto the body at the physics step, which threw the turn above away: the nose stayed on the tube's line and
-  // the thrust and 10x side drag pulled the velocity back (review 2026-11-04). The transform gets the new facing too.
+  // the game's FixedUpdate set the TRANSFORM, and Unity copies a changed transform onto the body at the physics step,
+  // which would undo the turn above: the transform gets the new facing too.
   if (g_tp.trSetRot) { void* tf = Invoke(m_getTransform, t); if (tf) { void* a3[1] = { &q }; Invoke(g_tp.trSetRot, tf, a3); } }
 }

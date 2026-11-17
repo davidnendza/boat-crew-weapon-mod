@@ -1,6 +1,6 @@
 // crew weapon looks (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- crew weapon looks ---------------------------------------------------------------------------------------------
-// Core.CrewMemberCombat.LateUpdate (read 2026-11-04) keeps its target in closest and counts aimTime down from 1 while it
+// Core.CrewMemberCombat.LateUpdate keeps its target in closest and counts aimTime down from 1 while it
 // holds one; below 0 it calls GunMount.shoot every frame and shoot keeps the gun's cooldown. A hook around it sees a shot
 // as a change of the mount's shotCounter (a burst resets the counter, so any change is one shot). Four parts, the last
 // three switched in drops.ini / Mod Options while playing: log lines and a battle summary; crew_tracers: the gun's
@@ -103,8 +103,6 @@ static void CrewTracerFor(void* gt, const std::string& gun) {
   Log("crew tracers: '%s' gets red tracers (%d projectile type(s)%s)", gun.c_str(), (int)done.size(), rockets ? "; its rockets keep their look" : "");
 }
 
-// The aim line's material, found once: a built-in shader that draws the line's own colors, else the crew member's own
-// LineRenderer (CrewMember.HL), else the red tracer material. A copy is used, so the game's own stays as it is.
 // A new Material on a built-in shader found by name (Shader.Find), or null when the build has no such shader. Shared by
 // the crew aim line and the effect streaks.
 static void* MaterialFromShader(const char* n) {
@@ -121,6 +119,8 @@ static void* MaterialFromShader(const char* n) {
   il2cpp_runtime_invoke(mctor, m, ca, &exc);
   return !exc && Alive(m) ? m : nullptr;
 }
+// The aim line's material, found once: a built-in shader that draws the line's own colors, else the crew member's own
+// LineRenderer (CrewMember.HL), else the red tracer material. A copy is used, so the game's own stays as it is.
 static void* CrewLineMaterial(void* cmc) {
   CrewApi& a = g_cw;
   if (a.matTried) return a.mat;
@@ -377,7 +377,7 @@ static void CrewVisInstall() {
 }
 
 // Name tags over living Rare/Elite ships, drawn from the OnGUI hook during battle.
-// Marked ships (Marking, 0.9.3) get one too, in red, with the bonus and the seconds left; a marked Rare/Elite keeps its own
+// Marked ships (the Marking effect) get one too, in red, with the bonus and the seconds left; a marked Rare/Elite keeps its own
 // tag and adds MARKED to its second line. enemies.ini tags=0 turns both off.
 static void EliteTags() {
   bool elites = g_elitesOn && !g_elites.empty();
@@ -388,7 +388,7 @@ static void EliteTags() {
   float sh = (float)Unbox(Invoke(m_scrH, nullptr)); if (sh <= 0) return;
   float k = sh / 1080.0f;
   // Tags are placed nearest ship first; a tag that would cover one already placed moves up above it (ships far away
-  // sit close together on the horizon, test 2026-10-27). Far tags are smaller and leave out the trait line.
+  // sit close together on the horizon). Far tags are smaller and leave out the trait line.
   struct Tag { float x, y, dist; const EliteInfo* info; const MarkInfo* mark; void* ce; };
   std::vector<Tag> tags;
   DWORD now = GetTickCount();

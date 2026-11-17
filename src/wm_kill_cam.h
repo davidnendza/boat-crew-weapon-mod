@@ -1,17 +1,13 @@
 // torpedo kill cam, hit prediction, the crew guard (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- torpedo kill cam ------------------------------------------------------------------------------------------------
 // When one of the player's torpedoes is about to hit an enemy ship, the camera follows it from behind while the game
-// slows to killcam_slow, holds on the blast, then cuts back and eases the speed back up. After that nothing for
-// killcam_cooldown seconds (David: 'make sure that it has a cooldown so we aren't spamming slow mo kills one after the
-// other'). Single player only: the game's speed is one synced value for every player.
-// Game speed (read in the disassembly 2026-11-02): GameStateSync.Update -> setupTimeScale copies the synced timeScale
-// into GameManager.targetTimeScale every frame; BlurModulator.Update moves its own timeScale (+0x48) toward that and
-// writes Time.timeScale whenever the two differ (it also scales the SFX volume by it, and stops physics at 0). So the
-// kill cam hooks BlurModulator.Update and sets Time.timeScale = its value x the kill cam factor right after it: pause
-// and the speed buttons keep working, and the sound is not turned down. Time.fixedDeltaTime (set by nothing else after
-// launch) is scaled the same way so physics and shells stay smooth, and put back afterwards.
-// Camera: PlayerCameraControlManager.LateUpdate is hooked as in the first-person mod: the game's camera update runs,
-// then the kill cam places Camera.main. When the kill cam lets go, the game's own camera state takes over again.
+// slows to killcam_slow, holds on the blast, then cuts back and eases the speed back up; then killcam_cooldown seconds
+// of nothing. Single player only: the game's speed is one synced value for every player.
+// BlurModulator.Update writes Time.timeScale from its timeScale (+0x48), eased toward GameManager.targetTimeScale every
+// frame, and scales SFX volume by it; the hook multiplies Time.timeScale by the kill cam factor right after, so pause
+// and the speed buttons keep working and the sound stays up. Time.fixedDeltaTime (set by nothing else after launch) is
+// scaled too, and put back after. Camera: hooked PlayerCameraControlManager.LateUpdate; the game's camera update runs,
+// then the kill cam places Camera.main.
 // Torpedoes: Core.Torpedo.register (static HashSet<Torpedo>); body (Rigidbody), launchedFrom (TorpedoLauncher, .entity),
 // armingTime, elapsedTime, explodedAfterLaunch.
 struct KcApi {
@@ -97,8 +93,7 @@ static Q4 LookRot(V3 f) {
 // Can a torpedo hit this ship? The game's torpedo radar only takes ships whose NavalUnitType has
 // underwaterRadarSusceptible set (Torpedo.FixedUpdate 0x1809dade5), and exactly those carry the layer-21 'Torpedo
 // Trigger' collider the hit check casts against (mask 0x200000). Patrol boats, gunboats, landing craft and the PT boats
-// have neither, so a torpedo runs straight through them (David 2026-11-04: 'in the game, torpedoes only hit the bigger
-// ships'; the Chomper Test Rack circled an IJN Patrol T1 at 0 m until it ran out of range). Cached per unit type.
+// have neither, so a torpedo runs straight through them. Cached per unit type.
 static bool TorpHittable(void* ent) {
   static int offParams = -2, offFlag = -1; static void* nut = nullptr;
   if (offParams == -2) {
@@ -120,16 +115,12 @@ static bool TorpHittable(void* ent) {
 }
 
 // ---- kill cam hit prediction ----
-// Until then the kill cam took the torpedo with the earliest closest pass to a ship's MIDDLE and called it a hit when
-// that pass was within 0.35 x the long side of the ship's collider AABB: a circle. Against a Long Boi tanker (twice as
-// long) a PT salvo had one torpedo running 20 m off the side ('passes 20.0 m from its middle', taken as a hit, it missed)
-// while another really struck; and the AABB of a ship lying diagonally is inflated besides. Now the straight track is
-// tested against the hull's real shape: the layer-21 'Misc/Torpedo Trigger' BoxCollider the game's own hit check casts
-// for (SphereCastAll(pos, r, vel.normalized, detectionDistance, mask 0x200000); r = 4 m while arming, hitboxRadius once
-// armed). The track is relative to the ship (its realtimeVelocity); the box's XZ
-// rectangle comes from the collider transform's localToWorldMatrix at every check (ships turn, Elite traits rescale);
-// the collider list, centre and size are cached per ship for the battle. Separate from TorpSteer and the seeking code.
-struct KcBox { float cx, cz, ux, uz, hx, vx, vz, hz, bottom, circle; };    // circle > 0: the old circle test, no box
+// A torpedo's straight track (relative to the ship's realtimeVelocity) is tested against the hull's real shape: the
+// layer-21 'Misc/Torpedo Trigger' BoxCollider the game's own hit check casts for (SphereCastAll(pos, r, vel.normalized,
+// detectionDistance, mask 0x200000); r = 4 m while arming, hitboxRadius once armed). A circle round the middle misses
+// long or diagonal hulls. The box comes from localToWorldMatrix at every check (ships turn, Elite traits rescale); the
+// collider list, centre and size are cached per ship for the battle.
+struct KcBox { float cx, cz, ux, uz, hx, vx, vz, hz, bottom, circle; };    // circle > 0: a circle test, no box
 struct KcHullCache { std::vector<void*> cols, hs; std::vector<V3> ctr, size; DWORD at = 0; void* entH = nullptr; };   // entH pins the ship so its address is not reused while cached
 static struct { bool tried = false, ok = false; void *inCh = nullptr, *boxType = nullptr, *center = nullptr, *size = nullptr, *enabled = nullptr, *layer = nullptr, *l2w = nullptr;
                 int ttype = -1, hbr = -1, det = -1; } g_kh;
@@ -154,7 +145,7 @@ static bool KhInit() {
 // localToWorldMatrix of a transform, boxed Matrix4x4 at +0x10, column-major (m[col*4 + row]); false if it failed.
 static bool KhMatrix(void* tr, float m[16]) { void* r = tr && g_kh.l2w ? Invoke(g_kh.l2w, tr) : nullptr; if (!r) return false; memcpy(m, (char*)r + 0x10, 64); return true; }
 // The ship's hull as boxes in XZ: 1 its torpedo triggers, 2 a box along its forward axis from its solid colliders (no
-// trigger found), 3 the old circle (nothing better). Returns the method, or 0 if none.
+// trigger found), 3 a circle (nothing better). Returns the method, or 0 if none.
 static int KcHullBoxes(void* ent, V3 pos, void* eng, std::vector<KcBox>& out) {
   out.clear(); DWORD now = GetTickCount();
   if (eng != g_khEng) { for (auto& p : g_khCache) { for (void* h : p.second.hs) Unpin(h); Unpin(p.second.entH); } g_khCache.clear(); g_khEng = eng; }
@@ -203,7 +194,7 @@ static int KcHullBoxes(void* ent, V3 pos, void* eng, std::vector<KcBox>& out) {
         out.push_back({ (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2, fx, fz, L / 2, fz, -fx, W / 2, lo[1], 0 }); return 2; }
     }
   }
-  float r = 10;                                                        // the old test: about half the hull's length around its middle
+  float r = 10;                                                        // about half the hull's length around its middle
   if (ColliderBox(ent, lo, hi) > 0 && hi[0] - lo[0] < 400 && hi[2] - lo[2] < 400) { r = 0.35f * (std::max)(hi[0] - lo[0], hi[2] - lo[2]); if (r < 4) r = 4; if (r > 45) r = 45; }
   out.push_back({ pos.x, pos.z, 1, 0, 0, 0, 1, 0, -1e9f, r }); return 3;
 }
@@ -296,18 +287,11 @@ static void KcStop(const char* why) {
 }
 
 // ---- the kill cam's crew guard ----
-// After the kill cam cut back to the boat, crew members could fall off it.
-// Traced 2026-11-05 in the disassembly: CrewMember.FixedUpdateMe (rva 0x99EE30) gives a crew member's float point the
-// real Crest depth only while the camera is within CrestManager.simDistance, else depth 0. Then, if the depth is over
-// 0.1 and smoothChestPos.y under 1.25 (or transform.up.y under 0.4), framesUntilUnderwater (float) -= 1 per fixed STEP,
-// else it is reset to 18..24 (timeScale <= 1.25); UpdateMe throws the crew member overboard once it is below 0.
-// CrestManager.sampleSequence also blends every sample toward flat water by camera distance, so while the kill cam is
-// kilometres away the boat floats on flat water, and the real waves come back in one step when the camera does: the low
-// PT deck can dip under for a moment. The camera used to come back during the slow-motion ease-back, with fixedDeltaTime
-// scaled down, so the 18-24 step grace was only a fraction of its game time. Now the ease-back keeps the kill camera
-// until full speed, and this detour keeps the counter of the player's crew at 18 or more during the kill cam and for 2
-// real seconds after it hands the camera back (and in slow motion it counts game time, not steps, for every crew).
-// Hits do not use the counter (hitFlash -> throwOverboardImpact), so they still throw crew.
+// CrewMember.FixedUpdateMe (rva 0x99EE30) counts framesUntilUnderwater down one per fixed STEP while a man is in the
+// water (else resets it to 18..24) and UpdateMe throws him overboard below 0. Water is flat while the camera is beyond
+// CrestManager.simDistance, so the real waves return in one step when the kill cam hands back and a low deck dips under.
+// The detour keeps the player's crew counter at 18+ during the kill cam and 2 real s after, and in slow motion counts
+// game time, not steps. Hits (hitFlash -> throwOverboardImpact) do not use the counter, so they still throw crew.
 typedef void (*fn_crewFixed)(void*, float, void*);
 static fn_crewFixed g_crewFixedOrig = nullptr;
 static bool g_cgOn = false, g_cgTried = false, g_cgPending = false;
@@ -420,8 +404,7 @@ static void KillCamTick() {
     if (!KcInit()) return;
     std::vector<KcTorp> ts = KcPlayerTorpedoes(); if (ts.empty()) return;
     const std::vector<EnemyAt>& es = LiveEnemies();
-    // The torpedo that really enters a hull first, 0.3..1.2 game s ahead (1.2 game s is about 4.5 real s at quarter speed;
-    // 2.5 felt far too early). Until 2026-11-05 this was the earliest closest pass to a ship's middle (see KcHullBoxes).
+    // The torpedo that really enters a hull first, 0.3..1.2 game s ahead (1.2 game s is about 4.5 real s at quarter speed).
     KcPick pk = KcPickHit(ts, es, 0.3f, 1.2f, nullptr, eng);
     if (!pk.t) return;
     const KcTorp* best = pk.t; void* bestShip = pk.ship; float bestT = pk.at;
@@ -456,8 +439,7 @@ static void KillCamTick() {
     const KcTorp* me = nullptr;
     for (const KcTorp& k : ts) if (k.t == g_kcTorp) { me = &k; break; }
     if (!me || me->exploded) { g_kcHow = me ? 1 : 2; g_kcHit = true; g_kcState = 2; g_kcT = 0; }
-    // Until 2026-11-02 the limit was 6 REAL seconds, which at quarter speed cut away 1.5 game s in, before a 2.5 s hit
-    // (David saw it cut before the torpedo arrived). Now: the predicted time plus 1.5 game s, 20 real s at most.
+    // the predicted time plus 1.5 game s, 20 real s at most: a real-time limit cuts away early at quarter speed
     else if (g_kcGameT > g_kcPred + 1.5 || g_kcFollowT > 20) { g_kcState = 3; g_kcT = 0; }
     else if (g_kcGameT > 0.3 && [&] {                                  // it has gone past the target's middle: a miss
       const float* ev = (const float*)((char*)g_kcTarget + g_kc.leVel);
@@ -465,7 +447,7 @@ static void KillCamTick() {
       if (!(ww > 1 && -(rx * wx + rz * wz) / ww < -0.5f && sqrtf(rx * rx + rz * rz) > 25)) return false;
       std::vector<KcBox> bs;                                           // past the middle, but still heading into the stern or bow: not yet
       return !KcHullBoxes(g_kcTarget, tgt, eng, bs) || KcEntry(*me, ev, bs, 0.5f) < 0; }()) {
-      // A miss. With a salvo another torpedo may be about to hit: follow that one instead, once (David 2026-11-05).
+      // A miss. With a salvo another torpedo may be about to hit: follow that one instead, once.
       KcPick pk; if (!g_kcSwitched) pk = KcPickHit(ts, LiveEnemies(), 0.3f, 1.5f, g_kcTorp, eng);
       if (pk.t) {
         Log("kill cam: that one missed; switching to another torpedo about to hit '%s' in %.1f game s", CrewClean(NameOf(pk.ship)).c_str(), pk.at);
@@ -497,7 +479,7 @@ static void KillCamTick() {
   }
   if (g_kcState == 3) {                                                // the speed eases back over half a second with the kill camera still out
     g_kcFactor = (float)(g_kcSlow + (1 - g_kcSlow) * (std::min)(1.0, g_kcT / 0.5));   // here; then the game takes the camera back at full speed
-    if (g_kcT >= 0.5) {                                                // (until 2026-11-05 it came back in slow motion: crew went overboard)
+    if (g_kcT >= 0.5) {                                                // never hand back in slow motion: the crew guard's grace is in steps
       KcStop(g_kcHit ? "done" : "the torpedo missed or ran out");
       g_cgUntil = GetTickCount() + 2000; if (!g_cgUntil) g_cgUntil = 1;  // the crew guard, 2 real s more
     }

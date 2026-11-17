@@ -5,11 +5,10 @@
 // enemies.ini (only that key's line; comments stay) and, where the mod reads the value as it goes, used at once; the
 // rest say so. The game build has no scroll view and cannot measure text: long text is wrapped by character count and
 // the changelog scrolled with the mouse wheel inside a clipped group.
-// The Field Manual look (David 2026-11-05: 'I love B, the field manual one', from the design canvas; options that need a
-// restart must say 'Game needs a restart to take effect', so it is clear the GAME must be restarted): a manila sheet
-// with tabs, inked switches and a note card that explains the row under the mouse. The paper, shadow, stamp, card, X,
-// arrows and dot are PNGs in models\ (tools\make_ui_assets.py); each has a flat fallback, so a missing file never breaks
-// a window.
+// The Field Manual look: a manila sheet with tabs, inked switches and a note card that explains the row under the
+// mouse. Options that need a restart say 'Game needs a restart to take effect', so it is clear the GAME must restart.
+// The paper, shadow, stamp, card, X, arrows and dot are PNGs in models\ (tools\make_ui_assets.py); each has a flat
+// fallback, so a missing file never breaks a window.
 enum { kTabLoot, kTabArsenal, kTabVisuals, kTabEnemies, kTabCrew, kTabCoop, kOptTabs };
 static const char* kOptTabName[kOptTabs] = { "LOOT", "ARSENAL", "VISUALS", "ENEMIES", "CREW", "CO-OP" };
 static const char* kOptTabWord[kOptTabs] = { "DROPS", "YOUR GUNS", "WHAT YOU SEE", "RARE AND ELITE ENEMIES", "CREW WEAPONS AND LOOKS", "CO-OP  (EVERYONE NEEDS THE SAME VERSION AND SETTINGS)" };
@@ -29,7 +28,7 @@ static std::vector<ModOpt>& ModOpts() {
   const char* R = kOptRestart;
   // fmt: p = percent, q = percent with a decimal, x = times, s = seconds, n = number, r = auto_scrap's rarity names,
   // c = a whole number that already is a percent (female_crew).
-  // Texts checked against kDefaultDrops / kDefaultEnemies and the code that reads each key (2026-11-05).
+  // Texts must match kDefaultDrops / kDefaultEnemies and the code that reads each key.
   s_optAutoScrap = g_autoScrap + 1;
   v = {
     { kTabLoot, "drops.ini", "chance", "Drop chance per RP crate burst", "How often a burst of RP crates gives a drop",
@@ -191,7 +190,7 @@ static void OptChange(const ModOpt& o, int dir) {                      // dir: -
   Log("options: %s %s=%s%s%s", o.file, o.key, val.c_str(), ok ? "" : " (COULD NOT WRITE the file)", o.when ? (std::string(" (") + o.when + ")").c_str() : "");
 }
 static bool OptPending(const ModOpt& o) { return o.live && o.b && *o.live != *o.b; }   // a restart-only switch changed since launch
-// Rounded corners (David 2026-11-03): a quarter disk texture per corner, tinted, and plain fills between them, so no
+// Rounded corners: a quarter disk texture per corner, tinted, and plain fills between them, so no
 // piece overlaps another (the panel fill is not fully opaque).
 static void* g_texCorner[4] = {};                                      // top-left, top-right, bottom-left, bottom-right
 static void* CornerTex(int k) {
@@ -636,9 +635,8 @@ static void ModGuiEnd() { GuiThemeEnd(); GuiColor({ 1, 1, 1, 1 }); GuiScale(1.0f
 // models\modded_banner.png (made by tools\make_modded_banner.py; any PNG will do) is read once with
 // ImageConversion.LoadImage, which the game kept, and drawn from TitleScreenManagerUI's OnGUI: the game's own method is
 // empty and runs only while the title screen is up. The title screen's left panel scales with the screen height, so the
-// place is a share of it (read off David's screenshot): drops.ini modded_banner_place=<center x>,<top>,<width>,<squash>,
-// squash being its height as a share of the picture's own (David's first look: as tall as BOAT CREW, drips over the
-// version line; 'needs to be squished a little'); modded_banner=0 hides it.
+// place is a share of it: drops.ini modded_banner_place=<center x>,<top>,<width>,<squash>, squash being its height as a
+// share of the picture's own; modded_banner=0 hides it.
 static void* g_bannerTex = nullptr;
 static void TitleBanner() {
   static bool tried = false;
@@ -662,7 +660,7 @@ static void TitleBanner() {
   GuiColor({ 1, 1, 1, 1 });
   DrawTex({ sh * (float)g_bannerPlace[0] - w / 2, sh * (float)g_bannerPlace[1], w, h }, g_bannerTex);
 }
-// MOD OPTIONS and WHAT'S NEW on the title screen as paper tags (2026-11-05, the Field Manual look): paper, an inked
+// MOD OPTIONS and WHAT'S NEW on the title screen as paper tags in the Field Manual look: paper, an inked
 // frame and letter-spaced ink, highlighter on hover.
 static bool PaperTag(Rect4 r, const char* label, int type, Vec2 mouse) {
   bool click = HitBox(r);
@@ -679,9 +677,8 @@ static void TitleMenu() {
   float sh = g_virtH, tw = 886, th = 300;
   if (Alive(g_bannerTex)) { tw = (float)Unbox(Invoke(m_texW, g_bannerTex)); th = (float)Unbox(Invoke(m_texH, g_bannerTex)); }
   float w = sh * (float)g_bannerPlace[2], h = g_bannerOn && tw > 0 ? w * th / tw * (float)g_bannerPlace[3] : 0;
-  // David 2026-11-03 (3440x1440): under the banner they covered the game's version line and its Changelog button. Now the
-  // version sits right of MODDED and the buttons under Quit, the left panel's last entry (shares of the screen height,
-  // like the banner, read off his screenshot).
+  // the version right of MODDED and the buttons under Quit, the left panel's last entry, clear of the game's version line
+  // and Changelog button (shares of the screen height, like the banner)
   float cx = sh * (float)g_bannerPlace[0], y = sh * 0.935f;
   if (type == 7) {
     std::string v = std::string("v") + kModVersion;

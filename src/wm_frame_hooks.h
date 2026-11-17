@@ -76,13 +76,13 @@ static void Hooked_PMLateUpdate(void* self, void* method) {
 }
 
 // ---- hook: ItemElementUI.Awake (an entry in the loadout lists) ------------------------------------------------
-// The name is a TextMeshPro text that wraps; long rolled names now shrink to fit one line instead (David, 2026-10-26).
+// The name is a TextMeshPro text that wraps; long rolled names shrink to fit one line instead.
 static void (*g_itemElemAwakeOrig)(void*, void*) = nullptr;
 static int g_offElemName = -1;
 static void *m_tmpGetSize = nullptr, *m_tmpAuto = nullptr, *m_tmpMin = nullptr, *m_tmpMax = nullptr, *m_tmpWrap = nullptr;
 static void FitItemName(void* self) {
   void* txt = *(void**)((char*)self + g_offElemName); if (!txt) return;
-  void* r = Invoke(m_tmpGetSize, txt); float fs = r ? *(float*)((char*)r + 0x10) : 0; if (fs <= 1) return;
+  void* r = Invoke(m_tmpGetSize, txt); float fs = r ? *(float*)((char*)r + 0x10) : 0; if (fs <= 1) return;   // boxed float: value after the 0x10 object header
   float lo = fs * 0.6f; bool on = true; int noWrap = 0;
   void* a1[1] = { &lo }; Invoke(m_tmpMin, txt, a1);
   void* a2[1] = { &fs }; Invoke(m_tmpMax, txt, a2);
@@ -112,7 +112,7 @@ static void InstallNameFit() {
   if (!mi) { Log("ItemElementUI.Awake not found; long names wrap and the seat icon pass scans for rows once"); return; }
   if (!f || !m_tmpGetSize || !m_tmpAuto || !m_tmpMin || !m_tmpMax) Log("list names: a lookup failed; long names wrap as before");
   else { g_offElemName = (int)il2cpp_field_get_offset(f); g_nameFitOn = true; }
-  void** slot = (void**)mi; DWORD old = 0;
+  void** slot = (void**)mi; DWORD old = 0;                            // MethodInfo starts with methodPointer: swap it
   g_itemElemAwakeOrig = (void (*)(void*, void*))*slot;
   if (VirtualProtect(slot, sizeof(void*), PAGE_READWRITE, &old)) { *slot = (void*)&Hooked_ItemElemAwake; VirtualProtect(slot, sizeof(void*), old, &old); DLog("hooked ItemElementUI.Awake: long names shrink to fit (wrap setter %p)", m_tmpWrap); }
 }

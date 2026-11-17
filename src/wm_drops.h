@@ -5,8 +5,8 @@ static void ClampCrateSettings() {
   if (g_crateChance < 0) g_crateChance = 0; if (g_crateChance > 1) g_crateChance = 1;
   if (g_crateBonusUses < 0) g_crateBonusUses = 0;
 }
-// An existing drops.ini is never rewritten, so effects added in a newer version would never reach players who upgrade
-// (2026-10-25: a drops.ini made by 0.2.x had no Deadeye/Salvager/Vampiric/Bounty). Every built-in [affix] whose name is
+// An existing drops.ini is never rewritten, so effects added in a newer version would never reach players who upgrade.
+// Every built-in [affix] whose name is
 // missing from the file is appended to it; the player's own edits stay. To switch an effect off, set its weight=0.
 static void MigrateDrops(const std::string& path) {
   FILE* f = fopen(path.c_str(), "rb");
@@ -38,7 +38,7 @@ static void MigrateDrops(const std::string& path) {
   }
   std::string nl = text.find("\r\n") != std::string::npos ? "\r\n" : "\n", fixedNames;
   // migrated=N in [drops] records the numbered updates this file has had, so each applies once: a player who sets a
-  // value back to an old default, or deletes an added line, keeps it (review 2026-10-29). Entries with since=0 match
+  // value back to an old default, or deletes an added line, keeps it. Entries with since=0 match
   // only text that is still exactly old and are safe to run every launch.
   const int kMigrations = 24;
   int done = 0;
@@ -101,7 +101,7 @@ static void MigrateDrops(const std::string& path) {
       }
     }
   }
-  if (ds != std::string::npos && done < 3) {                           // the co-op switches (2026-10-29), above debug=
+  if (ds != std::string::npos && done < 3) {                           // the co-op switches, above debug=
     size_t de = dropsEnd(ds), cg = text.find(nl + "coop_guns=", ds);
     if (cg == std::string::npos || cg >= de) {
       size_t at = text.find(nl + "# debug=1", ds); if (at == std::string::npos || at >= de) at = de;
@@ -112,7 +112,7 @@ static void MigrateDrops(const std::string& path) {
       fixedNames += "coop_guns coop_elites coop_visuals coop_helpers ";
     }
   }
-  if (ds != std::string::npos && done < 5) {                           // worn-out guns give their tier's material (2026-10-30)
+  if (ds != std::string::npos && done < 5) {                           // worn-out guns give their tier's material
     std::string ol = nl + "# Crates. Scrapping a gun gives Scrap Iron (Common), Brass (Uncommon) or Gunmetal (Rare); a worn-out gun gives 1 Scrap Iron." + nl;
     size_t lp = text.find(ol, ds);
     if (lp != std::string::npos && lp < dropsEnd(ds)) {
@@ -120,7 +120,7 @@ static void MigrateDrops(const std::string& path) {
       fixedNames += "worn-out note ";
     }
   }
-  if (ds != std::string::npos && done < 6) {                           // loot grid 6x6 -> 8x8 (David 2026-11-01: it overflowed 5 times in 30 min)
+  if (ds != std::string::npos && done < 6) {                           // loot grid 6x6 -> 8x8
     for (auto& u : { std::make_pair("loot_cols=6", "loot_cols=8"), std::make_pair("loot_rows=6", "loot_rows=8") }) {
       std::string ol = nl + u.first + nl; size_t lp = text.find(ol, ds);
       if (lp == std::string::npos || lp >= dropsEnd(ds)) continue;
@@ -128,7 +128,7 @@ static void MigrateDrops(const std::string& path) {
       fixedNames += std::string(u.first, strchr(u.first, '=') - u.first) + " ";
     }
   }
-  if (ds != std::string::npos && done < 8) {                           // the torpedo kill cam (2026-11-02), above the co-op lines
+  if (ds != std::string::npos && done < 8) {                           // the torpedo kill cam, above the co-op lines
     size_t de = dropsEnd(ds), kp = text.find(nl + "killcam=", ds);
     if (kp == std::string::npos || kp >= de) {
       size_t at = text.find(nl + "# Co-op (", ds); if (at == std::string::npos || at >= de) at = text.find(nl + "# debug=1", ds);
@@ -140,7 +140,7 @@ static void MigrateDrops(const std::string& path) {
       fixedNames += "killcam killcam_cooldown killcam_slow chomp_volume crew_tracers crew_marker crew_aim_line ";
     }
   }
-  if (ds != std::string::npos && done < 10) {                          // the crew weapon looks (2026-11-04), above the co-op lines
+  if (ds != std::string::npos && done < 10) {                          // the crew weapon looks, above the co-op lines
     size_t de = dropsEnd(ds), cp = text.find(nl + "crew_tracers=", ds);
     if (cp == std::string::npos || cp >= de) {
       size_t at = text.find(nl + "# Co-op (", ds); if (at == std::string::npos || at >= de) at = text.find(nl + "# debug=1", ds);
@@ -181,7 +181,7 @@ static void MigrateDrops(const std::string& path) {
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "chomp_volume "; }
     }
   }
-  if (ds != std::string::npos && done < 12) {                          // paint schemes (2026-11-04), under cosmetic_chance
+  if (ds != std::string::npos && done < 12) {                          // paint schemes, under cosmetic_chance
     size_t de = dropsEnd(ds), pp = text.find(nl + "paint_chance=", ds);
     if (pp == std::string::npos || pp >= de) {
       size_t at = text.find(nl + "cosmetic_chance=", ds);
@@ -273,7 +273,7 @@ static void MigrateDrops(const std::string& path) {
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "no_females "; }
     }
   }
-  if (ds != std::string::npos && done < 18) {                          // female_crew help: genders are stored now (review 2026-11-06);
+  if (ds != std::string::npos && done < 18) {                          // female_crew help: genders are stored;
     size_t de = dropsEnd(ds);                                          // only the comment, only while untouched, the value stays
     auto conv = [&](const std::string& b) { return WithNewlines(b, nl); };
     std::string oldC = conv("# female_crew: percent of crew members who are women: their own hair, no beard or pipe and a female figure that the\n"
@@ -286,7 +286,7 @@ static void MigrateDrops(const std::string& path) {
       text.replace(op, oldC.size(), conv(def.substr(a, b + 1 - a))); fixedNames += "female_crew(help) ";
     }
   }
-  if (ds != std::string::npos && done < 19) {                          // utility gear (2026-11-08): smoke_seconds and raft_speed, above
+  if (ds != std::string::npos && done < 19) {                          // utility gear: smoke_seconds and raft_speed, above
     size_t de = dropsEnd(ds), sp = text.find(nl + "smoke_seconds=", ds);   // crew_tracers (migration 11's chomp_volume block holds them)
     if (sp == std::string::npos || sp >= de) {
       size_t at = text.find(nl + "# crew_tracers:", ds); if (at == std::string::npos || at >= de) at = text.find(nl + "# Co-op (", ds);
@@ -299,7 +299,7 @@ static void MigrateDrops(const std::string& path) {
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "smoke_seconds raft_speed "; }
     }
   }
-  if (ds != std::string::npos && done < 20) {                          // the talking crew (2026-11-13): crew_talk and crew_chatter, above
+  if (ds != std::string::npos && done < 20) {                          // the talking crew: crew_talk and crew_chatter, above
     size_t de = dropsEnd(ds), sp = text.find(nl + "crew_talk=", ds);   // effect_streaks
     if (sp == std::string::npos || sp >= de) {
       size_t at = text.find(nl + "# effect_streaks:", ds); if (at == std::string::npos || at >= de) at = text.find(nl + "# Co-op (", ds);
@@ -312,7 +312,7 @@ static void MigrateDrops(const std::string& path) {
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "crew_talk crew_chatter "; }
     }
   }
-  if (ds != std::string::npos && done < 21) {                          // the newsreel switch (2026-11-15), above the co-op block
+  if (ds != std::string::npos && done < 21) {                          // the newsreel switch, above the co-op block
     size_t de = dropsEnd(ds), sp = text.find(nl + "newsreel=", ds);
     if (sp == std::string::npos || sp >= de) {
       size_t at = text.find(nl + "# Co-op (", ds); if (at == std::string::npos || at >= de) at = text.find(nl + "# debug=1", ds);
@@ -350,7 +350,7 @@ static void MigrateDrops(const std::string& path) {
       if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "crew_stories crew_letters "; }
     }
   }
-  if (ds != std::string::npos && done < 24) {                          // balance pass 2026-11-16: crate costs follow rarity, Uniques last 8
+  if (ds != std::string::npos && done < 24) {                          // balance pass: crate costs follow rarity, Uniques last 8
     std::string ol = nl + "crate_cost=5,3,2" + nl; size_t lp = text.find(ol, ds);   // only a line still at the old default
     if (lp != std::string::npos && lp < dropsEnd(ds)) { text.replace(lp, ol.size(), nl + "crate_cost=2,3,4" + nl); fixedNames += "crate_cost "; }
     int nu = 0;
@@ -438,8 +438,7 @@ static bool KillCamKey(const std::string& k, const std::string& v) {
   else return false;
   return true;
 }
-// Loot volume (David 2026-11-04: 'all this loot and also making people sort it and discard all the time'):
-// [drops] torpedo_share and auto_scrap, read at drop time. auto_scrap: -1 none, else the highest rarity scrapped
+// Loot volume, so players need not sort and discard all the time: [drops] torpedo_share and auto_scrap, read at drop time. auto_scrap: -1 none, else the highest rarity scrapped
 // (0 Common, 1 Uncommon, 2 Rare); Mod Options writes the number, a hand-edited file the name.
 static double g_torpShare = 0.025; static int g_autoScrap = -1;
 static double g_modGunShare = 0.25;                                  // drops.ini mod_gun_share (see RollItem)
@@ -463,7 +462,7 @@ static bool g_streaksOn = true;                                      // drops.in
 // [drops] crew_talk (0 = the crew never speak), crew_chatter (how often: 0.25 .. 2); switched while playing.
 static bool g_talkOn = true; static double g_talkChatter = 1;
 // [drops] crew_stories (0 = the after-action report never opens) and crew_letters (0 = no letters home, no mail call,
-// no talk of letters), for players who would rather not read about losing crew (David 2026-11-16); switched while playing.
+// no talk of letters), for players who would rather not read about losing crew; switched while playing.
 static bool g_storiesOn = true, g_lettersOn = true;
 static bool g_newsreelOn = true;                                     // drops.ini newsreel: the battle film (newsreel.h), switched while playing
 static int g_newsreelKeep = 10;                                      // drops.ini newsreel_keep: GIFs kept, oldest deleted (0 = all)
@@ -496,7 +495,7 @@ static bool SmokeKey(const std::string& k, const std::string& v) {
 // member stock; at launch it also leaves CrewMemberVisual.combineMesh unhooked (the stored-gender save key is still
 // hooked, so flags saved earlier survive a save at 0). A crew member whose gender is already stored keeps it when this
 // changes; only new crew and crew the mod has never seen follow the new share.
-// no_females=1 (Mod Options "I don't want females!", David 2026-11-06): every crew member is stock, as at female_crew 0,
+// no_females=1 (Mod Options "I don't want females!"): every crew member is stock, as at female_crew 0,
 // while female_crew keeps its value for when it is switched off again. Stored genders are kept (and saved), only ignored.
 static int g_femalePct = 25;
 static bool g_noFemales = false;
@@ -589,7 +588,7 @@ static double EvalExpr(const std::string& e, double r) {
   if (e == "$r") return r;
   if (e == "1/$r") return r > 0 ? 1.0 / r : 1.0;
   if (e == "2-$r") return (std::max)(0.1, 2.0 - r);                   // the first Wild (0.9.3-dev): kept for files that still have it
-  if (e == "2.5*$r-1.5") return (std::max)(1.0, 2.5 * r - 1.5);      // Wild: x1.5-2.0 spread for +20-40% damage (review 2026-11-06)
+  if (e == "2.5*$r-1.5") return (std::max)(1.0, 2.5 * r - 1.5);      // Wild: x1.5-2.0 spread for +20-40% damage
   return atof(e.c_str());
 }
 static std::string FormatText(std::string t, double r) {
@@ -652,8 +651,8 @@ static std::vector<std::string> BoatFamilies();
 static bool IsTombstone(const std::string& name);
 static bool RollItem(Item* out, std::string* rarity, int minAffixes = 0, bool gunsOnly = false) {
   if (g_templates.empty() || g_affixes.empty()) return false;
-  // only guns for slot families the current boat has (David, 2026-10-25: the 5-inch stays a late-game find, appearing
-  // once you sail a boat with a Heavy+ slot); if the boat cannot be read, every template is allowed
+  // only guns for slot families the current boat has (so the 5-inch stays a late-game find, appearing once you sail a
+  // boat with a Heavy+ slot); if the boat cannot be read, every template is allowed
   std::vector<std::string> fams = BoatFamilies();
   auto allowed = [&](const DropTemplate& c) {
     if (!c.builtFrom.empty()) {                                        // turret_guns=0 / side_grades=0: none of them in the loot either
@@ -664,7 +663,7 @@ static bool RollItem(Item* out, std::string* rarity, int minAffixes = 0, bool gu
     return fams.empty() || std::find(fams.begin(), fams.end(), c.family) != fams.end();
   };
   // mod_gun_share: the mod's own guns (built_from templates) of a family together get that share of the family's drops,
-  // split by their weight=, so each new side-grade adds variety, not more mod guns (David 2026-11-15). Computed per roll
+  // split by their weight=, so each new side-grade adds variety, not more mod guns. Computed per roll
   // over the allowed templates: side_grades=0 or a boat without the family leaves the rest as they are.
   std::map<std::string, std::pair<double, double>> famW;              // family -> (stock weight, mod weight), allowed only
   auto tplWeight = [&](const DropTemplate& c) {
@@ -739,8 +738,6 @@ static bool RollItem(Item* out, std::string* rarity, int minAffixes = 0, bool gu
   };
   // Every effect slot is a good effect. A drawback comes on top (drawback_chance), never instead of one, and then the
   // good effects roll in the top half of their ranges: a trade, not a punishment. Rarity counts good effects only.
-  // (Until 2026-10-29 each slot was a drawback 25% of the time, so 58% of Rares had one and a 'Rare' could have two;
-  // David: "fun and not punishing, err towards overpowered".)
   for (int i = 0; i < n; i++) { const Affix* a = pick(false); if (!a) break; chosen.push_back(a); }
   if (chosen.empty()) return false;
   int goods = (int)chosen.size();
@@ -781,7 +778,7 @@ static bool RollItem(Item* out, std::string* rarity, int minAffixes = 0, bool gu
   std::string name = baseName;
   for (int k = 2; FindItem(name) || IsTombstone(name); k++) name = baseName + " " + std::to_string(k);   // a purged gun's name keeps its position
   it.name = name;
-  // one cosmetic extra now and then (David, 2026-10-26): looks only, so it neither counts toward rarity nor names the gun
+  // one cosmetic extra now and then: looks only, so it neither counts toward rarity nor names the gun
   std::string look; int lookPart = -1;                                 // the 'Look:' text, and its line in g_rollParts (the crate reel)
   if (g_cosmeticChance > 0 && Rand01() < g_cosmeticChance) {
     double cw = 0; for (auto& a : g_affixes) if (a.cosmetic && fits(&a) && !clashes(&a)) cw += a.weight;   // Long Tracers would stack on Bold
@@ -822,8 +819,8 @@ static std::string UniqueText(const UniqueDef& u, const char* word, std::vector<
   if (parts && !flavor.empty()) parts->push_back(flavor);
   return desc + "." + (flavor.empty() ? "" : " " + flavor);
 }
-// A Unique's base= may name several stock bases, comma separated (David 2026-11-04: the chompers were Mk 14 / Mk 18 only,
-// which the sub chaser cannot carry, so they also take the sub chaser's Mk 24 pair).
+// A Unique's base= may name several stock bases, comma separated (the chompers take the sub chaser's Mk 24 pair as well
+// as Mk 14 / Mk 18, which it cannot carry).
 static bool BaseListed(const std::string& list, const std::string& base) {
   for (const std::string& b : SplitList(list)) if (b == base) return true;
   return false;
@@ -862,7 +859,7 @@ static bool RollUnique(Item* out, std::string* rarity, bool unusual = false) {
   return true;
 }
 
-// Saved Uniques follow their [unique] block (2026-11-02 rebalance: David's Metronome was found before it): a gun named
+// Saved Uniques follow their [unique] block, so a rebalance reaches guns found earlier: a gun named
 // 'X' or 'X N' takes X's current effects and description text. Lazarus lost its 3-mission limit, so a Lazarus found
 // with it gets those 3 missions back, once (its description no longer says so afterwards). Runs at launch and after an
 // inventory switch, after ConvertSlowShells.
@@ -880,7 +877,7 @@ static void RefreshUniques() {
       if (match) { u = &c; break; }
     }
     if (!u) continue;
-    if (g_invUniqueUses < 8 && it.uses > 0 && u->uses >= 8) {          // Uniques last 8 missions now (2026-11-16), once per inventory
+    if (g_invUniqueUses < 8 && it.uses > 0 && u->uses >= 8) {          // Uniques last 8 missions (2026-11-16), once per inventory
       it.uses += 2; changed++;
       Log("unique '%s': +2 missions (Uniques now last 8), %d left", it.name.c_str(), it.uses);
     }
@@ -908,8 +905,8 @@ static void RefreshUniques() {
 // loot state or cell size, but how the gun was made).
 static std::string ItemText(const Item& it, bool coop) {
   char b[64]; std::string s = "\n[item]\nname=" + it.name + "\nfamily=" + it.family + "\nbase=" + it.base + "\ndescription=" + it.description + "\nprice=" + std::to_string(it.price) + "\n";
-  // not sent in co-op: a gun spends a use on its first shot of a battle, which changed its text and stamp, so every
-  // other machine rebuilt it mid-battle (co-op review 2026-11-01). Other players only build and draw the gun.
+  // not sent in co-op: a gun spends a use on its first shot of a battle, which would change its text and stamp and
+  // make every other machine rebuild it mid-battle. Other players only build and draw the gun.
   if (it.uses > 0 && !coop) s += "uses=" + std::to_string(it.uses) + "\n";
   if (it.scale != 1.0f) { snprintf(b, sizeof b, "scale=%.3f\n", it.scale); s += b; }
   if (!it.rarity.empty()) s += "rarity=" + it.rarity + "\n";
@@ -941,7 +938,7 @@ static void SaveInventory() {
   FinishSave(f, path);
 }
 
-// Slow shells keep their range (David 2026-10-28). Found guns saved before that are converted at launch:
+// Slow shells keep their range (since 2026-10-28). Found guns saved before that are converted at launch:
 //  - steering ones (Homing, The Ferryman: fx seek) trade their lower MuzzleVelocity for ProjectileType.timeScale, the
 //    same flight in slow motion (see kAffixLineUpdates), with FrameLifeTime x 1/speed; rolled guns are also held to the
 //    -60% cap (Homing once rolled -85..-90%, which left a 3-inch with a 230 m range and it never fired), and the number in
@@ -989,7 +986,7 @@ static void ConvertSlowShells() {
 
 // Automated found before 0.9.3 carries mul.Accuracy=0.8, which scales the score itself (a 95 gun -> 76, 4.8x the spread).
 // 0.9.3's Automated is mul.Inaccuracy=1.25 (25% wider spread; see ApplyOp), so those guns are converted at launch and
-// after an inventory switch (release review 2026-11-07).
+// after an inventory switch.
 static void ConvertAutomated() {
   int changed = 0;
   const std::string oldText = "-20% accuracy", newText = "25% wider spread";
@@ -1011,7 +1008,7 @@ static void ConvertAutomated() {
 
 // At launch, found guns that were retired last time are deleted for good. Their names STAY in positions.ini as
 // tombstones (a hidden placeholder mount takes the position), so later guns never shift and a saved loadout never comes
-// back with a different gun; a slot that pointed at a deleted gun is emptied by UnequipRetired (review finding 5).
+// back with a different gun; a slot that pointed at a deleted gun is emptied by UnequipRetired.
 static void PurgeRetired() {
   bool changed = false;
   for (size_t i = 0; i < g_items.size(); ) {

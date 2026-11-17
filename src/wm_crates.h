@@ -267,8 +267,8 @@ static void InventoryGui() {
   GuiScale(1.0f);
 }
 // ---- crates: the workshop strip (craft and open) and the opening reel ------------------------------------------------
-// Opening rolls the gun first and checks the loot grid has room, then plays a three-reel slot machine (David's pick,
-// 2026-10-24): gun, rarity and first effect spin vertically and stop left to right on what was rolled; further effects
+// Opening rolls the gun first and checks the loot grid has room, then plays a three-reel slot machine:
+// gun, rarity and first effect spin vertically and stop left to right on what was rolled; further effects
 // are revealed under the cabinet with their numbers shuffling, then the full name and a banner (JACKPOT for a Rare).
 struct SlotSym { std::string text, sub, base; int rarity; bool bad; };   // rarity: 0..3 (3 = Unique), -1 = none
 static std::vector<SlotSym> g_slot[3];
@@ -297,8 +297,7 @@ static void* BaseSprite(const std::string& base) {                   // the pict
     }
   }
   // No boat carries that gun right now (in port after a battle no boat is live): read GunType.sprite (what
-  // GunMount.getSprite returns) off the loaded asset. A 'Fast 70mm Type 92' showed no picture in the loot grid because
-  // no howitzer had been seen live that session (David 2026-11-01); bases already cached were fine.
+  // GunMount.getSprite returns) off the loaded asset.
   if (!e.sprite) {
     static int offSprite = -2;
     if (offSprite == -2) offSprite = FieldOffset("Core", "GunType", "sprite");
@@ -406,7 +405,7 @@ static void Reel(int type, Vec2 mouse) {
   bool revealed = g_reelDone && since >= kRevealStepMs * (DWORD)extra + 300;
   bool jackpot = revealed && g_reelRarityIx >= 2;
   if (type == 7) {
-    // cabinet: a small plywood crate like the inventory (2026-11-05), the title on a paper manifest label (clear of the
+    // cabinet: a small plywood crate like the inventory, the title on a paper manifest label (clear of the
     // bracket), dark compartments for the reels and the reveal text (its color tags need a dark background)
     CrateBody(panel, -1, -1);
     PaperSlip({ panel.x + 50, panel.y + 6, 300, 24 }, 0.4f);
@@ -507,7 +506,7 @@ static void Reel(int type, Vec2 mouse) {
 }
 
 static bool ModMenus(void* ev, int type, Vec2 mouse);
-// SCRAP ALL in the loot header (David 2026-11-04): every loot gun and torpedo to materials at once, as the scrap box does
+// SCRAP ALL in the loot header: every loot gun and torpedo to materials at once, as the scrap box does
 // one by one; Uniques stay. The first click arms it and says what it gives, a second within 3 s scraps.
 static DWORD g_scrapAllArmedAt = 0; static int g_scrapAllN = 0;
 struct LootYield { int n = 0, kept = 0, mat[3] = { 0, 0, 0 }; };
@@ -582,7 +581,7 @@ static void InventoryGuiScaled() {
   Workshop(L, type, m);
   if (hover) DrawTooltip(*hover, mouse);
   GuiThemeEnd();                                                       // the reel keeps its old look: Unity's font, the skin's alignment
-  if (g_reelOn) Reel(type, mouse);                                            // (its text boxes clip Kanit's taller lines, test 2026-10-27)
+  if (g_reelOn) Reel(type, mouse);                                            // (its text boxes clip Kanit's taller lines)
   GuiColor({ 1, 1, 1, 1 });
   GuiThemeEnd();
 }

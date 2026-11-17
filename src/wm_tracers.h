@@ -26,7 +26,7 @@ static void ApplyTracerColor(void* manager) {
     void* name = il2cpp_string_new("_MainColor");
     void* ga[1] = { name };
     void* before = Invoke(mGet, mat, ga);
-    float old[4] = { -1, -1, -1, -1 }; if (before) memcpy(old, (char*)before + 0x10, sizeof old);
+    float old[4] = { -1, -1, -1, -1 }; if (before) memcpy(old, (char*)before + 0x10, sizeof old);   // boxed Color: after the 0x10 header
     float c[4] = { g_tracerRGBA[0], g_tracerRGBA[1], g_tracerRGBA[2], g_tracerRGBA[3] };
     void* sa[2] = { name, c };
     Invoke(mSet, mat, sa);
@@ -53,7 +53,7 @@ static const float kPalette[kPaletteN][4] = {
   { 1.0f, 0.35f, 0.75f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f },            // pink, white     (5, 6)
   { 1.0f, 0.18f, 0.12f, 1.0f } };                                    // red: crew weapons (kCrewSlot, crew_tracers)
 // Latched: crew_tracers can be switched off while playing, but shots already set to styles 6.. need every later
-// ProjectileManager to have the longer render array (review 2026-11-04).
+// ProjectileManager to have the longer render array.
 static bool PaletteOn() { static bool on = false; if (!on) on = g_tracerRarity || g_cosmeticChance > 0 || g_crewTracers; return on; }
 static std::vector<PaletteShot> g_paletteShots;
 static std::unordered_map<void*, std::vector<PaletteShot>> g_crewTypes;   // crew weapon GunType -> its red copies (empty: left alone); CrewTracerFor

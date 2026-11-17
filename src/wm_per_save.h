@@ -7,7 +7,7 @@
 // saves/legacy.ini, the inventory as it was when this first ran. A new campaign starts with no found guns. positions.ini
 // stays shared: a gun from another save is a hidden placeholder there, so saved loadout positions never move.
 // GameSave.saveState(IDataObject) and GameSave.readAndDecompress(IDataObject, string) are static and called directly, so
-// a MethodInfo patch would miss them: their first 15 bytes (plain register saves, read in the disassembly 2026-10-29)
+// a MethodInfo patch would miss them: their first 15 bytes (plain register saves)
 // become a jump to the hook, and a trampoline runs those bytes and jumps back.
 static void* g_clsCampaignState = nullptr;
 static void *g_fCampaignCurrent = nullptr, *g_fGameSavePath = nullptr, *g_fStartState = nullptr;
@@ -38,9 +38,8 @@ static bool CopyAtomic(const std::string& src, const std::string& dst) {
   if (!CopyFileA(src.c_str(), tmp.c_str(), FALSE)) return false;
   return MoveFileExA(tmp.c_str(), dst.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
 }
-// Before a switch the live inventory goes to saves\backup\live-<date>-<time>.ini; the newest 20 are kept. (One
-// last-live.ini was overwritten by a second switch in a row, losing changes made after the last game save; review
-// 2026-10-29.)
+// Before a switch the live inventory goes to saves\backup\live-<date>-<time>.ini; the newest 20 are kept (a single
+// file would be overwritten by a second switch in a row, losing changes made after the last game save).
 static void BackupLive(const char* file = "inventory.ini", const char* pre = "live") {
   std::string dir = SavesDir() + "\\backup", live = g_folder + "\\" + file;
   if (!FileExists(live)) return;
@@ -103,7 +102,7 @@ static void AfterCampaignSave(void* state) {
 }
 // ---- stall watch ----
 // Loading a save from the main menu sometimes sits on a black screen for minutes
-// (the menu sound still playing); the devs know it and not why. For 10 minutes after a save load a watchdog thread
+// (the menu sound still playing), cause unknown. For 10 minutes after a save load a watchdog thread
 // (StallWatchThread) checks that the game still runs frames. When none ran for 5 s it samples the main thread's stack
 // every 2 s and logs where it is, so the log names the code the load hangs in. Heartbeats: ProjectileManager.LateUpdate
 // and the OnGUI hosts, both on the main thread.
@@ -215,8 +214,8 @@ static void InstallPerSave() {
 }
 
 // Patching code the game thread may be running is only safe on the game thread, so the first game-thread hook that runs
-// (the inventory window's OnGUI, a boat being built, the loadout screen) installs the detours (review 2026-10-29). If
-// none has run 10 s after setup, the mod thread does it as before.
+// (the inventory window's OnGUI, a boat being built, the loadout screen) installs the detours. If none has run 10 s
+// after setup, the mod thread does it.
 static volatile LONG g_perSaveClaim = 0; static bool g_perSaveWanted = false;
 static void TryInstallPerSave(const char* from) {
   if (!g_perSaveWanted || g_perSaveClaim || InterlockedExchange(&g_perSaveClaim, 1) != 0) return;
@@ -247,8 +246,7 @@ static void PrepareSaves() {
     FindClose(fh);
   }
   if (live.empty()) return;                                            // no saves found: the path is wrong, delete nothing
-  // A copy whose save is missing is only deleted after 30 days: the save may be in a backup or not synced back yet
-  // (review 2026-10-29: restoring a backed-up save found its copy pruned).
+  // A copy whose save is missing is only deleted after 30 days: the save may be in a backup or not synced back yet.
   FILETIME nowFt; GetSystemTimeAsFileTime(&nowFt);
   unsigned long long now = ((unsigned long long)nowFt.dwHighDateTime << 32) | nowFt.dwLowDateTime;
   const unsigned long long kKeep = 30ULL * 24 * 3600 * 10000000ULL;    // 30 days in 100 ns units

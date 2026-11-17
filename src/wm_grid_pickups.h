@@ -61,8 +61,7 @@ static void GridLayout() {
 }
 
 // A loot gun stays out of positions.ini and off the boats until it is dragged into the inventory grid, so dropping one
-// never shifts a position. Loot stays across battles; when a new drop does not fit, the oldest loot makes room
-// (David, 2026-10-24: leaving it all behind at the next battle lost guns from a battle with no drops after it).
+// never shifts a position. Loot stays across battles; when a new drop does not fit, the oldest loot makes room.
 static void ShowMessage(const std::string& text);
 static bool MakeRoomInLoot(Item& incoming, std::vector<std::string>* dropped) {
   { int w, h; ItemSize(incoming, &w, &h); if (w > g_lootCols || h > g_lootRows) return false; }   // too big for the grid: drop nothing

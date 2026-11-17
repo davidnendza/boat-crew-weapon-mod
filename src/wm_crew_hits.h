@@ -55,7 +55,7 @@ static std::string CrewBodyPart(void* self, V3 q, V3 dir, bool log) {
   if (t >= tNeck) part = back ? "the back of the head" : "the head";
   else if (t >= tHip) part = haveSide && fabsf(side) > 0.16f ? "the " + lr + "arm" : back ? "the back" : t > (tc + tHip) / 2 ? "the chest" : "the belly";
   else part = "the " + lr + "leg";
-  if (log && g_debug && g_crewGeoLogs++ < 8)                          // test-era detail: debug=1 only (0.9.6)
+  if (log && g_debug && g_crewGeoLogs++ < 8)                          // debug=1 only
     Log("crew log: hit geometry: t %.2f (chest %.2f, neck %.2f, hip %.2f), body %.2f m, side %+.2f m, %s -> %s", t, tc, tNeck, tHip, L, side, back ? "from behind" : "from the front", part.c_str());
   return part;
 }
@@ -137,7 +137,7 @@ static void CrewLogPost(void* self, float d, uintptr_t ra, char* crsp, const Cre
     g.hp += lost; g.n++; if (g.first < 0) g.first = at; g.last = at;
     if (!w.source.empty() && g.guns.size() < 4) g.guns.insert(w.source);
     std::string src = key + "|" + w.source + "|" + (direct ? "round" : w.how);
-    if (g_debug && g_crewSrcSeen.size() < 16 && g_crewSrcSeen.insert(src).second) {   // debug=1 only (0.9.6)   // each new source once, to see what hurts the crew
+    if (g_debug && g_crewSrcSeen.size() < 16 && g_crewSrcSeen.insert(src).second) {   // debug=1: each new source once, to see what hurts the crew
       if (direct) Log("crew log: new hit source: %s from gun '%s' of %s, -%.1f HP to %s", w.how.c_str(), w.source.c_str(), key.c_str(), lost, r->name.c_str());
       else if (splash) {
         V3 dv = *(V3*)(crsp + 0x2B0); SplashData* sd = (SplashData*)(crsp + 0x90);

@@ -5,7 +5,7 @@
 // lasts the game's 42 s and is networked by the game to the other players (only the dropping player's machine spawns it).
 // Raft: a copy of the ships' lifeboat decor mesh that heads for the nearest of this machine's own crew in the water and
 // rescues them on contact the game's own way for a saved swimmer: healthState Recovered (5), which the end-of-battle scan
-// keeps and recoverCharacters turns back into Healthy; then the removal steps of a pickup (traced 2026-11-08).
+// keeps and recoverCharacters turns back into Healthy; then the removal steps of a pickup.
 struct UtilApi {
   bool tried = false, ok = false, dave = false;
   void *vfxInst = nullptr, *spawnVfx = nullptr, *pmInst = nullptr, *findProj = nullptr, *findBy = nullptr, *findAll = nullptr, *cmoType = nullptr;
@@ -70,9 +70,9 @@ static void* SmokePrefab(bool large) {
   }
   return prefab[i];
 }
-// A co-op client's spawnVFX also goes to the host, whose copy the host sends to every client, the sender too
-// (sendVfxToClients sends byID -1; traced 2026-11-08), so a client's own cloud came twice. A client only sends it, as the
-// game's onClientVfxTrigger does (VFXManager +0x48 with the prefab's pool name), and the host's copy is its one cloud.
+// A co-op client's spawnVFX also goes to the host, which echoes it to every client, the sender too (sendVfxToClients
+// sends byID -1), so a client only sends it, as the game's onClientVfxTrigger does (VFXManager +0x48 with the prefab's
+// pool name), and the host's copy is its one cloud.
 // False when that path is not there: the caller spawns it the normal way.
 static bool SmokeSendToHost(void* vfx, void* prefab, V3* pos) {
   static int oPooler = -2, oTrig = -1, oTypes = -1, oName = -1, oPrefab = -1; static void* inv = nullptr;
@@ -95,7 +95,7 @@ static bool SmokeSendToHost(void* vfx, void* prefab, V3* pos) {
   return true;
 }
 // The pots' clouds alive, by pool (0 small, 1 large): their spawn times, as each lasts the game's 42 s. The pools (24
-// each) are shared with the game's own smoke shells, so the pots leave a third of each free (review 2026-11-08).
+// each) are shared with the game's own smoke shells, so the pots leave a third of each free.
 static std::vector<float> g_smokeLive[2];
 static const int kSmokeCap = 16;
 // Fire Mission's marker: one small cloud, counted with the pots' so they leave room for it.
@@ -125,13 +125,10 @@ static int SmokePuff(V3 p, bool large) {
   if (ok) { g_utilStat.smokes++; live.push_back(now); } else g_utilStat.smokeFails++;
   return ok ? 1 : 0;
 }
-// A smoke pot burns on the water where it landed (David 2026-11-08: one cloud was too small and too short; then 'the
-// smoke cloud needs to be wider' and 'leave the smoke container floating'). Every kSmokePuffEvery s it puffs five clouds:
-// a large one on itself, two large ones 40 m out on opposite sides and two small ones 70 m out across them, the axis
-// turning by the golden angle each puff, so the clouds (each lasting the game's 42 s) overlap into a screen about 150 m
-// across that stands until smoke_seconds after the landing. The pot itself floats there, bobbing, until it burns out.
-// Clouds per pot alive at once: at most 12 large and 8 small (four puffs), of the two pools' 24 each, of which the pots
-// take 16 (kSmokeCap): one pot burns in full, several at once share and come out thinner (skips are logged).
+// A smoke pot floats where it landed and every kSmokePuffEvery s puffs five clouds (one large on itself, two large 40 m
+// out, two small 70 m out, the axis turned by the golden angle each puff) into a screen about 150 m across that stands
+// until smoke_seconds after the landing. The pots share 16 clouds of each 24-cloud pool (kSmokeCap), so several at once
+// come out thinner (skips are logged).
 static Q4 QMul(Q4 a, Q4 b);
 static Q4 QAxis(int axis, float a);
 static const float kSmokePuffEvery = 12;
@@ -208,11 +205,10 @@ static void UtilRaft(V3 p, const std::string& item) {
   g_rafts.push_back(r); g_utilStat.rafts++;
   Log("utility gear: '%s' landed at (%.0f, %.0f): a life raft is out for 180 s, heading for your crew in the water at %.0f m/s", item.c_str(), p.x, p.z, g_raftSpeed);
 }
-// Dave (David 2026-11-09, 'a model that doesn't animate, for the lulz, like a dev thing'): the mod's dev as a stiff
-// T-posed placeholder (models/dave.obj, soles at y 0, facing +Z) that glides over the water to the nearest RP crate on
-// the water and picks it up the game's own way, PickupBehaviour.pickUp (the boat's RP, sound and rise animation there;
-// traced 2026-11-09), for 2 minutes. The crates are the ones the pickup hook saw this
-// frame (g_crateFrame). Co-op: only this machine's copy of a crate; a client's RP is overwritten by the host's.
+// Dave: a stiff T-posed placeholder (models/dave.obj, soles at y 0, facing +Z) that glides to the nearest RP crate on
+// the water and picks it up the game's own way, PickupBehaviour.pickUp (RP, sound and rise animation), for 2 minutes.
+// The crates are the ones the pickup hook saw this frame (g_crateFrame). Co-op: only this machine's copy of a crate;
+// a client's RP is overwritten by the host's.
 static const float kDaveSpeed = 40, kDaveReach = 4, kDaveLife = 120;   // m/s, m, s; shortcut: fixed, a drops.ini key if asked
 struct Dave { void *go = nullptr, *h = nullptr; V3 p = {}; float until = 0; std::string item; int crates = 0, rp = 0; Q4 q = {}; };
 static std::vector<Dave> g_daves;
@@ -224,10 +220,8 @@ static void DavePose(Dave& d) {
   void* a[1] = { &p }; Invoke(g_ua.trSetPos, tf, a);
   void* b[1] = { &d.q }; Invoke(g_ua.trSetRot, tf, b);
 }
-// Dave's size: a crew member's body mesh is 1.75 m (data.unity3d, mesh x100 under the Armature), dave.obj 1.8 m, yet
-// David saw Dave 'really small' next to his crew (2026-11-09). So the world scale of one of the boat's own crew members
-// (their transform's lossyScale, which carries any scale the boat puts on its crew) is copied onto Dave; logged once
-// with that crew member's body height in the world, to see where the difference came from.
+// Dave's size: dave.obj is 1.8 m like a crew body mesh, but the boat scales its crew, so Dave copies one crew member's
+// lossyScale; logged once with that crew member's world body height.
 static float DaveCrewScale() {
   void* craft = g_oCeCrew >= 0 && g_oMgrCrew >= 0 ? PlayerCraft() : nullptr;
   void* mgr = craft ? *(void**)((char*)craft + g_oCeCrew) : nullptr;
@@ -283,7 +277,7 @@ static void DaveTick(float now) {
   g_crateFrame.clear();
   float dt = UtilTime(g_ua.dt);
   for (Dave& d : g_daves) {
-    int best = -1; float bd = kDaveSpeed * (d.until - now) + kDaveReach; // any crate he can reach before he clocks out (David 2026-11-10; was 1.5 km)
+    int best = -1; float bd = kDaveSpeed * (d.until - now) + kDaveReach; // any crate he can reach before he clocks out
     for (size_t i = 0; i < crates.size(); i++) {
       if (!crates[i].first) continue;
       float dx = crates[i].second.x - d.p.x, dz = crates[i].second.z - d.p.z, dd = sqrtf(dx * dx + dz * dz);
@@ -313,7 +307,7 @@ static void DaveTick(float now) {
   }
 }
 // The smoke or raft in its own guard (no C++ objects here): a fault in it turns off only the utility gear, not the found
-// torpedoes, whose fallback (TorpRestoreStock) would make the next pot or raft a live depth charge (review 2026-11-08).
+// torpedoes, whose fallback (TorpRestoreStock) would make the next pot or raft a live depth charge.
 static void SafeUtilSpawn(TorpRun& r, V3 p) {
   if (g_utilFaults < 0) return;
   __try { if (r.util == 1) UtilSmoke(p, r.item); else if (r.util == 3) UtilDave(p, r.item); else UtilRaft(p, r.item); }
@@ -355,7 +349,7 @@ static void UtilTick() {
   if (scan) {
     g_utilScanAt = now + 0.25f;
     // the player's crew, noted while still aboard (a man goes overboard from there): only they get a raft, never an
-    // enemy sailor in the water (review 2026-11-08)
+    // enemy sailor in the water
     void* craft = known ? PlayerCraft() : nullptr;
     void* mgr = craft ? *(void**)((char*)craft + g_oCeCrew) : nullptr;
     void* list = mgr ? *(void**)((char*)mgr + g_oMgrCrew) : nullptr;
@@ -455,13 +449,10 @@ static void TorpAfter(void* t) {
   if (sp > 1) { r.heading = { v.x / sp, 0, v.z / sp }; TorpStat& s = g_torpStats[r.item]; if (sp > s.topSpeed) s.topSpeed = sp; }
   if (r.seek > 0) { float dt = KcFloat(g_tp.fdt); if (dt > 0 && dt < 0.2f) { TorpSteer(t, r, body, p, v, dt); TorpDepth(t, r, dt); } }
 }
-// Diving on a submarine (David 2026-11-05: the game's own acoustic torpedoes hit subs below the water, so the mod's
-// homing ones should too). Every physics step the game eases a torpedo to -idleDepth, then snaps it back up if it is
-// below that, before its hit test (Torpedo.FixedUpdate 0x1809dbe7a); only its radar branch, switched off on the copies
-// the mod steers, eases that height toward a target. So a torpedo homing on a ship more than 3 m down, within 500 m,
-// gets a copy of its type of its own (kept per pooled torpedo) whose idleDepth the mod lowers toward the target's
-// height, 8 m a game second, at most 60 m; the game's depth hold then takes it down. Losing the target, giving up or
-// a ship on the surface brings it back up the same way, and at its own depth it runs on its item's type again.
+// Diving on a submarine: every physics step the game holds a torpedo at -idleDepth before its hit test (Torpedo.FixedUpdate
+// 0x1809dbe7a), and only the radar branch (off on the mod's copies) moves that toward a target. So a torpedo homing on a
+// ship more than 3 m down within 500 m gets its own type copy whose idleDepth the mod lowers toward the target, 8 m a
+// game second, at most 60 m; losing the target brings it back up, and at its own depth it runs on its item's type again.
 struct TorpDive { void* type = nullptr; void* h = nullptr; void* from = nullptr; };
 static std::unordered_map<void*, TorpDive> g_torpDives;             // Torpedo -> its diving copy
 static void TorpDiveDrop(void* t, TorpDive& D) {                    // the torpedo back on its item's type, the copy destroyed
@@ -499,12 +490,12 @@ static void TorpDepth(void* t, TorpRun& r, float dt) {
 static void (*g_torpFixedOrig)(void*, void*) = nullptr;
 // The found torpedoes are off: a pooled torpedo fires stock again. A smoke pot or raft (its tier's item) keeps its
 // zero-damage type instead and returns true, so Hooked_TorpFixed takes it out of the water rather than letting it sink
-// and go off as a stock depth charge behind the boat (review 2026-11-08); it lays no smoke and puts out no raft then.
+// and go off as a stock depth charge behind the boat; it lays no smoke and puts out no raft then.
 static bool TorpRestoreStock(void* t) {
   void* cur = *(void**)((char*)t + g_tp.pType);
   void* tierType = TierType(*(void**)((char*)t + g_tp.pTier));
   const Item* ti = ItemOfTorpType(tierType);
-  bool util = ti && UtilKind(*ti, nullptr) != 0;                      // a smoke pot, raft or Dave (review 2026-11-09)
+  bool util = ti && UtilKind(*ti, nullptr) != 0;                      // a smoke pot, raft or Dave
   void* want = util ? tierType : nullptr;
   if (!want) { auto c = g_torpOfType.find(cur); if (c == g_torpOfType.end() || !c->second->stock) return false; want = c->second->stock; }
   if (want != cur) {

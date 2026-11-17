@@ -1,6 +1,5 @@
 // crew_report.h: turns one battle's crew events into an after-action report written as prose.
-// Pure C++17, no game or IL2CPP calls: weaponmod.cpp
-// fills a RepBattle at the battle change and draws or writes the returned paragraphs.
+// Pure C++17, no game or IL2CPP calls: weaponmod.cpp fills a RepBattle at the battle change and draws or writes the returned paragraphs.
 #pragma once
 #include <string>
 #include <vector>

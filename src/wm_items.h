@@ -1,6 +1,6 @@
 // items from weapons.ini, rich-text colors, the mod's turret guns, side-grades and utility gear, LoadItems (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- items from weapons.ini ----------------------------------------------------------------------------------
-struct Op { std::string field; bool mul = true; double value = 1; bool proj = false; bool mount = false; bool sphere = false; bool fx = false; };   // fx: read by the mod at run time (crits, on-kill effects)   // proj: applies to the gun's projectile types
+struct Op { std::string field; bool mul = true; double value = 1; bool proj = false; bool mount = false; bool sphere = false; bool fx = false; };   // proj: applies to the gun's projectile types; fx: read by the mod at run time (crits, on-kill effects)
 struct Item {
   std::string name, family, base, description;
   int price = -1;                  // -1 keeps the base gun's price
@@ -22,11 +22,11 @@ struct Item {
   std::string soundFrom;           // sound_from=<stock gun>: fires with that gun's sounds (see CopySounds)
   std::string builtFrom;           // built_from=<mod gun>: a found gun on one of kTurretGuns or kSideGrades (see ExpandBuiltFrom)
   int cratesPerRound = 0;          // crates_per_round=N: only every Nth ammo crate a loader brings adds a round (see Hooked_SetMunitions)
-  std::string vetCrew; int vetKills = 0;   // Veteran's (0.9.3): the gunner it is bonded to and his kills with it (vet_crew=, vet_kills=)
+  std::string vetCrew; int vetKills = 0;   // Veteran's: the gunner it is bonded to and his kills with it (vet_crew=, vet_kills=)
   std::vector<Op> ops;
 };
 static std::vector<Item> g_items;
-// Torpedo slot families (the TorpedoLaunchers' SelectionOrder names, read from the game data 2026-11-04; more are
+// Torpedo slot families (the TorpedoLaunchers' SelectionOrder names, read from the game data; more are
 // learned as launchers are filled). An item in one of them is a found torpedo (see the found torpedoes section).
 static std::set<std::string> g_torpFams = { "New Standard Torpedo Slot", "Rear Torpedo Slot", "Sub Chaser Side Slot", "Sub Chaser Depth Charge Rack Slot", "Secondary Slot", "Depth Charge Slot" };
 static bool IsTorpFamily(const std::string& f) { return g_torpFams.count(f) > 0; }
@@ -64,7 +64,7 @@ static std::vector<RepPara> g_aarParas; static int g_aarSeq = 0;      // the las
 static bool g_aarOpen = false, g_aarOff = false;                       // the after-action report window; off after a fault
 static bool g_optOpen = false, g_newsOpen = false, g_optInit = false;                  // the Mod Options / What's New windows
 static double g_priceScale = 1.0;                                  // drops.ini price_scale: found guns cost their base gun's RP price x this (0 = free)
-static double g_cosmeticChance = 0.3;                               // drops.ini cosmetic_chance: share of found guns with one cosmetic extra                                  // drops.ini tracer_rarity: Uncommon guns fire blue tracers, Rare gold
+static double g_cosmeticChance = 0.3;                               // drops.ini cosmetic_chance: share of found guns with one cosmetic extra
 static bool g_tracerSet = false;                                    // weapons.ini tracer_color: recolors the BasicYellow projectile material
 static float g_tracerRGBA[4] = { 1, 1, 1, 1 };
 
@@ -181,13 +181,13 @@ static bool ParseOpKey(const std::string& key, Op* op) {
 }
 static const char* OpPrefix(const Op& o) { return o.fx ? "fx." : (o.proj ? "proj." : (o.mount ? "mount." : (o.sphere ? "sphere." : ""))); }
 // fx.set.<name> values: critChance, critMult (Deadeye), killAmmo, killRepair, killRP (on-kill effects). 0 when absent.
-// 0.9.3 (see 'gun effects'): mark, markTime, giantSlayer, salvo, closeBonus/closeDist, longBonus/longDist, overkill,
+// Gun effects (see 'gun effects'): mark, markTime, giantSlayer, salvo, closeBonus/closeDist, longBonus/longDist, overkill,
 // vetPerKill/vetCap, rally, steady/steadyCap/steadyDecay, saveAmmo, brittle.
 static double ItemFx(const struct Item& it, const char* name);
 static int RarityOf(const std::string& r) { return r == "Unusual" ? 4 : r == "Unique" ? 3 : (r == "Rare" ? 2 : (r == "Uncommon" ? 1 : 0)); }
-// What scrapping a gun gives, and wearing it out too: materials of its rarity's tier (tier 0 Scrap Iron for Common,
-// 1 Brass for Uncommon, 2 Gunmetal for Rare and up). One, but a Unique gives 2 Gunmetal and an Unusual 3. A worn-out gun
-// gave 1 Scrap Iron whatever its rarity, so players would scrap a gun by hand on its last mission (David 2026-10-30).
+// What scrapping a gun gives, and wearing it out too (so scrapping by hand on its last mission gains nothing): materials
+// of its rarity's tier (0 Scrap Iron for Common, 1 Brass for Uncommon, 2 Gunmetal for Rare and up). One, but a Unique
+// gives 2 Gunmetal and an Unusual 3.
 static int ScrapYield(const std::string& rarity, int* tier) { int rq = RarityOf(rarity); *tier = rq > 2 ? 2 : rq; return rq == 4 ? 3 : (rq == 3 ? 2 : 1); }
 
 // ---- rich-text colors (TextMeshPro <color> tags) --------------------------------------------------------------------
@@ -366,7 +366,7 @@ static const char* kTurretGuns =
   "description=A 37 mm M4 cannon salvaged from a crashed P-39, as PT crews on Guadalcanal did to hunt supply barges. Slow, but every shell lands like a hammer.\n"
   "mul.roundsPerMinute=0.47\nmul.shotCooldown=2.13\nset.MagSize=15\nset.MaxAmmo=30\nset.reloadCooldown=5\nset.Accuracy=93\nset.engagementDistance=1400\nset.ammoPerFill=10\nset.burstNumberOfShots=5\nset.burstCooldown=0.8\n"
   "proj.mul.BaseDamage=3.75\nproj.mul.SplashDamageBase=2.5\nproj.mul.SplashDamageRange=1.4\nproj.mul.MuzzleVelocity=0.85\nproj.mul.MuzzleVelocityRealistic=0.85\nproj.mul.FrameLifeTime=1.18\n\n"
-  // batch 2 (2026-11-15), Medium group: Breda, Madsen and Polsten on the Oerlikon, MG 34 on the Lewis, DShK on the M2
+  // Medium group: Breda, Madsen and Polsten on the Oerlikon, MG 34 on the Lewis, DShK on the M2
   "[item]\nname=Breda 20/65 Mod. 40\nfamily=Tub Turret\nbase=20 mm Oerlikon\nprice=4000\nmodel=breda_20mm\nmodel_keep=Mount,Mount3_Holder,ArmRest\n"
   "description=Italian Breda 20/65, the Regia Marina's standard 20 mm on corvettes and MAS boats. Fed from 12-round strips, so it fires far fewer shells than the Oerlikon, but it aims truer, hits a little harder and reaches further.\n"
   "mul.roundsPerMinute=0.6\nmul.shotCooldown=1.667\nset.MagSize=12\nset.reloadCooldown=1.8\nset.Accuracy=96\nset.engagementDistance=1500\nset.burstNumberOfShots=6\n"
@@ -392,9 +392,9 @@ static bool g_turretGuns = true;                                    // drops.ini
 // Like the turret guns: each a copy of the stock gun it trades against, with a model from tools/make_sidegrade_models.py
 // that keeps the base gun's carriage, stand and cranks. family= may list several slot families: the gun is copied into
 // each (LoadItems), as a Bofors sits in both Heavy and Heavy+ slots. Prices are mul.price on the base gun's.
-// Pom-pom and 4.7-inch follow Discord feedback (2026-11-01): the pom-pom has a bigger belt and twice the Bofors' rate
+// The pom-pom has a bigger belt and twice the Bofors' rate
 // but much worse accuracy and slower shells; the 4.7-inch has 3 rounds a magazine to the 5-inch's 2.
-// Stock numbers (Dump/Guns, Dump/Projectiles 2026-11-01): Bofors 200 rpm, 6-round clips, 24 carried, 250 damage, 1000 m/s;
+// Stock numbers (Dump/Guns, Dump/Projectiles): Bofors 200 rpm, 6-round clips, 24 carried, 250 damage, 1000 m/s;
 // 3-inch 75 rpm, 4/8, 800 damage, 400 splash over 30 m, 400 m/s; 5-inch 75 rpm, 2/4, 3200 damage, 800 over 40 m, 360 m/s;
 // Twin Oerlikon 640 rpm, 60/120, reload 6, 32 damage; Elco 1920 rpm, 60/480; 60 mm mortar 8 carried, reload 1.5, 600
 // splash over 90 m; 37 mm AT 4 carried, reload 3, 2400 damage; 75 mm howitzer 4 carried, reload 3, 2400 splash over
@@ -465,9 +465,8 @@ static const char* kSideGrades =
   "description=British 'Land Mattress' launcher. A huge salvo of small rockets that spread wide and reach less far; each hits softer than the Mk 50's.\n"
   "set.MagSize=24\nset.MaxAmmo=48\nset.ammoPerFill=8\nset.Accuracy=70\n"
   "proj.mul.BaseDamage=0.6\nproj.mul.SplashDamageBase=0.65\nproj.mul.SplashDamageRange=0.9\nproj.mul.MuzzleVelocity=0.85\nproj.mul.MuzzleVelocityRealistic=0.85\n\n"
-  // Crew weapons (infinite ammo, so MaxAmmo stays). CrewMemberCombat.LateUpdate (read 2026-11-01) only picks targets
-  // within 270 m whatever the gun, holds aim 1 s, then fires as fast as the gun's cooldown allows, so a slow gun gets
-  // few shots in the short time a boat is that close: the first Boys (x0.1 rate, x15 damage) fired 3 shots a battle.
+  // Crew weapons (infinite ammo, so MaxAmmo stays). CrewMemberCombat.LateUpdate only picks targets within 270 m whatever
+  // the gun, holds aim 1 s, then fires at the gun's cooldown, so a slow gun gets few shots while a boat is that close.
   "[item]\nname=Thompson M1928\nfamily=Crew Weapons\nbase=M1918 BAR\nmodel=thompson_m1928\n"
   "description=Thompson M1928 with a 50-round drum. Fast and steady, but its pistol rounds hit soft and fall short.\n"
   "mul.roundsPerMinute=1.15\nmul.shotCooldown=0.87\nset.MagSize=50\nset.reloadCooldown=4\nset.Accuracy=88\nset.engagementDistance=450\nset.burstNumberOfShots=8\n"
@@ -479,7 +478,7 @@ static const char* kSideGrades =
   "description=British Boys anti-tank rifle. Five rounds and slower to fire, but each hits eight times as hard as a BAR round, with no blast.\n"
   "mul.price=1.2\nmul.roundsPerMinute=0.25\nmul.shotCooldown=4\nset.MagSize=5\nset.reloadCooldown=3\nset.Accuracy=98\nset.burstNumberOfShots=0\nset.burstCooldown=0\n"
   "proj.mul.BaseDamage=8\nproj.set.SplashDamage=0\nproj.set.SplashDamageBase=0\n\n"
-  // batch 2 (2026-11-15): Heavy and Heavy+
+  // Heavy and Heavy+ (second set)
   "[item]\nname=T-34 Turret 76 mm\nfamily=Heavy Weapon,Heavy+ Weapon\nbase=3-inch Gun Player\nmodel=t34_turret\nmodel_keep=Stand\nsound_from=Soukou Tei Tank Gun\nelevation=-5,30\npivot_offset=0,0,1\ncrew_offset=0,0.4,0.67\n"
   "description=A T-34 tank turret with its 76 mm F-34 gun, as Soviet Project 1125 armoured river boats carried on the Volga, Dnieper and Danube. Cheap, with six ready rounds, but its slower shell reaches less far and it fires a little slower than the 3-inch. Like the tank's gun it elevates only to 30 degrees, so it cannot fire at planes overhead.\n"
   "mul.price=0.6\nmul.roundsPerMinute=0.8\nmul.shotCooldown=1.25\nset.MagSize=6\nset.MaxAmmo=8\nset.ammoPerFill=2\nset.reloadCooldown=1.2\nset.engagementDistance=1950\n"
@@ -504,12 +503,12 @@ static const char* kSideGrades =
   "description=German 10.5 cm SK C/32, the deck gun of torpedo boats, F-boats and minesweepers, and of Type I, IX and XB U-boats until 1942-43. Far cheaper than the 5-inch, with a faster, flatter shell, but the lighter shell hits softer with a smaller blast.\n"
   "mul.price=0.55\n"
   "proj.mul.BaseDamage=0.7\nproj.mul.SplashDamageBase=0.75\nproj.mul.SplashDamageRange=0.9\nproj.mul.MuzzleVelocity=1.15\nproj.mul.MuzzleVelocityRealistic=1.15\n\n"
-  // batch 2 (2026-11-15): Medium
+  // Medium (second set)
   "[item]\nname=MG 151/20 Drilling\nfamily=Medium Weapon\nbase=20 mm Oerlikon Twin\nmodel=mg151_drilling\nmodel_keep=Mount,Stand,ArmRest\nsound_from=20 mm Cannon AIR (JAP)\n"
   "description=German MG 151/20 Drilling: three surplus Luftwaffe cannon on one naval pedestal, from 1944. Fires much faster than the twin Oerlikon with a bigger burst from each shell, but it scatters, reaches less far and empties its belts fast, then reloads slowly.\n"
   "mul.price=1.2\nmul.roundsPerMinute=1.4\nmul.shotCooldown=0.714\nset.MagSize=48\nset.reloadCooldown=9\nset.Accuracy=81\nset.engagementDistance=900\nset.burstNumberOfShots=12\n"
   "proj.mul.BaseDamage=0.95\nproj.mul.SplashDamageBase=1.4\nproj.mul.MuzzleVelocity=0.9\nproj.mul.MuzzleVelocityRealistic=0.9\nproj.mul.FrameLifeTime=0.83\n\n"
-  // batch 2 (2026-11-15): Utility
+  // Utility (second set)
   "[item]\nname=Holman Projector\nfamily=Utility Weapon\nbase=M2 60 mm Mortar\nmodel=holman_projector\n"
   "description=British Holman Projector, a cheap compressed-air or steam thrower of Mills bombs carried by trawlers, merchant ships and Coastal Forces gunboats from 1940. It reloads twice as fast as the 60 mm and costs far less, but each bomb is small: a weak blast over a short reach.\n"
   "mul.price=0.3\nset.reloadCooldown=0.75\nset.MaxAmmo=24\nset.ammoPerFill=8\nset.Accuracy=80\nset.engagementDistance=500\n"
@@ -534,7 +533,7 @@ static const char* kSideGrades =
   "description=The 38 cm RW 61 rocket mortar of the German Sturmtiger, firing a huge rocket-assisted shell: it crawls out of the barrel, then its rocket fires and it speeds away. One enormous shell with a colossal blast, then a very long reload; ruinously expensive, only two carried, ten ammo crates make one round, and do not fire it at anything close.\n"
   "mul.price=3\nset.MagSize=1\nset.MaxAmmo=1\nset.ammoPerFill=1\nset.reloadCooldown=60\nset.Accuracy=88\ncrates_per_round=10\n"
   "proj.set.BaseDamage=6000\nproj.mul.SplashDamageBase=4\nproj.mul.SplashDamageRange=1.5\nproj.set.slowStart=1\nproj.set.slowStartFactor=0.2\nproj.set.slowStartRecoveryTime=1.2\nproj.mul.projectileWidth=5\n\n"   // rocket assist: Projectile.shoot (0x1809F2D47) starts any slowStart shell at slowStartFactor and iterate eases it to full speed (~2 s here); the trajectory is unchanged, only its first seconds run slow
-  // batch 2 (2026-11-15): Rockets
+  // Rockets (second set)
   "[item]\nname=16-M-8 Katyusha\nfamily=Rockets\nbase=X50 Rocket Launcher\nmodel=katyusha_m8\nmodel_keep=Mount\n"
   "description=Soviet 16-rail M-8 Katyusha launcher, as fitted to river armoured boats and torpedo boats to fire on beaches ahead of landings. Sixteen 82 mm rockets to the X50's four that reach much farther, but each hits far softer and they scatter wide.\n"
   "mul.price=1.2\nset.MagSize=16\nset.MaxAmmo=32\nset.ammoPerFill=8\nset.reloadCooldown=3\nset.Accuracy=64\n"
@@ -556,12 +555,12 @@ static const char* kSideGrades =
   "mul.price=1.5\nset.MagSize=24\nset.MaxAmmo=24\nset.ammoPerFill=6\nset.Accuracy=55\n"
   // projectile_from: Hedgehog-like bombs from the 150 mm Jap Mortar (26 kg shell, the nearest stock round to a 29 kg
   // Hedgehog bomb; 4000 damage, 400 splash over 25 m, 145 m/s), set to the Mousetrap rocket x0.3 damage and splash, x0.8
-  // blast radius and speed as before (15, 18 over 36 m, 48 m/s), timeScale 1 like the rocket; still hurts submarines.
+  // blast radius and speed (15, 18 over 36 m, 48 m/s), timeScale 1 like the rocket; still hurts submarines.
   // fragileTransmitter and assistFactor as on the Mousetrap rocket (the shell has False and 0): Projectile.explode
   // (0x1809F1EF6) hits FragileReciever parts within fragileRange (150 m on both) only when ptype+0x68 is set
   "proj.set.BaseDamage=15\nproj.set.SplashDamageBase=18\nproj.set.SplashDamageRange=36\nproj.set.MuzzleVelocity=48\nproj.set.MuzzleVelocityRealistic=48\n"
   "proj.set.timeScale=1\nproj.set.ignoreUnderwaterDamage=0\nproj.set.fragileTransmitter=1\nproj.set.assistFactor=1\n\n"
-  // batch 2 (2026-11-15): Crew weapons
+  // Crew weapons (second set)
   "[item]\nname=M2 Stinger\nfamily=Crew Weapons\nbase=M1919 Browning Handheld\nmodel=stinger_anm2\nsound_from=30-06 Cal Single MG AIR (USA)\n"
   "description=The Stinger: an AN/M2 .30 aircraft gun from a wrecked plane, made hand-held by Marines of the 28th Regiment and carried by Cpl. Tony Stein on Iwo Jima. Twice the M1919's rate from a 100-round belt, but it sprays wide and is slow to reload.\n"
   "mul.price=1.3\nmul.roundsPerMinute=2\nmul.shotCooldown=0.5\nset.MagSize=100\nset.reloadCooldown=16\nset.Accuracy=72\nset.burstNumberOfShots=12\n\n"
@@ -585,7 +584,7 @@ static const char* kSideGrades =
 // charge tier (so it rolls off the side or the stern rack the same way); when it lands on the water the mod takes the
 // charge away before it sinks and leaves a smoke cloud or a raft there (UtilLanded). Names carry the count, because an
 // item has one base and the slots hold 1, 2 or 4. Prices are per pot or raft (a stock depth charge is 250 RP). The PT-6's
-// own Depth Charge Slot (its rear depth launchers FL/FR) holds 2, 3 or 4 (David 2026-11-09: it listed none of these).
+// own Depth Charge Slot (its rear depth launchers FL/FR) holds 2, 3 or 4.
 #define UTIL_SPLIT(name, fams, bases) "[item]\nname=" name "\nfamily=" fams "\nbase=" bases "\nprice=250\nfx.set.smoke=1\nfx.set.raft=1\nmul.damage=0\n" \
   "description=Both on one boat: the left launcher drops life rafts, the right one smoke pots. A raft heads for your nearest crew member in the water and picks them up (safe, back after the battle); a smoke pot burns where it lands and most enemy ships cannot spot you through its smoke.\n\n"
 static const char* kUtilityGear =
@@ -605,7 +604,7 @@ static const char* kUtilityGear =
   "description=Life rafts. Each heads for your nearest crew member in the water and picks them up: they are safe, back with your crew after the battle, but out of this one.\n\n"
   "[item]\nname=Life Rafts x3\nfamily=Depth Charge Slot\nbase=Mk 6 Depth Charge x3\nprice=300\nfx.set.raft=1\nmul.damage=0\n"
   "description=Life rafts. Each heads for your nearest crew member in the water and picks them up: they are safe, back with your crew after the battle, but out of this one.\n\n"
-  // both on one boat (David 2026-11-08): the left and right launchers have their own fire buttons, so a load is split by
+  // both on one boat: the left and right launchers have their own fire buttons, so a load is split by
   // side, not mixed in one rack: the LEFT launcher drops life rafts, the RIGHT one smoke pots, the count on each side
   // (UtilKind). The same name sits in several slot families, each with its own base (SplitFamilies pairs them).
   UTIL_SPLIT("Life Raft L + Smoke Pot R", "Secondary Slot", "Mk 6 Depth Charge x1")
@@ -615,7 +614,7 @@ static const char* kUtilityGear =
              "Mk 6 Depth Charge K-Gun Carried x4,Mk 6 Depth Charge x4,Mk 6 Depth Charge x4,Mk 6 Depth Charge x4")
   UTIL_SPLIT("Life Rafts L + Smoke Pots R x6", "Sub Chaser Depth Charge Rack Slot", "Mk 6 Depth Charge x6")
   UTIL_SPLIT("Life Rafts L + Smoke Pots R x8", "Sub Chaser Depth Charge Rack Slot", "Mk 6 Depth Charge x8")
-  // Dave (David 2026-11-09, a joke for the lulz): the mod's dev himself, a stiff T-posed placeholder model that glides
+  // Dave (a joke item): the mod's dev as a stiff T-posed placeholder model that glides
   // over the water to the RP crates and picks them up for you (models/dave.obj, tools/make_utility_models.py)
   "[item]\nname=Dave\nfamily=Secondary Slot\nbase=Mk 6 Depth Charge x1\nprice=0\nfx.set.dave=1\nmul.damage=0\n"
   "description=Dave, the mod's developer, as an unfinished placeholder: no animation, stuck in a T-pose. He glides over the water to the nearest RP crates and picks them up for you, for 2 minutes.\n\n"

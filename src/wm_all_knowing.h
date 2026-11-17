@@ -1,17 +1,11 @@
 // All-Knowing (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- All-Knowing -----------------------------------------------------------------------------------------------------
-// David: "those manually aimed things ... when you are controlling it, the people on your boat can auto-spot things in
-// range ... it's annoying when you are using them and getting close to other boats and no one is shooting because you
-// didn't mark them". Read in the disassembly first (2026-10-30): the crew only fires at marked targets, i.e. locked
-// CombatEntity.Target entries in the player boat's assignedTargets. FireControlMaster.evaluateTargets keeps only those
-// when constrainToAssignedTargets is set, and EntitySphereOverlap.calculateClosest does the same for the fire control's
-// search sphere when constrainTargets is set. Marking (EntityTargetingManager.Update's lock-on) only runs while
-// PlayerCameraControlManager.controlMode is 1 (targeting), so on a hand-aimed gun nothing new gets marked.
-// PlayerAuxiliaryWeaponController.Update works the aux weapon whose fireMode equals controlMode (4 for the utility slot,
-// 2 for the rockets on a PT boat). While such a slot has a gun with fx.set.allKnowing selected and the player is in its
-// mode, both flags are cleared on the boat's fire control, so the crew fires at any enemy the team can see, each gun
-// within its own range. They are put back when the player leaves that gun, at battle end and on a fault. Checked every
-// 10 frames.
+// The crew only fires at marked targets (the boat's assignedTargets): FireControlMaster.evaluateTargets and
+// EntitySphereOverlap.calculateClosest filter on constrainToAssignedTargets / constrainTargets. Marking only runs while
+// PlayerCameraControlManager.controlMode is 1 (targeting), so while the player hand-aims an aux weapon (fireMode ==
+// controlMode: 4 utility slot, 2 PT boat rockets) nothing new gets marked. While that gun is All-Knowing, both flags are
+// cleared, so the crew fires at any enemy the team can see; they are put back on leaving the gun, at battle end and on
+// a fault. Checked every 10 frames.
 static void SetItems(void* set, std::vector<void*>& out);
 static bool g_akOn = false, g_akOrigFcm = false, g_akOrigSearch = false;
 static void *g_akFcm = nullptr, *g_akFcmHandle = nullptr, *g_akSearch = nullptr, *g_akCraft = nullptr, *g_akMount = nullptr, *g_akEng = nullptr, *g_akLoggedEng = nullptr;
@@ -140,7 +134,7 @@ static void AllKnowingTick() {
         "does NOT limit itself to marked targets, so clearing it changes nothing"));
   }
   if (want && !g_akFcm && g_akFrames % 60 == 0) AllKnowingFind(craft);
-  // why it does or does not turn on (a player on a mortar thought it never did, 2026-11-16): the first 6 camera mode
+  // why it does or does not turn on: the first 6 camera mode
   // changes per battle while an All-Knowing gun is fitted, with the fire mode of its aux entry
   static int lastMode = -99, modeLogs = 0; static void* modeEng = nullptr;
   if (modeEng != eng) { modeEng = eng; modeLogs = 0; lastMode = -99; }

@@ -26,7 +26,7 @@ const char* kUnusualDefs =
   "[unique]\nname=Boomerang\nmodel=boomerang\nmodel_material=own\nbase=M2 Browning\nuses=6\nline=shots that miss turn round for a second pass\nflavor=What goes around comes around.\nfx.set.boomerang=1\nproj.mul.FrameLifeTime=2.5\n\n"
   "[unique]\nname=Fireworks\nmodel=fireworks\nmodel_material=own\nbase=40 mm Dual Bofors\nuses=6\nline=shells burst near the target into a shower of colored sparks\nflavor=Happy Fourth of July.\nfx.set.fireworks=1\nproj.set.proximity=1\nproj.set.proximityMaxErrorSeconds=0.03\nproj.set.proximityOffsetSeconds=0\nproj.set.SplashDamage=1\nproj.mul.SplashDamageRange=1.5\nproj.set.fragmentCount=10\nproj.set.fragmentInheritSourceVelocity=0.3\nfragment_from=M2 Browning\n\n"
   "[unique]\nname=Orbital\nmodel=orbital\nmodel_material=own\nbase=20 mm Elco Thunderbolt\nuses=6\nline=shells circle your boat, then streak off at enemy boats and shore guns within 1.5 km\nflavor=Personal space, enforced.\nfx.set.orbital=25\nproj.mul.FrameLifeTime=25\n\n"
-  // Magnet: weight 0 = out of the drop pool (back burner, David 2026-10-27: works, but not noticeable at fighting range)
+  // Magnet: weight 0 = out of the drop pool (it works, but the pull is not noticeable at fighting range)
   "[unique]\nname=Magnet\nmodel=magnet\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nweight=0\nline=shells home in gently, and every hit pulls the enemy ship toward you\nflavor=Get over here.\nfx.set.magnet=6\nfx.set.seek=45\n\n"
   "[unique]\nname=Home Run\nmodel=home_run\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nline=ships it kills are knocked 60-80 m into the air\nflavor=Swing for the fences.\nfx.set.homerun=70\n\n"
   "[unique]\nname=Fire Mission\nmodel=fire_mission\nmodel_material=own\nbase=3-inch Gun Player\nuses=6\nline=every 6th hit marks the target with smoke, and a barrage walks across it 4 s later\nflavor=Fire for effect.\nfx.set.firemission=6\n\n"
@@ -37,7 +37,8 @@ struct UnusualCfg { int hangar, duck, gull; bool boomerang, fireworks; float orb
 static std::unordered_map<void*, UnusualCfg> g_unuCfg;               // mount -> its powers, per battle
 static void* g_unuEng = nullptr;
 static int g_unuFaults = 0;
-// kind 0 plane, 1 boat, 2 gull, 3 Big Brother's destroyer. owner >= 0: asked for by that co-op player (the host spawns it; boat is where their boat is)
+// kind 0 plane, 1 boat, 2 gull, 3 Big Brother's destroyer. owner >= 0: asked for by that co-op player (the host spawns
+// it; boat is where their boat is)
 struct SpawnReq { int kind; void* mount; V3 pos, dir; int shot; int owner = -1; V3 boat = { 0, 0, 0 }; };
 static std::vector<SpawnReq> g_spawnQueue;
 static bool CoopAskHelper(const SpawnReq& r);
@@ -46,7 +47,7 @@ struct Minion { void* ent; void* handle; void* mount; int kind; DWORD born, life
   // a Kamikaze Gull steered by the mod (GullSteer): its target (pinned), the plane's AI it switched off, its velocity
   void* target = nullptr; void* tHandle = nullptr; void* ai = nullptr; void* fo = nullptr; V3 vel{}, lastPos{}, aim{};
   float lastT = -1, speed = 0, nearest = 1e30f, lastD = 1e30f, fromD = 0; DWORD lastTry = 0; bool steered = false, full = false;
-  float age = 0, ageT = -1, hp0 = -1; };                              // hp0: a destroyer's hull HP when it came (damage taken)                                         // a gull's age in game time (s): pauses and slow motion don't eat its life
+  float age = 0, ageT = -1, hp0 = -1; };                              // age: in game time (s), so pauses don't eat it; hp0: a destroyer's hull HP on arrival
 static std::vector<Minion> g_minions;
 struct OrbitShot { float angle; bool released; };
 static std::unordered_map<void*, OrbitShot> g_orbit;                 // shot -> its place in the ring
@@ -58,7 +59,7 @@ static std::unordered_map<void*, std::vector<void*>> g_fireworkTypes;   // proje
 static LARGE_INTEGER g_unuLast = {};
 static DWORD g_orbitReleaseAt = 0, g_orbitCalmCheck = 0, g_orbitEnemySeen = 0;
 static int g_orbitReleases = 0;                                       // per battle, the first few are logged
-// 400 m (first build) almost never fired: ships fight from 1 km and more, so the ring just circled (David 2026-10-28)
+// ships fight from 1 km and more: a shorter reach leaves the ring circling
 static const float kOrbitReach = 1500.0f;
 // WorldEngagementManager.enemyDistanceLimitLeave: no enemy may be this close for the battle to let you leave
 static float LeaveDistance() {
@@ -275,9 +276,9 @@ static void SafeChainStreak(const ChainState& cs, void* next, const V3& np) {
   __except (FaultFilter("effect streaks (chain)", GetExceptionInformation())) { g_streakDead = true; }
 }
 
-// What each Unusual gun did this battle, per gun mount. In the chaos of a battle the effects are hard to see (David
-// 2026-10-28), so each event gets a log line (busy ones only the first few per battle) and a summary per gun is logged
-// every 2 minutes while something happens and when the battle ends.
+// What each Unusual gun did this battle, per gun mount. In the chaos of a battle the effects are hard to see, so each
+// event gets a log line (busy ones only the first few per battle) and a summary per gun is logged every 2 minutes while
+// something happens and when the battle ends.
 struct UnuStats {
   std::string name; UnusualCfg cfg{};
   int shots = 0, spawned[4] = {}, capped[4] = {}, lost[4] = {}, expired[4] = {}, minionKills[4] = {}, kills = 0;
@@ -496,7 +497,7 @@ static void UnusualProjScan(void* pm) {
     }
     // The battle lets you leave only when no enemy is within enemyDistanceLimitLeave and no shell of any team is within
     // half that of your boat (WorldEngagementManager.enemiesNearby -> ProjectileManager.withinProjectiles), so the ring
-    // kept the battle open after the last kill (David 2026-10-28). Once no enemy ship has been that close for 3 s
+    // would keep the battle open after the last kill. Once no enemy ship has been that close for 3 s
     // (a new ring gets 3 s too), the ring is dropped into the sea.
     if (!g_orbitEnemySeen) g_orbitEnemySeen = tick;
     if (tick - g_orbitCalmCheck > 1000) {

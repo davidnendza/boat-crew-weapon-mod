@@ -1,11 +1,9 @@
 // on-kill effects (creditKill hooks), gun effects, crates per round (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- on-kill effects (Salvager, Vampiric, Bounty) -------------------------------------------------------------------
 // PlayerKillFeedback.killConfirmed calls IKillCredible.creditKill(killed, factor) on everything that damaged the dead
-// entity, through interface dispatch (the class vtable). Who that is: ProjectileManager.endJobs registers, for a hit from
-// GunMount g, the LastMan of every seat of g's slot (the gunners, CrewMember) and only falls back to the WeaponSystem when
-// nobody manned it (first test 2026-10-25: a crewed gun gave 0 WeaponSystem credits). So both are patched: the
-// WeaponSystem stub (crewless guns, gun = selected) and CrewMember.creditKill (gun = achievedGunMount, +0xF8). A kill
-// counts once per gun even when two gunners are credited.
+// entity (interface dispatch). endJobs credits the gunners (CrewMember) of the firing gun's seats, and the WeaponSystem
+// only when nobody manned it, so both are patched: the WeaponSystem stub (gun = selected) and CrewMember.creditKill
+// (gun = achievedGunMount, +0xF8). A kill counts once per gun even when two gunners are credited.
 typedef void (*fn_creditKill)(void*, void*, float, void*);
 static fn_creditKill g_creditKillOrig = nullptr;
 static int g_killFaults = 0;
@@ -18,11 +16,9 @@ static bool SeenKill(void* killed, void* mount) {                    // the same
   return false;
 }
 // A hull's look is kept apart from its HP: CombatEntity.damageVisual (MeshDamageMultipoint) holds holes and burns as
-// damage points, and only the crew's repair task shrinks them (CrewAI.TaskHandle.processScore, read in its disassembly
-// 2026-10-28): addDamagePoint(part position, radius max(EntityType.estimatedLength, estimatedWidth) x 8 / 20,
-// cut = burn = 1 - healthRatio, healTime = Time.time, healIntensity, applyToAllFound, minimizeDamage, useRadiusForClump).
-// The mod's repairs (Vampiric, Lazarus) do the same, or the bar shows a sound hull that still looks shot to pieces
-// (David 2026-10-28).
+// damage points that only the crew's repair task (CrewAI.TaskHandle.processScore) shrinks, via addDamagePoint(part
+// position, radius max(estimatedLength, estimatedWidth) x 8 / 20, cut = burn = 1 - healthRatio, ...). The mod's repairs
+// call it the same way, or a healed hull still looks shot to pieces.
 static void RepairVisual(void* craft, void* part) {
   static void *mAdd = nullptr, *mRatio = nullptr, *mTime = nullptr, *mPos = nullptr;
   static int offDv = -2, offParams = -1, offLen = -1, offWid = -1, offAllow = -1;
@@ -57,7 +53,7 @@ static void OnKillCredit(void* mount, void* killed, float factor) {
   if (SeenKill(killed, mount)) return;
   double ammo = ItemFx(*it, "killAmmo"), repair = ItemFx(*it, "killRepair"), rp = ItemFx(*it, "killRP");
   if (ammo <= 0 && repair <= 0 && rp <= 0) return;
-  // Bounty pays only for ships (Core.Ship or a subclass): planes come in waves and could be farmed (David, 2026-10-25)
+  // Bounty pays only for ships (Core.Ship or a subclass): planes come in waves and could be farmed
   static void* shipClass = FindClass("Core", "Ship");
   static void* planeClass = FindClass("Core", "Plane");
   bool isShip = false, isPlane = false;
@@ -115,7 +111,7 @@ static void PayRp(int amount, const char* reason) {
   Invoke(mPay, cur, a);
   ShowMessage(std::string(reason) + ": +" + std::to_string(amount) + " RP");
 }
-static void SafeGfxKill(void* mount, void* killed, void* gunner);    // gun effects (0.9.3): Rallying, Veteran's
+static void SafeGfxKill(void* mount, void* killed, void* gunner);    // gun effects: Rallying, Veteran's
 static void Hooked_CreditKill(void* self, void* killed, float factor, void* method) {
   g_creditKillOrig(self, killed, factor, method);
   if (g_ready) SafeGfxKill(*(void**)((char*)self + g_offWsSelected), killed, nullptr);
@@ -151,41 +147,26 @@ static void Hooked_CrewCreditKill(void* self, void* killed, float factor, void* 
 }
 
 // ---- gun effects -----------------------------------------------------------------------------------------------------
-// Read in the disassembly first (2026-11-06). Every hit on a hull part goes through HealthPart.hitFlash(hit, damage, flash,
-// heat) (rva 0x97E0C0): it applies globalDamageMultiplier and the target's damage control, then lowers the part's HP (or,
-// on a co-op client, sends the damage to the host). Two callers matter: ProjectileManager.endJobs for a shell's direct
-// hit (call at rva 0x9F4E66; its frame holds the Projectile at [rsp+0x168] and the part at [rsp+0x160]) and
-// SplashDamageManager.FixedUpdate for blast damage (call at rva 0x982B10; its copy of the splash is at [rsp+0x90]:
-// killer = the firing WeaponSystem, networkOwner, projectileCode). hitFlash is detoured, and only calls from those two
-// places, checked byte for byte at install, are touched; the host applying a co-op client's damage (RequestDamage) never
-// is, or that damage would be scaled twice. A hit scaled here counts direct hits AND blast, unlike Deadeye's crits.
-//  * Marking: a hit on a ship marks it for markTime s; every hit of the player's guns on a marked ship does +mark.
+// Every hull hit goes through HealthPart.hitFlash(hit, damage, flash, heat) (rva 0x97E0C0). It is detoured, and only calls
+// from two sites (checked byte for byte at install) are scaled: ProjectileManager.endJobs, a shell's direct hit (rva
+// 0x9F4E66; Projectile at [rsp+0x168], part at [rsp+0x160]), and SplashDamageManager.FixedUpdate, blast damage (rva
+// 0x982B10; splash copy at [rsp+0x90]). The host applying a client's damage (RequestDamage) is never scaled, or it doubles.
+//  * Marking: a hit marks a ship for markTime s; every hit of the player's guns on a marked ship does +mark.
 //  * Giant Slayer: x giantSlayer on Rare/Elite ships (g_elites; co-op clients have the host's).
-//  * Opening Salvo: x salvo for each battle's first magazine: shots are counted until GunMount.reloading (+0xC4) is first
-//    seen; their direct hits scale, and blasts from the gun while the salvo runs or up to 3 s after it.
+//  * Opening Salvo: x salvo for shots until GunMount.reloading (+0xC4) is first seen (6 at least), and their blasts.
 //  * Close Quarters / Long Shot: x closeBonus under closeDist m, x longBonus over longDist m (gun to impact).
-//  * Veteran's: x (1 + vetPerKill x kills, up to vetCap kills) while its bonded gunner (the first who kills with it)
-//    mans it (GunMount.seats -> Seat.lastMan). Kills come from CrewMember.creditKill; the bond and the count are kept on
-//    the item (vet_crew=, vet_kills=) and wiped when that crew member is Dead, Missing or Captured
-//    (CrewCharacter.healthState 2/3/4) on two checks a second apart (set_HP can turn Dead back to Wounded).
-//  * Overkill: when a hit takes a ship's last vital part to 0 HP (the ship's death rule), the damage beyond the part's HP
-//    (lastEffectiveDamage - HP before) x overkill goes as a splash onto the nearest other enemy in the next frame,
-//    credited to the gun's weapon system. The spill carries kSpillCode, so no gun effect touches it. Not on co-op clients
-//    (a client's splash on ships it does not own is unproven), like Volatile.
-//  * Brittle: hits on the player's own gun (WeaponSystem.hull, a HealthPart) do x brittle while that gun is selected.
-//  * Sure-Footed: CrewMember.hitFlash(hit, d) (rva 0x9A06C0) is the only path from hits to throwOverboardImpact: when
-//    hit and d > 3 it rolls ceil(d/15) times CharacterConstants.overboardChance (static, 0.02) against a WHOLE percent, so
-//    scaling the chance does nothing. Instead, each hit a Sure-Footed gun lands adds a stack (up to steadyCap, one fades
-//    every steadyDecay s), and a hit on the player's crew then has a stacks x steady chance to be braced: overboardChance
-//    is 0 for that one call (the damage, flash and wounds still happen) and is put back right after, also on a throw.
-//  * Rallying: a kill takes rally s off the bleed-out timer of every downed crew member of the player's boat
-//    (CrewMember.downedTime counts up while hp <= 0; at CrewCharacter.AllowedDownedTime he dies). Not for one whose timer
-//    is already past it (rollInstantDeath sets it there on purpose), and never under 0.1 (iterateDowned's own floor).
-//  * Frugal: GunMount.shoot uses no round when the firing Barrel.skipConsumeAmmo (+0x38) is set. After each shot of a
-//    Frugal gun its barrels' flags are rolled for the next one (only barrels whose stock flag is off), and put back at the
-//    battle change. consumptionAvoidanceChance is a crew trait for medkits and repair kits, never read by shoot().
-// All of it only for the player's own guns and crew; co-op players' shots are theirs (copies deal no damage anyway), and
-// marks are per machine. Every effect logs its events (the first few per battle, then debug lines) and a summary line.
+//  * Veteran's: x (1 + vetPerKill x kills, up to vetCap) while the bonded gunner mans it (Seat.lastMan); the bond is
+//    kept on the item (vet_crew=, vet_kills=) and wiped when he is Dead/Missing/Captured (healthState 2/3/4) on two checks a second apart (set_HP can undo Dead).
+//  * Overkill: damage past a ship's last vital part goes as a splash onto the nearest other enemy next frame, tagged
+//    kSpillCode so no gun effect touches it. Host only: a client's splash on ships it does not own is unproven.
+//  * Brittle: hits on the player's own gun (WeaponSystem.hull) do x brittle while that gun is selected.
+//  * Sure-Footed: CrewMember.hitFlash (rva 0x9A06C0) rolls overboardChance (0.02) against a WHOLE percent, so scaling it
+//    does nothing; a braced hit instead sets it to 0 for that one call and puts it back right after.
+//  * Rallying: a kill takes rally s off each downed crew member's CrewMember.downedTime, never under 0.1 (iterateDowned's
+//    floor), and not for one already past AllowedDownedTime (rollInstantDeath sets that on purpose).
+//  * Frugal: GunMount.shoot uses no round when the firing Barrel.skipConsumeAmmo (+0x38) is set; the mod rolls the flags
+//    per shot and restores them at the battle change. consumptionAvoidanceChance is never read by shoot().
+// All of it is for the player's own guns and crew only; co-op copies deal no damage, and marks are per machine.
 static const int kSpillCode = -2;
 struct GunFx {
   bool item = false; std::string name;
@@ -259,7 +240,7 @@ static std::string GfxCrewName(void* ch) {
   return std::string();
 }
 // Veteran's bond key: CrewCharacter.name first (a rename writes nameCustom and keeps name), as FemGName does; nameCustom
-// only for a character with no name (review 2026-11-06: a renamed gunner locked his gun for good)
+// only for a character with no name, so a rename never breaks the bond
 static std::string GfxCrewKey(void* ch) {
   for (int off : { g_oChName, g_oChNameCustom }) {
     void* s = ch && off >= 0 ? *(void**)((char*)ch + off) : nullptr;
@@ -299,13 +280,10 @@ static Item* GfxMutItem(const std::string& name) { for (Item& it : g_items) if (
 
 // Once, on the game thread (ProjectileManager.Update), so neither hitFlash runs while it is patched.
 // ---- crates per round (crates_per_round=) ---------------------------------------------------------------------------
-// The 380mm RW 61 (a Discord player's idea, David wants it): ten ammo crates make one round. Read in the disassembly
-// first: a loader's delivery is CrewAI.TaskHandle.processScore (task kind 3), which inlines GunMount.munitionsFill:
-// set_Munitions(munitions +0x130 + GunType.ammoPerFill +0x58 x multiplier), call at rva 0x992290, then lastAimed = 3 and
-// enabled = true. munitionsFill itself (0x971D60) has no native caller (only the mod's Salvager), so it is left alone,
-// as are reset/clearAmmo/setPayload and FixedUpdateMe's infinite-ammo set. set_Munitions clamps to EffectiveMaxAmmo.
-// A crate that does not finish a round is consumed (the trip is done) but the value stays the same; munitionsReloadable
-// (munitions + ammoPerFill <= max) stays true, so the loaders keep coming. Own boat only: other players' mounts are skipped.
+// e.g. the 380mm RW 61: ten ammo crates make one round. A loader's delivery (CrewAI.TaskHandle.processScore, task kind 3)
+// inlines munitionsFill as set_Munitions(munitions +0x130 + GunType.ammoPerFill +0x58 x mult), call at rva 0x992290; only
+// that call is gated. A crate short of a round leaves the value as it was, so munitionsReloadable stays true and the
+// loaders keep coming. Own boat only.
 typedef void (*fn_setMun)(void*, int, void*);
 static fn_setMun g_setMunOrig = nullptr;
 static uintptr_t g_raCrateFill = 0;
@@ -372,7 +350,7 @@ static void GfxInit() {
   void* cc = FindClass("Core", "CharacterConstants"); g_clsWs = FindClass("Core", "WeaponSystem");
   g_oHpTeam = FieldOffset(hp, "teamCode"); g_oHpCe = FieldOffset(hp, "combatEntity"); g_oHpHp = FieldOffset(hp, "_hp"); g_oHpVital = FieldOffset(hp, "vital");
   g_oHpLastEff = FieldOffset(hp, "lastEffectiveDamage"); g_oHpClient = FieldOffset(hp, "clientOnlyMode"); g_oPjPosi = FieldOffset(pj, "posi");
-  // this runs before CritScan's own one-time lookup on the first frame (review 2026-11-06): the two Projectile fields here too
+  // this runs before CritScan's own one-time lookup on the first frame: the two Projectile fields here too
   if (g_offPjFrom < 0) g_offPjFrom = FieldOffset(pj, "shotFrom");
   if (g_offPjNetOwner < 0) g_offPjNetOwner = FieldOffset(pj, "networkOwner");
   g_oPjType = FieldOffset(pj, "ptype"); g_oPtFrag = FieldOffset(FindClass("Core", "ProjectileType"), "fragment");

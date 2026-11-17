@@ -1,10 +1,7 @@
 // Home Run, UnusualTick and Hooked_PMUpdate (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- Home Run: a ship the gun kills is thrown into the air with a spin and lands with a triple splash ----------------
-// Checked in the disassembly (2026-11-16): set_isKinematic is only called by LiveEntity's spawn freeze coroutine
-// (true for one frame, then false), torpedoes and FishNet's RigidbodyPauser, nothing on death; Ship.FixedUpdateMe only
-// sleeps the body while its spawn 'sleep' timer runs; FloatBehaviour damps vertical speed only while _inWater; ship
-// damping is the prefab's (no set_linearDamping caller for ships). ReplaceObjectOnSink swaps in the wreck only below a
-// depth, so a hull in the air keeps its model. The first launch logs isKinematic, damping and mass anyway.
+// Nothing in the game makes a dead ship kinematic or damps it out of the water, and the wreck model swaps in only below
+// a depth, so a hull in the air flies on plain physics. The first launch logs isKinematic, damping and mass.
 static bool TorpSetup(); static void TorpSplash(V3 at);
 struct HomeRun { void* ship; void* h; void* mount; float y0, top, t0, vUp; V3 dir, at; bool told; };
 static std::vector<HomeRun> g_homeRuns;                               // one per gun at a time
@@ -102,10 +99,10 @@ static void UnusualTick() {
   void* eng = EngagementInstance();
   if (eng != g_unuEng) {
     if (g_unuEng && !g_unuStats.empty()) UnusualSummary("battle over");
-    for (auto& m : g_minions) Despawn(m, false);                      // the battle is over: helpers go home too (was: left sailing)
+    for (auto& m : g_minions) Despawn(m, false);                      // the battle is over: helpers go home too
     RestoreAllHelperLooks("battle over");                              // the ones that died on the way too
     if (g_gullsDressed) Log("helpers: %d gull planes flew as gulls last battle; %d helpers got their own look or size back", g_gullsDressed, g_looksBack);
-    for (auto& e : g_unuStats) {                                       // always logged (debug=0 too): the gulls were invisible in the log
+    for (auto& e : g_unuStats) {                                       // always logged, debug=0 too
       const UnuStats& s = e.second; if (s.cfg.gull <= 0 || !s.spawned[2]) continue;
       Log("kamikaze gull, last battle: '%s' launched %d, steered %d, blew up on a target %d, no target %d, shot down %d, kills credited %d (also %d ran out of time, %d hit the sea, %d hit the ground; %d not launched, cap of 4 out; closest to the aim point %.0f m on average)",
           s.name.c_str(), s.spawned[2], s.gullSteered, s.gullHits, s.expired[2], s.lost[2], s.minionKills[2], s.gullMissed, s.gullSea, s.gullTerrain, s.capped[2], s.gullNearN ? s.gullNearSum / s.gullNearN : 0.0f);
@@ -208,7 +205,7 @@ static void UnusualTick() {
         if (r == 1) { boom = m.target; boomAt = m.aim; }
         else if (r == 2) sea = true;
         else if (m.target && (boom = NearestOtherEnemyShip(at, nullptr, 12.0f, &q, true)) != nullptr) boomAt = boom == m.target ? m.aim : AimPointOn(boom);   // ran into one
-        else if ((boom = NearestOtherEnemyShip(at, m.target, 35.0f, &q, true)) != nullptr) boomAt = AimPointOn(boom);   // boats and shore guns (David 2026-10-28)
+        else if ((boom = NearestOtherEnemyShip(at, m.target, 35.0f, &q, true)) != nullptr) boomAt = AimPointOn(boom);   // boats and shore guns
       }
     }
     bool expired = m.kind == 2 ? m.age * 1000 > m.life : tick - m.born > m.life;
@@ -299,7 +296,7 @@ static void SafeUnusualOnShot(void* pj, void* mount) {
 
 static void (*g_pmUpdateOriginal)(void*, void*) = nullptr;
 static int g_critFaults = 0;
-static void SafeGfxTick(bool beforeCrits);                             // gun effects (0.9.3): hooks, spills, salvos, marks
+static void SafeGfxTick(bool beforeCrits);                             // gun effects: hooks, spills, salvos, marks
 static void SafeFrugalRestore();                                       // Frugal: barrels' skip-ammo flags back (GfxShot runs inside CritScan)
 static void Hooked_PMUpdate(void* self, void* method) {
   if (g_ready) SafeGfxTick(true);

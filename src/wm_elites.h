@@ -2,7 +2,7 @@
 // ---- Rare and Elite enemies ------------------------------------------------------------------------------------------
 // Diablo style: some enemy ships spawn as Rare (one trait) or Elite (more HP and 2-3 traits). Traits are read from
 // enemies.ini: HP, speed, damage of their shots, size (scale_x = width, scale_y = height, scale_z = length), bonus RP.
-// Killing one gives a guaranteed gun (Rare: Uncommon or better, Elite: Rare). Verified in the disassembly first:
+// Killing one gives a guaranteed gun (Rare: Uncommon or better, Elite: Rare).
 // HealthPart.forceStart(m) sets multiplierMAX = m and HP = MAXHp x m x progression x upgrade (the game's own spawn
 // path: CombatEntity.reset calls it for every hull part, so a pooled ship comes back with normal HP on its own).
 // Ship.maxSpeedProgressionMultiplier (+0x2D0) is read by getMaxSpeed and only ever set to 1 by the constructor, and a
@@ -58,8 +58,8 @@ static const char* kDefaultEnemies =
   "[trait]\nname=Chonker\nscale_x=1.6\nscale_y=1.6\nscale_z=1.6\nhp=1.5\nweight=0.6\n\n"
   "[trait]\nname=Smol\nscale_x=0.55\nscale_y=0.55\nscale_z=0.55\nspeed=1.25\nweight=0.6\n";
 
-// Size traits before 0.9.0 were too subtle to see at fighting range (David 2026-11-01). An enemies.ini that still has
-// the old default sizes gets the new ones; a size someone edited by hand is left alone.
+// 0.9.0: bigger default sizes, visible at fighting range. An enemies.ini that still has the old default sizes gets the
+// new ones; a size someone edited by hand is left alone.
 static const char* kOldTraitSizes[][2] = {
   { "name=Long Boi\nscale_z=1.4\n", "name=Long Boi\nscale_z=2.0\n" },
   { "name=Short King\nscale_z=0.7\n", "name=Short King\nscale_z=0.5\n" },
@@ -199,7 +199,7 @@ static std::string ShipTitle(void* ce) {
   void* et = g_offCeParams >= 0 ? *(void**)((char*)ce + g_offCeParams) : nullptr;
   void* t = et && g_offEtTitle >= 0 ? *(void**)((char*)et + g_offEtTitle) : nullptr;
   std::string s = t ? Str(t) : std::string();
-  if (s.empty() || s == "Unnamed Entity") s = FamilyOf(ce);            // most ships leave the title at the default (test 2026-10-27)
+  if (s.empty() || s == "Unnamed Entity") s = FamilyOf(ce);            // most ships leave the title at the default
   return s;
 }
 static void RestoreShip(void* ce, EliteRestore& r) {
@@ -456,7 +456,7 @@ static void EliteCallinBonus(void* killed, double mult) {
 static void PayRp(int amount, const char* reason);
 static void CoopKillOut(const EliteInfo& info);
 // Pays this machine's player for a Rare/Elite that sank: on a kill credited here, or (fromPeer) when another co-op player's
-// machine says it credited one. Every player gets their own reward once per ship (David, 2026-10-30: like RP crates).
+// machine says it credited one. Every player gets their own reward once per ship, as with RP crates.
 static void EliteKilled(void* killed, bool fromPeer = false) {
   // the kill credit usually comes before the scan sees the ship sink: mark it, the scan still needs it (Volatile)
   EliteInfo info;

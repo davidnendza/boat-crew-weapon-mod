@@ -26,7 +26,7 @@ static const Item& ExpandBuiltFrom(const Item& it, Item* buf) {
 // The mod's other guns are tagged WM_<name>, so it starts the same.
 static const char* const kHiddenTag = "WM_HIDDEN_";
 // A hidden placeholder carries its gun's name but is a copy of the slot's first stock gun: it must not take that gun's
-// effects, uses or kill rewards (a loadout still pointing at a worn-out gun's position selects one; review 2026-11-01).
+// effects, uses or kill rewards (a loadout still pointing at a worn-out gun's position selects one).
 // Cached per mount, cleared at every battle change (CritScan).
 static std::unordered_map<void*, bool> g_hiddenMount;
 static bool IsHiddenMount(void* mount) {
@@ -87,8 +87,8 @@ static void ApplyCrewOffset(void* mount, const Item& it) {
 }
 // pivot_offset=x,y,z (fx pivotOffsetX/Y/Z): moves GunMount.pivotPoint, the transform that elevates, on this mount copy,
 // metres in the mount's own frame; the barrels, shoot points and the model's turret/barrel/yaw parts move with it.
-// (David 2026-11-15: the T-34 sat off centre on its round base, because the 3-inch's pivot is at the gun's breech.)
-// The game only ever rotates pivotPoint (fixPivot, aimAt, turn, LateUpdateMe set rotations; disassembly 2026-11-15),
+// (The 3-inch's pivot is at its breech, so a model built on it sits off centre without one.)
+// The game only ever rotates pivotPoint (fixPivot, aimAt, turn, LateUpdateMe set rotations),
 // so its new position stays. Seats and hand targets on the 3-inch are not under it: crew_offset moves the crew.
 // Runs before the model is applied: yaw parts are placed at the pivot's local position.
 static void ApplyPivotOffset(void* mount, const Item& it) {
@@ -123,18 +123,17 @@ static void* AddCloneMount(void* wsObj, void* mounts, void* source, const Item& 
   if (!gt2) { Log("  could not copy the GunType"); return nullptr; }
   SetName(gt2, it.name.c_str());
   SetRef(gt2, (char*)gt2 + g_offOverrideTag, il2cpp_string_new(((it.retired ? kHiddenTag : "WM_") + it.name).c_str()));
-  // Found guns cost what their base gun costs (David 2026-10-28; they were free, price=0 in inventory.ini, which is
-  // now ignored). RP is a pool: an equipped gun ties up its price until it is swapped out.
+  // Found guns cost what their base gun costs (a price= in inventory.ini is ignored). RP is a pool: an equipped gun
+  // ties up its price until it is swapped out.
   int* price = (int*)((char*)gt2 + g_offPrice);
   if (it.fromInventory) {                                              // built_from: the turret gun's price
     double cut = ItemFx(it, "priceCut");                               // of Cheapness: this share off (0.4 = 40% less)
     *price = (int)std::lround((!it.builtFrom.empty() && it.price > 0 ? it.price : *price) * g_priceScale * (cut > 0 && cut < 1 ? 1 - cut : 1));
   }
   else if (it.price >= 0) *price = it.price;
-  // A hidden placeholder (worn out, scrapped, or missing from this save) costs nothing. It is a copy of the slot's first
-  // stock gun and kept that gun's price, and a loadout still pointing at it counted that RP: CustomCollection.getTotalCost
-  // sums the selected items live (the boat-loss penalty and CampaignState.craftCostOffset use it too) until the loadout
-  // screen empties the slot (UnequipRetired). Read in the disassembly 2026-11-01.
+  // A hidden placeholder (worn out, scrapped, or missing from this save) costs nothing: as a copy of the slot's first
+  // stock gun it would keep that price, and CustomCollection.getTotalCost (also the boat-loss penalty and
+  // CampaignState.craftCostOffset) sums the selected items live until the loadout screen empties the slot (UnequipRetired).
   if (it.retired) *price = 0;
   if (!it.description.empty() || it.uses > 0) {
     std::string d = it.description;
@@ -142,14 +141,10 @@ static void* AddCloneMount(void* wsObj, void* mounts, void* source, const Item& 
     SetRef(gt2, (char*)gt2 + g_offDescription, il2cpp_string_new(d.c_str()));
   }
   for (const Op& op : it.ops) if (!op.proj && !op.mount && !op.sphere && !op.fx) ApplyOp(gt2, op);
-  // Crewless guns are fired by the boat's FireControlMaster. Its fillCasters marks a caster bySetEngagementDistance (5)
-  // when a non-plane target is farther than GunType.engagementDistance, and only casters still pending (6) get the
-  // line-of-sight raycast that puts a target in the system's list (castRoutineManual) and so in validTargeters
-  // (firePattern), which aimAtTargets aims and fires. Utility guns (37 mm AT, 37 mm Autocannon, 75 mm Howitzer) and the
-  // rocket launchers have engagementDistance 0, so an Automated one never got a ship target (2026-10-28, disassembly).
-  // aimAtTargets also shoots only inside engagementDistance (x3 for planes). The fire control sees ships out to
-  // EntityType.fireControlSystemSearchDistance x weather visibility, 2500 on the player's boat (read from the running
-  // game 2026-10-28; AutoUtilitySearch raises it to match). 1500 fired, but not at a merchant 2 km+ away (David).
+  // Crewless guns are fired by the boat's FireControlMaster: fillCasters drops a non-plane target beyond
+  // GunType.engagementDistance (code 5) and aimAtTargets fires only inside it (x3 for planes). Utility guns and rocket
+  // launchers have 0, so an Automated one would never get a ship target. The fire control sees ships out to
+  // EntityType.fireControlSystemSearchDistance x weather visibility (2500 on the player's boat; AutoUtilitySearch raises it).
   bool crewless = false;
   for (const Op& op : it.ops) if (op.mount && !op.mul && op.field == "requiresCrew" && op.value == 0) crewless = true;
   static int offEngage = -2;
@@ -223,8 +218,8 @@ static void* AddCloneMount(void* wsObj, void* mounts, void* source, const Item& 
   }
   // fillCasters blocks a target (code 2) via GunMount.isBlockedByDepression unless GunMount.barrage is set: the straight-line
   // angle to it must lie in gunSad..gunHappy. Player mortars have both 0, so nothing below the tube passes; the game's AI
-  // mortars set barrage instead (90/150 mm, disassembly + prefab bytes 2026-11-16), so a crewless copy does the same.
-  // Barrage alone was not enough (battle 21): aimAt lifts the aim by a lob angle, but clamps the pivot to -gunHappy..-gunSad,
+  // mortars set barrage instead (90/150 mm), so a crewless copy does the same.
+  // Barrage alone is not enough: aimAt lifts the aim by a lob angle, but clamps the pivot to -gunHappy..-gunSad,
   // and aimAtTargets shoots only once Quaternion.Angle(pivot, aim) < maxGunAngleForShot (2.25). AI mortars have gunHappy 90.
   if (crewless && NumField(mount2, "gunSad") == 0 && NumField(mount2, "gunHappy") == 0) {
     Op o; o.mount = true; o.mul = false; o.field = "barrage"; o.value = 1;
@@ -259,12 +254,10 @@ static void* AddOrderEntry(void* orderClone, const char* name, int index) {
   *(bool*)((char*)e + g_offEAlt) = false;
   return ListAdd(entries, e) ? e : nullptr;
 }
-// A gun scrapped on the open loadout screen leaves every slot's list at once. Before, it stayed pickable until the boat
-// was rebuilt and the unequip job took it straight back off, leaving the list row highlighted (David 2026-10-29, which
-// looked like a missing-RP refusal). Only the list entry goes: the mount keeps its position, as a rebuilt boat's hidden
-// placeholder does. Mod guns are only in the per-slot SelectionOrder copies. The register alone missed a turret slot of
-// the loadout screen's boat, so a scrapped gun stayed pickable there and was taken back off at once, six times in a row
-// (David 2026-10-31: it looked like a gun with no model); SlotSystems adds both boats' slots.
+// A gun scrapped on the open loadout screen leaves every slot's list at once, or it stays pickable until the boat is
+// rebuilt and the unequip job takes it straight back off. Only the list entry goes: the mount keeps its position, as a
+// rebuilt boat's hidden placeholder does. Mod guns are only in the per-slot SelectionOrder copies; the register alone
+// misses a turret slot of the loadout screen's boat, so SlotSystems adds both boats' slots.
 static std::vector<void*> SlotSystems();
 static int UnlistItem(const std::string& name) {
   int removed = 0;

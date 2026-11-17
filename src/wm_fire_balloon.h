@@ -96,12 +96,10 @@ static void FireMissionBattleOver() {
 
 // ---- Up, Up and Away: direct hits swell an enemy ship like a balloon; after N it lifts off, then pops ------------------
 // The hits come from the hitFlash hook (GfxBefore, direct hits of the player's own shells on ships). Each puff scales the
-// ship's localScale by 1.08 (to 1.5x) as the Elite size traits do at spawn; rescaling a LIVE ship is new, so the first
-// balloon of a battle logs its height, vertical speed, scale and FloatBehaviour._inWater every second. Lift = an upward
-// Rigidbody.AddForce(VelocityChange) of 1.15 g x dt each frame while vertical speed is under 6 m/s. It pops after 12 s of
-// lift or 60 m up: QueueSplash credited to the gun's WeaponSystem, a water splash below, size back. The size goes back
-// on every path: pop, death, back in the pool (inactive), battle end and an UnusualTick fault. Elite-resized ships are
-// left to RestoreAllShips at battle end (it runs first and puts their spawn size back). Host only in co-op.
+// ship's localScale by 1.08 (to 1.5x); the first balloon a battle logs how a live rescaled ship floats. Lift is an upward
+// AddForce(VelocityChange) of 1.15 g x dt while vertical speed is under 6 m/s; it pops after 12 s of lift or 60 m up.
+// The size goes back on every path (pop, death, repool, battle end, fault); Elite-resized ships are left to RestoreAllShips,
+// which runs first at battle end. Host only in co-op.
 struct Balloon { void* ship; void* h; void* mount; V3 scale0; int puffs; float factor, lastPuff, y0, yPuff, top, tLift, tPop, lastT, nextLog; bool lifting, popped, elite, loud, pushed; void* fb; std::string who; };
 static std::vector<Balloon> g_balloons;
 static std::unordered_set<void*> g_balloonDone;                       // popped this battle: never pumped up again
@@ -356,7 +354,7 @@ static bool AllVitalDown(void* ce) {
 static void GfxAfter(void* self, const HitCtx* c) {
   const GunFx& gx = *c->fx; DWORD now = GetTickCount();
   // a direct hit is always its own hit; a blast's parts (all in one game step) count once, and so does the blast of a
-  // shell that just hit directly (it arrives a step later: review 2026-11-06, a Bofors round gave two stacks). Both set
+  // shell that just hit directly (it arrives a step later). Both set
   // the window; only blasts are deduped by it, so steady direct fire from a fast gun still stacks with every round
   bool fresh = c->direct || !(c->mount == g_hitLastMount && c->ce == g_hitLastCe && now - g_hitLastAt < 120);
   g_hitLastMount = c->mount; g_hitLastCe = c->ce; g_hitLastAt = now;
