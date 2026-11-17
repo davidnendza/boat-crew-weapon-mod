@@ -106,18 +106,19 @@ stranger, and carrying a guaranteed gun.
   - **Automated**: the gun aims and fires on its own with no gunner, with a 25% wider spread. On a utility gun (37 mm,
     mortar, howitzer) you no longer aim it: it fires at targets your boat has spotted, out to about 3 km.
   - **Short-handed**: needs one fewer gunner, at a lower fire rate (guns with 2 gunners only).
-  - **Deadeye**: a chance for each shot to hit for x3 damage (direct hits; blast damage is not multiplied).
+  - **Deadeye**: a chance for each shot to hit for x3 damage (direct hits; blast damage is not multiplied, so not on the
+    howitzer).
   - **Salvager** (of Salvage): kills refill part of the gun's ammo.
   - **Vampiric**: kills repair your most damaged hull part a little.
   - **Bounty** (of Bounty): ship kills pay extra RP (not planes).
   - **Flak** (cannons and mortars): shells burst near the target, with a bigger blast. Best against planes.
   - **Skipping**: shots that hit the water skip off it once and keep flying.
-  - **Shrapnel** (of Shrapnel, cannons, mortars and rockets): exploding shells burst into a spray of bullets.
+  - **Shrapnel** (of Shrapnel, cannons from 37 mm up, mortars and rockets): exploding shells burst into a spray of bullets.
   - **Homing**: slower shells that steer into what they were fired at, moving ships included. Shots you aim yourself
     lock onto the enemy nearest their path, or, for mortar rounds, the one nearest where they come down.
   - **Chaining**: a hit can leap to another nearby ship (50-75% of the time), and on again, each leap less likely and for
-    half the damage.
-  - **Guided** (rockets and mortars): shots steer onto their target.
+    half the damage. On guns you aim yourself, a shot that comes down next to an enemy counts as a hit.
+  - **Guided** (rockets and the howitzer): shots steer onto their target.
   - **Bold**: bigger shots that are easier to land.
   - **Cheap** (of Cheapness): costs 40-70% less RP, but lasts a third fewer missions.
   - **All-Knowing** (utility guns and rockets): while you aim it, your crew fires at every enemy in sight, marked or not.
