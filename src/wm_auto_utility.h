@@ -1,9 +1,10 @@
 // Automated guns in the utility slot (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- Automated guns in the utility slot ------------------------------------------------------------------------------
 // Every slot family has WeaponSystem.followTargetingMode=1 except 'Utility Weapon' (0), and EntityTargetingManager only
-// hands targets to systems with it set; PlayerAuxiliaryWeaponController.weapons[] aims utility guns at the camera instead.
+// hands targets to systems with it set; PlayerAuxiliaryWeaponController.weapons[] (system, fireMode, aimingMode
+// none/forward/full) aims utility guns at the camera instead and fires them on the player's input.
 // While a crewless gun is selected there in battle: followTargetingMode=1 and its aux entry aimingMode=none, both put
-// back when a crewed gun is selected again.
+// back when a crewed gun is selected again. Every 30 frames; the aux list is logged once per battle.
 static std::map<void*, bool> g_autoFollowOrig;                       // weapon system -> its followTargetingMode before we set it
 static std::map<void*, int> g_autoAimOrig;                           // aux Weapon entry -> its aimingMode before we set it
 static int g_autoFrames = 0, g_autoFaults = 0;
@@ -25,9 +26,10 @@ static void* AuxController() {
   }
   return nullptr;                                                      // not live yet: never edit a prefab copy (it outlives the battle)
 }
-// Crewless guns are fired by a FireControlMaster (GunMount.shootAll from aimAtTargets). Its List<WeaponSystem> systems
-// (+0x40) is filled in Awake when autoFillAllSystems (+0x34) is set and lacks the utility slot, so the slot is added and
-// createTargetsList() rebuilds its parallel target list. Once per battle.
+// Crewless guns are fired by a FireControlMaster (GunMount.shootAll from aimAtTargets; fillCasters checks get_maxRange).
+// Its List<WeaponSystem> systems (+0x40) is filled in Awake when autoFillAllSystems (+0x34) is set. If the player's boat
+// has one whose list lacks the utility slot, the slot is added and createTargetsList() rebuilds its parallel target
+// list. Once per battle.
 static void* g_fcmDoneEng = nullptr;
 static void* g_playerFcm = nullptr; static void* g_playerFcmHandle = nullptr;
 static void AutoUtilityFireControl(void* eng, void* craft, void* ws) {

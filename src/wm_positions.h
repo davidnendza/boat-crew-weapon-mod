@@ -19,9 +19,10 @@ static void FinishSave(FILE* f, const std::string& path) {
   if (!ok || !MoveFileExA((path + ".tmp").c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) Log("could not replace %s (error %lu)", path.c_str(), GetLastError());
 }
 
-// A found gun fits every gun slot its stock gun goes in, as in the game. Its family= is the slot it dropped for. Which stock guns each slot family
-// offers is learned from the boats as Inject fills them (LearnFamily), seeded with what the log catalogue showed so it
-// works before the first boat is built. Built-ins already list their families (SplitFamilies).
+// A found gun fits every gun slot its stock gun goes in, as in the game. Its family= is the slot it dropped for. Which
+// stock guns each slot family offers is learned from the boats as Inject fills them (LearnFamily), seeded with what the
+// log catalogue showed so it works before the first boat is built. Built-ins already list their families
+// (SplitFamilies).
 static std::map<std::string, std::set<std::string>> g_famBases = {
   { "Tub Turret", { "30 Cal Dual MG (Lewis)", "M1919 Browning", "M2 Browning", "20 mm Oerlikon" } },
   { "Heavy Weapon", { "20 mm Oerlikon", "20 mm Oerlikon Twin", "40 mm Bofors", "40 mm Dual Bofors", "M45 Meat Chopper", "3-inch Gun Player", "20 mm Elco Thunderbolt" } },

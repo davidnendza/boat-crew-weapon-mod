@@ -438,8 +438,9 @@ static bool KillCamKey(const std::string& k, const std::string& v) {
   else return false;
   return true;
 }
-// Loot volume, so players need not sort and discard all the time: [drops] torpedo_share and auto_scrap, read at drop time. auto_scrap: -1 none, else the highest rarity scrapped
-// (0 Common, 1 Uncommon, 2 Rare); Mod Options writes the number, a hand-edited file the name.
+// Loot volume, so players need not sort and discard all the time: [drops] torpedo_share and auto_scrap, read at drop
+// time. auto_scrap: -1 none, else the highest rarity scrapped (0 Common, 1 Uncommon, 2 Rare); Mod Options writes the
+// number, a hand-edited file the name.
 static double g_torpShare = 0.025; static int g_autoScrap = -1;
 static double g_modGunShare = 0.25;                                  // drops.ini mod_gun_share (see RollItem)
 static double g_paintChance = 0.35;                                  // [drops] paint_chance: share of found guns with a paint scheme (see kPaint)

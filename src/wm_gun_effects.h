@@ -147,21 +147,28 @@ static void Hooked_CrewCreditKill(void* self, void* killed, float factor, void* 
 }
 
 // ---- gun effects -----------------------------------------------------------------------------------------------------
-// Every hull hit goes through HealthPart.hitFlash(hit, damage, flash, heat) (rva 0x97E0C0). It is detoured, and only calls
+// Every hull hit goes through HealthPart.hitFlash(hit, damage, flash, heat) (rva 0x97E0C0): it applies
+// globalDamageMultiplier and the target's damage control, then lowers the part's HP (on a co-op client it sends the
+// damage to the host instead). It is detoured, and only calls
 // from two sites (checked byte for byte at install) are scaled: ProjectileManager.endJobs, a shell's direct hit (rva
 // 0x9F4E66; Projectile at [rsp+0x168], part at [rsp+0x160]), and SplashDamageManager.FixedUpdate, blast damage (rva
-// 0x982B10; splash copy at [rsp+0x90]). The host applying a client's damage (RequestDamage) is never scaled, or it doubles.
+// 0x982B10; splash copy at [rsp+0x90]: killer = the firing WeaponSystem, networkOwner, projectileCode). The host
+// applying a client's damage (RequestDamage) is never scaled, or it doubles. Unlike Deadeye's crits, a hit scaled here
+// counts direct hits AND blast.
 //  * Marking: a hit marks a ship for markTime s; every hit of the player's guns on a marked ship does +mark.
 //  * Giant Slayer: x giantSlayer on Rare/Elite ships (g_elites; co-op clients have the host's).
 //  * Opening Salvo: x salvo for shots until GunMount.reloading (+0xC4) is first seen (6 at least), and their blasts.
 //  * Close Quarters / Long Shot: x closeBonus under closeDist m, x longBonus over longDist m (gun to impact).
 //  * Veteran's: x (1 + vetPerKill x kills, up to vetCap) while the bonded gunner mans it (Seat.lastMan); the bond is
-//    kept on the item (vet_crew=, vet_kills=) and wiped when he is Dead/Missing/Captured (healthState 2/3/4) on two checks a second apart (set_HP can undo Dead).
+//    kept on the item (vet_crew=, vet_kills=) and wiped when he is Dead/Missing/Captured (healthState 2/3/4) on two
+//    checks a second apart (set_HP can undo Dead).
 //  * Overkill: damage past a ship's last vital part goes as a splash onto the nearest other enemy next frame, tagged
 //    kSpillCode so no gun effect touches it. Host only: a client's splash on ships it does not own is unproven.
 //  * Brittle: hits on the player's own gun (WeaponSystem.hull) do x brittle while that gun is selected.
-//  * Sure-Footed: CrewMember.hitFlash (rva 0x9A06C0) rolls overboardChance (0.02) against a WHOLE percent, so scaling it
-//    does nothing; a braced hit instead sets it to 0 for that one call and puts it back right after.
+//  * Sure-Footed: CrewMember.hitFlash (rva 0x9A06C0), the only path from hits to throwOverboardImpact, rolls
+//    ceil(d/15) times (d > 3) CharacterConstants.overboardChance (static, 0.02) against a WHOLE percent, so scaling it
+//    does nothing. Each hit of a Sure-Footed gun adds a stack (up to steadyCap, one fades every steadyDecay s); a hit on
+//    the crew is braced with stacks x steady chance: overboardChance is 0 for that one call, put back right after.
 //  * Rallying: a kill takes rally s off each downed crew member's CrewMember.downedTime, never under 0.1 (iterateDowned's
 //    floor), and not for one already past AllowedDownedTime (rollInstantDeath sets that on purpose).
 //  * Frugal: GunMount.shoot uses no round when the firing Barrel.skipConsumeAmmo (+0x38) is set; the mod rolls the flags
@@ -282,8 +289,9 @@ static Item* GfxMutItem(const std::string& name) { for (Item& it : g_items) if (
 // ---- crates per round (crates_per_round=) ---------------------------------------------------------------------------
 // e.g. the 380mm RW 61: ten ammo crates make one round. A loader's delivery (CrewAI.TaskHandle.processScore, task kind 3)
 // inlines munitionsFill as set_Munitions(munitions +0x130 + GunType.ammoPerFill +0x58 x mult), call at rva 0x992290; only
-// that call is gated. A crate short of a round leaves the value as it was, so munitionsReloadable stays true and the
-// loaders keep coming. Own boat only.
+// that call is gated. munitionsFill itself (0x971D60) has no native caller (only the mod's Salvager); set_Munitions
+// clamps to EffectiveMaxAmmo. A crate short of a round leaves the value as it was, so munitionsReloadable stays true
+// and the loaders keep coming. Own boat only.
 typedef void (*fn_setMun)(void*, int, void*);
 static fn_setMun g_setMunOrig = nullptr;
 static uintptr_t g_raCrateFill = 0;

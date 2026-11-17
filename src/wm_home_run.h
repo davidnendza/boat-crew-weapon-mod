@@ -1,7 +1,10 @@
 // Home Run, UnusualTick and Hooked_PMUpdate (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- Home Run: a ship the gun kills is thrown into the air with a spin and lands with a triple splash ----------------
 // Nothing in the game makes a dead ship kinematic or damps it out of the water, and the wreck model swaps in only below
-// a depth, so a hull in the air flies on plain physics. The first launch logs isKinematic, damping and mass.
+// a depth, so a hull in the air flies on plain physics. (set_isKinematic callers: LiveEntity's one-frame spawn freeze,
+// torpedoes, FishNet's RigidbodyPauser; Ship.FixedUpdateMe sleeps the body only during its spawn 'sleep' timer;
+// FloatBehaviour damps vertical speed only while _inWater; ship damping is the prefab's; the wreck is ReplaceObjectOnSink.)
+// The first launch logs isKinematic, damping and mass.
 static bool TorpSetup(); static void TorpSplash(V3 at);
 struct HomeRun { void* ship; void* h; void* mount; float y0, top, t0, vUp; V3 dir, at; bool told; };
 static std::vector<HomeRun> g_homeRuns;                               // one per gun at a time

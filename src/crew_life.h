@@ -1,6 +1,7 @@
 // crew_life.h: who each crew member was, rolled once from the crew id (home, job before the war, a keepsake, a plan for
 // after it, next of kin), the memorial in a lost crew member's file and the letter to the family.
-// Pure C++17 like crew_report.h, so the offline test can draft letters for real battles. None of it is game data: the game has no homes or families, so all of it is invented.
+// Pure C++17 like crew_report.h, so the offline test can draft letters for real battles. None of it is game data: the
+// game has no homes or families, so all of it is invented.
 #pragma once
 #include "crew_report.h"
 #include <set>

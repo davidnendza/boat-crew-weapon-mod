@@ -1,7 +1,9 @@
 // Big Brother, helpers' looks, Kamikaze Gull steering (a fragment of weaponmod.cpp, included in order, not standalone)
 // ---- Big Brother ------------------------------------------------------------------------------------------------------
 // The Fletcher arrives like the game's boat call-ins (FactionCallinSpawner): CallInManager.instance.callinMethods
-// .setSurfaceSpawnBySearch(team, distance) finds free sea, then callInBoat(prefab, team) (0x180945630) spawns it there.
+// .setSurfaceSpawnBySearch(team, distance) finds free sea, then callInBoat(prefab, team) (0x180945630) takes the ship
+// from GameManager.entityPooler, sets its team, rangeOfInfluence 10000 and spawnedFrom = that CallinMethods (whose
+// getPath is an empty path, as for real call-ins) and puts its Rigidbody at the spawnCenter.
 // Without a CallinMethods, or if the call fails, SpawnFriendly places it kBigBrotherDist right of the line of fire.
 static const float kBigBrotherDist = 300.0f;
 static int g_bbLogs = 0;                                              // destroyer events logged in full this battle (first 3)
