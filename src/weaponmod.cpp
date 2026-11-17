@@ -12631,7 +12631,7 @@ static void UnusualTick() {
     void* ent = nullptr; DWORD life = 0; V3 s0 = { 0, 0, 0 };
     if (r.kind == 0) { V3 p{ r.pos.x, r.pos.y + 40, r.pos.z }; ent = SpawnFriendly("Wildcat", p, flat, 0.4f, 70, &s0); life = 45000; }
     else if (r.kind == 2) { V3 p{ r.pos.x, r.pos.y + 25, r.pos.z }; ent = SpawnFriendly("Dauntless", p, flat, kGullPlaneScale, 90, &s0); life = 25000; }
-    else if (craft || r.owner >= 0) {
+    else if (r.kind == 1 && (craft || r.owner >= 0)) {
       V3 c = r.owner >= 0 ? r.boat : PosOf(craft); V3 side{ flat.z, 0, -flat.x };   // to the right of where the gun is firing
       V3 p{ c.x + side.x * 40, c.y, c.z + side.z * 40 };
       ent = SpawnFriendly("PT-109", p, flat, 0.6f, 0, &s0); life = 120000;
@@ -12865,14 +12865,16 @@ static void OnKillCredit(void* mount, void* killed, float factor) {
   if (ammo <= 0 && repair <= 0 && rp <= 0) return;
   // Bounty pays only for ships (Core.Ship or a subclass): planes come in waves and could be farmed (David, 2026-10-25)
   static void* shipClass = FindClass("Core", "Ship");
-  bool isShip = false;
+  static void* planeClass = FindClass("Core", "Plane");
+  bool isShip = false, isPlane = false;
   const char* killedType = "?";
   if (killed) {
     void* k = il2cpp_object_get_class(killed);
     killedType = il2cpp_class_get_name(k);
-    for (; k; k = il2cpp_class_get_parent(k)) if (k == shipClass) { isShip = true; break; }
+    for (; k; k = il2cpp_class_get_parent(k)) { if (k == shipClass) isShip = true; if (k == planeClass) isPlane = true; }
   }
-  if (!isShip) { rp = 0; repair *= 0.5; ammo *= 0.5; }               // planes come in waves (farmable); before the log line, so it shows what is paid
+  if (!isShip) rp = 0;
+  if (isPlane) { repair *= 0.5; ammo *= 0.5; }                        // planes come in waves (farmable); before the log line, so it shows what is paid
   Log("kill by '%s' (credit %.2f) of %s '%s'%s: ammo %.2f repair %.2f rp %.0f", it->name.c_str(), factor, killedType,
       killed ? NameOf(killed).c_str() : "?", isShip ? " (ship)" : "", ammo, repair, rp);
   if (ammo > 0) {
