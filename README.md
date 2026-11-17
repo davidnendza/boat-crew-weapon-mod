@@ -1,4 +1,4 @@
-# Boat Crew Weapon Mod 0.9.7 (unofficial, experimental)
+# Boat Crew Weapon Mod 0.9.8 (unofficial, experimental)
 
 **Random gun loot, new WW2 guns, tougher enemies and a crew with a story, for Boat Crew.**
 
@@ -63,7 +63,7 @@ Nearly every part can be turned off or tuned. **Mod Options** on the title scree
 Loot, Arsenal, Visuals, Enemies, Crew and Co-op. The same switches are in `BoatCrewMod\drops.ini`, for example:
 
 - `crew_stories=0` turns off the after-action report, `crew_letters=0` the letters home and mail call, and
-  `crew_talk=0` the crew's lines (the first two are new since 0.9.7).
+  `crew_talk=0` the crew's lines (the first two are new in 0.9.8).
 - `female_crew` sets the share of women (default 25), and `no_females=1` turns them off completely.
 - `newsreel=0` stops the battle filming, which can slow battles on some machines.
 - `turret_guns=0` and `side_grades=0` hide the new guns; `killcam=0` turns off the kill cam.
@@ -430,7 +430,7 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
 
 ## Changes
 
-- **0.9.8 (in testing, not released yet):**
+- **0.9.8, balance and options:**
   - **Crew story switches:** `crew_stories=0` keeps the after-action report shut (the crew files still keep each
     battle), and `crew_letters=0` turns off letters home and mail call. Both are in Mod Options, Crew tab.
   - **Balance pass:** several mod guns toned down; crates now cost 2, 3 and 4 Scrap Iron, Brass and Gunmetal;
@@ -439,7 +439,9 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
     +200%.
   - **Automated utility mortars** now drop their shells on the ship they fire at. Before, every shell fell on one old
     aim point.
+  - Vampiric, Salvager and Lazarus give half their ammo and repair for plane kills.
   - Fixes from a code review.
+  - **Co-op:** 0.9.8 does not sync with 0.9.7, so everyone needs 0.9.8.
 - **0.9.7, the More Weapons release (requested on Discord, minimally tested):**
   - **(suggestion) Asked for on Discord:** the new guns, among them the 380mm RW 61 (the Sturmtiger's rocket mortar),
     as the 8.8 cm Flak 36 and the Flakvierling shield were in 0.9.6.

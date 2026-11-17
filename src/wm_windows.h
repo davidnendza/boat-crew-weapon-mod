@@ -355,6 +355,17 @@ static void OptionsWindow(int type, Vec2 mouse) {
 
 // What's New: the README's change lists, shortened, newest first. Keep the secret tier out of it, as out of the README.
 static const char* kChangelog =
+  "## 0.9.8 - Balance and options\n"
+  "- New Crew options in Mod Options: After-action report (off: the report never opens; the crew files still keep each battle) and Letters home and mail call (off: no letters to the families, no mail call, and the crew do not talk about letters).\n"
+  "- Balance pass. Toned down: QF 2-pdr Single, Pom-pom, T-34 Turret, Type 96 Twin and Triple (fewer rounds carried), Twin Type 93 (30-round boxes, less damage), M4 Barge Buster (smaller magazine). Crates now cost 2 Scrap Iron, 3 Brass or 4 Gunmetal. Your drops.ini updates on its own unless you changed those lines.\n"
+  "- Shrapnel no longer rolls on the Oerlikon and the Elco. Chaining now also works from guns you aim yourself. Guided, Fast, Bold and Skipping no longer roll on mortars, where they did nothing. Deadeye no longer rolls on the howitzer.\n"
+  "- Uniques last 8 missions (the ones you have get 2 more) and an Elite can now drop one. Rainmaker, The Mole and The Bonesetter reload faster instead of homing, which mortar shells cannot do.\n"
+  "- Damage bonuses that depend on the situation (Giant Slayer, Opening Salvo, Close Quarters, Long Shot, Veteran's) now add up instead of multiplying, capped at +200% together.\n"
+  "- Vampiric, Salvager and Lazarus give half their ammo and repair for plane kills.\n"
+  "- Automated utility mortars now drop their shells on the ship they fire at, with some scatter. Before, every shell fell on one old aim point.\n"
+  "- Fixes from a code review, and the source is now on GitHub (github.com/davidnendza/boat-crew-weapon-mod).\n"
+  "- Co-op: 0.9.8 does not sync with 0.9.7, so everyone needs 0.9.8.\n"
+  "\n"
   "## 0.9.7 - More Weapons\n"
   "- Requested on Discord, and only minimally tested: 28 new historical guns and 29 new Uniques.\n"
   "- (suggestion) The new guns were asked for on Discord, among them the 380mm RW 61 (the Sturmtiger's rocket mortar), as the 8.8 cm Flak 36 and the Flakvierling shield were in 0.9.6. Thanks to everyone who asked.\n"

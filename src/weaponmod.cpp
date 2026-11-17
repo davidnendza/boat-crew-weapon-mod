@@ -49,7 +49,7 @@ FWD(VerFindFileA) FWD(VerFindFileW) FWD(VerInstallFileA) FWD(VerInstallFileW)
 FWD(VerLanguageNameA) FWD(VerLanguageNameW) FWD(VerQueryValueA) FWD(VerQueryValueW)
 
 // ---- log ---------------------------------------------------------------------------------------------------
-static const char* kModVersion = "0.9.7";                   // shown in the log's first line
+static const char* kModVersion = "0.9.8";                   // shown in the log's first line
 static FILE* g_log = nullptr;
 static bool g_debug = false;                                         // drops.ini debug=1: detailed logging for troubleshooting
 static void Log(const char* fmt, ...) {
