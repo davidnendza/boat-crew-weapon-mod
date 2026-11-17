@@ -84,7 +84,7 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
 - [Enemy settings (`BoatCrewMod\enemies.ini`)](#enemy-settings-boatcrewmodenemiesini)
 - [Custom gun models (experimental)](#custom-gun-models-experimental)
 - [Reporting problems](#reporting-problems)
-- [Source and license](#source-and-license)
+- [Source and license](#source-and-license) (forks and pull requests welcome)
 
 ## What it does
 
@@ -875,3 +875,11 @@ For a more detailed log, set `debug=1` in `drops.ini`, restart the game and repr
 
 The source is in `src/` in this repository (not in the release zip). `build.bat` builds `out\version.dll` with the
 Visual Studio C++ build tools (MSVC, x64). MIT License, see `LICENSE`.
+
+### Forks and contributions
+
+You are welcome to fork it, borrow from it or build your own mod on it. If you do, please credit me (David Nendza,
+with a link back to this repository) somewhere people will see it. It would make me feel warm and tingly.
+
+Pull requests are welcome too: bug fixes, new guns, effects, models, translations, anything. Open an issue first for
+bigger changes so we can talk it over, and include what you tested in game (the `weaponmod.log` lines help).
