@@ -11,3 +11,13 @@ tools/--only/
 tools/reference/
 # local battle dumps from play sessions
 tools/battles/
+
+# secret tier: kept local only
+tools/make_unusual_models.py
+tools/unusual_models_preview.png
+tools/home_run_preview.png
+tools/fire_mission_preview.png
+tools/up_up_away_preview.png
+tools/big_brother_preview.png
+tools/gull_bomber_preview.png
+tools/kamikaze_gull_headband_preview.png
