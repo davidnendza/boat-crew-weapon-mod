@@ -28,7 +28,7 @@ MATS = {
     'Water': (0.15, 0.45, 0.8), 'Red': (0.85, 0.1, 0.12), 'Gold': (1.0, 0.78, 0.2), 'Cyan': (0.2, 0.85, 0.95),
     'Purple': (0.48, 0.22, 0.78), 'DarkPurple': (0.3, 0.12, 0.5), 'Green': (0.2, 0.75, 0.3), 'Ochre': (0.82, 0.45, 0.18),
     'PlaneBlue': (0.25, 0.35, 0.6), 'Leather': (0.4, 0.25, 0.12), 'Space': (0.1, 0.09, 0.22), 'Night': (0.1, 0.12, 0.3),
-    'Boomerang': (0.62, 0.38, 0.18),
+    'Boomerang': (0.62, 0.38, 0.18), 'Olive': (0.33, 0.4, 0.24),
 }
 
 # ---- the stock guns' frames (root frame of the GunMount; pivot and barrels in the pivot frame) -------------------------
@@ -53,6 +53,9 @@ RIGS = {
                  seats=[(-0.48, -0.13, -0.52)], shoot=[]),
     'autocannon': dict(stand=((0, -1.12, 0), 0), pivot=(0, -0.15, 0), barrels=[((0, 0, 0), (0, 180, 0))],
                        seats=[(0, -1.06, -1.10)], shoot=[(0, 0.07, 1.67)]),
+    # 3"/50 (3-inch Gun Player), read 2026-11-16: the barrel faces -z; its bore runs at x -0.04, y 0.22 in the pivot frame
+    'us3': dict(stand=((0, -1.147, 0), 0), pivot=(0.037, 0.128, -0.053), barrels=[((-0.039, -1.409, 0.036), (0, 180, 0))],
+                seats=[], shoot=[(-0.04, 0.22, 2.87)]),
 }
 
 
@@ -604,7 +607,42 @@ def home_run():
     return m
 
 
-MODELS = [hangar, mother_duck, kamikaze_gull, gull_bomber, boomerang, fireworks, orbital, magnet, home_run]
+def fire_mission():
+    """Fire Mission (3-inch, every 6th hit calls a barrage): a giant flare pistol on a spotter's pedestal with a radio."""
+    m = Model('fire_mission', 'us3')
+    s = m.stand()
+    cyl(s, 'Gunmetal', (0, -1.32, 0), (0, -1.24, 0), 0.75, 0.7, seg=24)
+    cyl(s, 'Gunmetal', (0, -1.24, 0), (0, -0.3, 0), 0.18, seg=16)
+    cyl(s, 'Pink', (0, -0.75, 0), (0, -0.7, 0), 0.2, seg=16, caps=False)
+    cyl(s, 'Gunmetal', (0, -0.3, 0), (0, -0.2, 0), 0.32, seg=20)
+    box(s, 'Olive', (0.45, -1.02, -0.2), (0.3, 0.42, 0.22))                       # the field radio
+    box(s, 'Black', (0.45, -0.94, -0.088), (0.22, 0.12, 0.01))
+    cyl(s, 'Steel', (0.55, -0.81, -0.25), (0.62, -0.1, -0.3), 0.008, seg=5)       # its whip aerial
+    box(s, 'Wood', (-0.45, -1.13, -0.15), (0.36, 0.2, 0.26))                       # a crate of flare shells
+    for i, col in enumerate(('Red', 'Green', 'Red', 'Yellow')):
+        x = -0.57 + 0.08 * i
+        cyl(s, col, (x, -1.03, -0.15), (x, -0.95, -0.15), 0.03, seg=8)
+    t = m.turret()
+    y, x0 = 0.22, -0.04
+    box(t, 'Orange', (x0, y, -0.35), (0.42, 0.42, 0.9))                            # the pistol frame round the breech
+    box(t, 'Pink', (x0, y + 0.215, -0.35), (0.3, 0.012, 0.8))
+    box(t, 'Gunmetal', (x0, -0.15, -0.2), (0.3, 0.3, 0.3))                         # the trunnion block on the pedestal
+    box(t, 'Black', (x0, y - 0.36, -0.62), (0.3, 0.6, 0.28), r=(-18, 0, 0))       # the grip, raked back
+    for k in range(4):
+        box(t, 'Gunmetal', (x0, y - 0.18 - 0.11 * k, -0.62 + 0.035 * k - 0.145), (0.31, 0.03, 0.02), r=(-18, 0, 0))
+    torus(t, 'Orange', (x0, y - 0.28, -0.3), 0.13, 0.025, r=(0, 0, 90), seg=16, tube=6, a0=180, a1=360)   # trigger guard
+    box(t, 'Gunmetal', (x0, y - 0.25, -0.32), (0.04, 0.14, 0.04), r=(15, 0, 0))   # trigger
+    box(t, 'Gunmetal', (x0, y + 0.25, -0.82), (0.08, 0.16, 0.08), r=(-30, 0, 0))  # hammer
+    b = m.barrel_from_pivot()
+    cyl(b, 'Orange', (x0, y, 0.1), (x0, y, 2.5), 0.16, seg=18)
+    cyl(b, 'Orange', (x0, y, 2.5), (x0, y, 2.85), 0.16, 0.2, seg=18, caps=False)  # the flared muzzle
+    cyl(b, 'Black', (x0, y, 2.84), (x0, y, 2.86), 0.17, seg=18)                   # the bore, dark
+    cyl(b, 'Pink', (x0, y, 2.0), (x0, y, 2.1), 0.17, seg=18, caps=False)
+    cyl(b, 'Red', (x0, y, 1.2), (x0, y, 1.3), 0.17, seg=18, caps=False)
+    return m
+
+
+MODELS = [hangar, mother_duck, kamikaze_gull, gull_bomber, boomerang, fireworks, orbital, magnet, home_run, fire_mission]
 
 
 # ---- previews: flat-shaded painter's renders from three sides, seats red and stock shoot points cyan -------------------

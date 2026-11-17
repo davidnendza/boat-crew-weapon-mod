@@ -11588,6 +11588,7 @@ static void TryInstallFemale() {
 //   orbital=R    shells circle the boat at R metres and streak off at enemy ships and ground targets within kOrbitReach
 //   magnet=V     a hit pulls the enemy ship toward you by V m/s
 //   homerun=H    a ship the gun kills is thrown about H m (+-14%) into the air with a spin (HomeRunLaunch)
+//   firemission=N every Nth direct hit marks the target with smoke; 4 s later a barrage of 6 splashes walks across it
 // Spawning uses the path the game's own console command takes (SpawnEntityCommand.Spawn, verified in the disassembly):
 // EntitySpawn.spawnFrom(pos, euler, spawner null, prefab, GameManager.instance.entityPooler), prefab from the pooler's
 // ObjType list (+0x28: name +0x10, prefab +0x18). A plane gets its speed like PlaneCatapult gives it:
@@ -11602,9 +11603,10 @@ const char* kUnusualDefs =
   "[unique]\nname=Orbital\nmodel=orbital\nmodel_material=own\nbase=20 mm Elco Thunderbolt\nuses=6\nline=shells circle your boat, then streak off at enemy boats and shore guns within 1.5 km\nflavor=Personal space, enforced.\nfx.set.orbital=25\nproj.mul.FrameLifeTime=25\n\n"
   // Magnet: weight 0 = out of the drop pool (back burner, David 2026-10-27: works, but not noticeable at fighting range)
   "[unique]\nname=Magnet\nmodel=magnet\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nweight=0\nline=shells home in gently, and every hit pulls the enemy ship toward you\nflavor=Get over here.\nfx.set.magnet=6\nfx.set.seek=45\n\n"
-  "[unique]\nname=Home Run\nmodel=home_run\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nline=ships it kills are knocked 60-80 m into the air\nflavor=Swing for the fences.\nfx.set.homerun=70\n";
+  "[unique]\nname=Home Run\nmodel=home_run\nmodel_material=own\nbase=M4 37 mm Autocannon\nuses=6\nline=ships it kills are knocked 60-80 m into the air\nflavor=Swing for the fences.\nfx.set.homerun=70\n\n"
+  "[unique]\nname=Fire Mission\nmodel=fire_mission\nmodel_material=own\nbase=3-inch Gun Player\nuses=6\nline=every 6th hit marks the target with smoke, and a barrage walks across it 4 s later\nflavor=Fire for effect.\nfx.set.firemission=6\n";
 
-struct UnusualCfg { int hangar, duck, gull; bool boomerang, fireworks; float orbital, magnet; int shots; float homerun; };
+struct UnusualCfg { int hangar, duck, gull; bool boomerang, fireworks; float orbital, magnet; int shots; float homerun; int firemission; };
 static std::unordered_map<void*, UnusualCfg> g_unuCfg;               // mount -> its powers, per battle
 static void* g_unuEng = nullptr;
 static int g_unuFaults = 0;
@@ -11651,7 +11653,7 @@ static const UnusualCfg& UnuCfgOf(void* mount) {
   if (it) {
     u.hangar = (int)ItemFx(*it, "hangar"); u.duck = (int)ItemFx(*it, "duck"); u.gull = (int)ItemFx(*it, "gull");
     u.boomerang = ItemFx(*it, "boomerang") > 0; u.fireworks = ItemFx(*it, "fireworks") > 0;
-    u.orbital = (float)ItemFx(*it, "orbital"); u.magnet = (float)ItemFx(*it, "magnet"); u.homerun = (float)ItemFx(*it, "homerun");
+    u.orbital = (float)ItemFx(*it, "orbital"); u.magnet = (float)ItemFx(*it, "magnet"); u.homerun = (float)ItemFx(*it, "homerun"); u.firemission = (int)ItemFx(*it, "firemission");
   }
   return g_unuCfg.emplace(mount, u).first->second;
 }
@@ -11857,6 +11859,7 @@ struct UnuStats {
   int turned = 0, noTarget = 0, orbitJoined = 0, orbitFull = 0, orbitLaunched = 0, orbitDropped = 0;
   int sparks = 0, bursts = 0, magnetPulls = 0;
   int homeRuns = 0, homeLanded = 0, homeSkipped = 0; float homeBest = 0;   // Home Run
+  int fmHits = 0, fmCount = 0, fmCalled = 0, fmCooling = 0, fmSmoke = 0, fmBarrages = 0, fmShells = 0, fmNotQueued = 0, fmKills = 0, fmClient = 0;   // Fire Mission
   DWORD sparkAt = 0; V3 sparkPos{};
 };
 static std::unordered_map<void*, UnuStats> g_unuStats;
@@ -11890,6 +11893,7 @@ static void UnusualSummary(const char* when) {
     if (c.orbital > 0) Append(t, "; %d shells joined the ring (%d not, ring full), %d launched at ships, %d dropped into the sea", s.orbitJoined, s.orbitFull, s.orbitLaunched, s.orbitDropped);
     if (c.magnet > 0) Append(t, "; %d ships pulled", s.magnetPulls);
     if (c.homerun > 0) Append(t, "; %d ships launched (%d landed, %d kills not launched), best %.0f m", s.homeRuns, s.homeLanded, s.homeSkipped, s.homeBest);
+    if (c.firemission > 0) Append(t, "; %d hits, %d fire missions (%d marked with smoke), %d barrages, %d kills during one", s.fmHits, s.fmCalled, s.fmSmoke, s.fmBarrages, s.fmKills);
     Append(t, "; %d kills credited to the gun", s.kills);
     DLog("extra effects summary (%s): %s", when, t.c_str());
   }
@@ -11919,7 +11923,7 @@ static void FireworksColor(void* pj) {
 static void UnusualOnShot(void* pj, void* mount) {
   if (g_offPjVel < 0 || g_offPjPos < 0 || g_offPjTarget < 0) return;  // SeekScan looks these up on its first frame
   const UnusualCfg& cfg = UnuCfgOf(mount);
-  if (!cfg.hangar && !cfg.duck && !cfg.gull && !cfg.boomerang && !cfg.fireworks && cfg.orbital <= 0 && cfg.magnet <= 0 && cfg.homerun <= 0) return;
+  if (!cfg.hangar && !cfg.duck && !cfg.gull && !cfg.boomerang && !cfg.fireworks && cfg.orbital <= 0 && cfg.magnet <= 0 && cfg.homerun <= 0 && cfg.firemission <= 0) return;
   if (IsCopyShot(pj)) {                                               // co-op: another player's shot. Only the colors show here: their
     if (cfg.fireworks) FireworksColor(pj);                            // helpers come from the host, and the ring, turns and pulls
     return;                                                           // need targets only the shooter's machine has
@@ -12518,6 +12522,7 @@ static void HomeRunTick() {
   }
 }
 
+static void FireMissionTick(); static void FireMissionBattleOver(); static void FireMissionKill(UnuStats& st, void* by, void* killed);
 static void UnusualTick() {
   void* eng = EngagementInstance();
   if (eng != g_unuEng) {
@@ -12536,12 +12541,14 @@ static void UnusualTick() {
     }
     for (auto& h : g_homeRuns) Unpin(h.h);
     g_homeRuns.clear(); g_homeRunLogs = 0;
+    FireMissionBattleOver();
     g_gullsDressed = g_looksBack = 0; g_gullFull = 0; g_gullBlasts.clear();
     g_minions.clear(); g_spawnQueue.clear(); g_unuCfg.clear(); g_orbit.clear(); g_orbitEnemySeen = 0; g_orbitReleases = 0; g_boomer.clear(); g_magnet.clear(); g_magnetEnded.clear(); g_fireworkTypes.clear(); g_unuEng = eng;   // shortcut: up to 7 pinned colored copies per fired type are left each battle (keys can be stale next battle); free them if Fireworks sees heavy use
     g_unuStats.clear(); g_unuStatsNew = false; g_unuStatsAt = GetTickCount();
   }
   if (!eng) return;
   HomeRunTick();
+  FireMissionTick();
   if (g_unuStatsNew && GetTickCount() - g_unuStatsAt > 120000) { g_unuStatsAt = GetTickCount(); UnusualSummary("so far"); }
   if (!EliteLookups()) return;                                         // shares the entity field offsets
   void* craft = PlayerCraft();
@@ -12680,7 +12687,7 @@ static void UnusualKill(void* ws, void* mount, void* killed) {
   const char* what = il2cpp_class_get_name(il2cpp_object_get_class(killed));
   if (kind == 2 && st.minionKills[2] < 5) Log("kamikaze gull: '%s' gull's blast got a kill: %s '%s'", st.name.c_str(), what, NameOf(killed).c_str());
   if (kind >= 0) { st.minionKills[kind]++; DLog("extra effects: '%s' %s got a kill: %s '%s'", st.name.c_str(), kMinionWord[kind], what, NameOf(killed).c_str()); }
-  else { st.kills++; DLog("extra effects: '%s' kill: %s '%s'", st.name.c_str(), what, NameOf(killed).c_str()); if (st.cfg.homerun > 0) HomeRunLaunch(by, killed, st); }
+  else { st.kills++; DLog("extra effects: '%s' kill: %s '%s'", st.name.c_str(), what, NameOf(killed).c_str()); if (st.cfg.homerun > 0) HomeRunLaunch(by, killed, st); if (st.cfg.firemission > 0) FireMissionKill(st, by, killed); }
 }
 
 static void SafeUnusualOnShot(void* pj, void* mount) {
@@ -13170,6 +13177,101 @@ static int GunnerKillsOn(void* mount, const Item* it) {               // Veteran
   }
   return 0;
 }
+// ---- Fire Mission: every Nth direct hit marks the target with smoke; 4 s of game time later 6 splashes walk across it ---
+// The hits come from the hitFlash hook (GfxBefore: direct hits of the player's own shells only); the splashes are
+// QueueSplash credited to the gun's WeaponSystem (their kills reach UnusualKill as the gun's), with a stock shell's water
+// splash (TorpSplash) for the look. Each splash goes where the target is at that moment, so the barrage follows it.
+static bool FireMissionSmoke(V3 p);                                   // the utility gear section: one small smoke cloud
+struct FireMission { void* mount; void* target; void* th; V3 mark, last, dir; float t0; int fired, queued; bool gone; std::string who; };
+static std::vector<FireMission> g_fireMissions;
+static std::unordered_map<void*, float> g_fmReady;                   // mount -> game time its next mission may be called
+static int g_fmLogs = 0;                                              // per battle, the first 3 barrages in full
+static const float kFmDelay = 4, kFmGap = 0.35f, kFmCooldown = 20, kFmRadius = 18, kFmDamage = 180;   // 180, not 250: 6 x 250 sank every small boat
+static const int kFmShells = 6;
+static void FireMissionHit(void* mount, void* ce) {
+  const UnusualCfg& c = UnuCfgOf(mount); if (c.firemission <= 0) return;
+  UnuStats& st = StatsOf(mount);
+  st.fmHits++;
+  if (++st.fmCount < c.firemission) return;
+  if (g_coopRole == 2) {                                              // as Overkill: a client's splashes are not the host's damage
+    st.fmCount = 0; if (!st.fmClient++) Log("fire mission: '%s' hit %d times on a co-op client; only the host calls barrages", st.name.c_str(), st.fmHits); return; }
+  float now = CrewLogNow();
+  auto r = g_fmReady.find(mount);
+  if (r != g_fmReady.end() && now < r->second) { st.fmCooling++; return; }   // the count stays full: the first hit after the cooldown calls it
+  V3 p = PosOf(ce); if (p.y < -5000) return;
+  st.fmCount = 0; g_fmReady[mount] = now + kFmCooldown;
+  bool smoke = FireMissionSmoke(p); st.fmSmoke += smoke;
+  std::string who = KindOf(ce).ship ? ShipTitle(ce) : CrewClean(StripTags(NameOf(ce)));
+  g_fireMissions.push_back({ mount, ce, Pin(ce), p, p, V3{ 0, 0, 0 }, now, 0, 0, false, who });
+  st.fmCalled++;
+  if (st.fmCalled <= 3) Log("fire mission: '%s' hit %s (hit %d this battle): marked%s, barrage in %.0f s", st.name.c_str(), who.c_str(), st.fmHits, smoke ? " with smoke" : " (NO smoke cloud)", kFmDelay);
+  else DLog("fire mission: '%s' marked %s", st.name.c_str(), who.c_str());
+  ShowMessage(Colored("Fire Mission: " + who + " marked", "#ff5fc8"));
+}
+static void SafeFireMissionHit(void* mount, void* ce) {
+  if (g_unuFaults < 0) return;
+  __try { FireMissionHit(mount, ce); }
+  __except (FaultFilter("extra effects (fire mission hit)", GetExceptionInformation())) { g_unuFaults = -1; }
+}
+static void FireMissionEnd(size_t i) { Unpin(g_fireMissions[i].th); g_fireMissions.erase(g_fireMissions.begin() + i); }
+static void FireMissionTick() {
+  if (g_fireMissions.empty()) return;
+  TorpSetup();                                                        // the splash prefab
+  float now = CrewLogNow();
+  for (size_t i = g_fireMissions.size(); i-- > 0; ) {
+    FireMission& f = g_fireMissions[i];
+    auto si = g_unuStats.find(f.mount); if (si == g_unuStats.end()) { FireMissionEnd(i); continue; }
+    UnuStats& st = si->second;
+    if (!f.gone) {                                                    // follow it; a sunk or repooled target leaves its last place
+      V3 p = Alive(f.target) ? PosOf(f.target) : V3{ 0, -10000, 0 };
+      if (p.y < -5000 || Dist3(p, f.last) > 150) f.gone = true; else f.last = p;
+    }
+    float t = now - f.t0 - kFmDelay;
+    if (t < 0) continue;
+    if (f.fired < kFmShells && t >= kFmGap * f.fired) {
+      if (!f.fired) {                                                 // walk along the way it moved; away from the gun if it sat still
+        V3 g = PosOf(f.mount);
+        float dx = f.last.x - f.mark.x, dz = f.last.z - f.mark.z;
+        if (dx * dx + dz * dz < 25 && g.y > -5000) { dx = f.last.x - g.x; dz = f.last.z - g.z; }
+        float l = sqrtf(dx * dx + dz * dz); f.dir = l > 0.1f ? V3{ dx / l, 0, dz / l } : V3{ 1, 0, 0 };
+      }
+      float off = -30 + 60.0f * f.fired / (kFmShells - 1);
+      V3 at{ f.last.x + f.dir.x * off, f.last.y, f.last.z + f.dir.z * off };
+      void* ws = Alive(f.mount) && g_oGmWs >= 0 ? *(void**)((char*)f.mount + g_oGmWs) : nullptr;
+      bool ok = ws && QueueSplash(at, kFmRadius, kFmDamage, ws, g_gfxEntityCode, g_gfxTeam);
+      TorpSplash(at);
+      f.fired++; f.queued += ok; if (ok) st.fmShells++; else st.fmNotQueued++;
+      DLog("fire mission: '%s' shell %d of %d on %s at %+.0f m (splash %s)", st.name.c_str(), f.fired, kFmShells, f.who.c_str(), off, ok ? "queued" : "NOT queued");
+      if (f.fired == kFmShells) {
+        st.fmBarrages++;
+        if (++g_fmLogs <= 3) Log("fire mission: '%s' barrage on %s done: %d of %d splashes queued (%.0f damage, %.0f m each); the target is %s, %.0f m from where it was marked",
+                                 st.name.c_str(), f.who.c_str(), f.queued, kFmShells, kFmDamage, kFmRadius, f.gone ? "gone" : "still there", Dist3(f.last, f.mark));
+        else DLog("fire mission: '%s' barrage on %s done (%d of %d queued)", st.name.c_str(), f.who.c_str(), f.queued, kFmShells);
+      }
+    }
+    if (f.fired >= kFmShells && t > kFmGap * kFmShells + 3) FireMissionEnd(i);   // kept 3 s more: a late kill still counts as the barrage's
+  }
+}
+// The gun's kill of a target whose barrage has started counts as the barrage's (its own shells may have done it too).
+static void FireMissionKill(UnuStats& st, void* by, void* killed) {
+  for (auto& f : g_fireMissions) {
+    if (f.target != killed || f.mount != by || !f.fired) continue;
+    st.fmKills++;
+    if (st.fmKills <= 3) Log("fire mission: '%s' barrage killed %s (after %d of %d splashes)", st.name.c_str(), f.who.c_str(), f.fired, kFmShells);
+    else DLog("fire mission: '%s' barrage killed %s", st.name.c_str(), f.who.c_str());
+    return;
+  }
+}
+static void FireMissionBattleOver() {
+  for (auto& e : g_unuStats) {                                       // always logged, like the gulls
+    const UnuStats& s = e.second; if (s.cfg.firemission <= 0 || !s.fmHits) continue;
+    Log("fire mission, last battle: '%s' %d direct hits, %d missions called (%d with smoke; %d hits waited on the %.0f s cooldown), %d barrages, %d splashes queued (%d not), %d targets killed during a barrage",
+        s.name.c_str(), s.fmHits, s.fmCalled, s.fmSmoke, s.fmCooling, kFmCooldown, s.fmBarrages, s.fmShells, s.fmNotQueued, s.fmKills);
+  }
+  for (auto& f : g_fireMissions) Unpin(f.th);
+  g_fireMissions.clear(); g_fmReady.clear(); g_fmLogs = 0;
+}
+
 struct HitCtx { bool post; void* mount; void* ce; const GunFx* fx; float hpBefore; bool client; bool direct; };
 // Before the game's hitFlash: the damage to apply. ctx->post asks for GfxAfter.
 static float GfxBefore(void* self, bool direct, char* crsp, float dmg, HitCtx* ctx) {
@@ -13199,6 +13301,7 @@ static float GfxBefore(void* self, bool direct, char* crsp, float dmg, HitCtx* c
   if (!mount || *(void**)((char*)mount + g_oGmEntity) != g_gfxCraft) return dmg;   // the player's own guns only
   if (*(int*)((char*)self + g_oHpTeam) == g_gfxTeam) return dmg;
   void* ce = *(void**)((char*)self + g_oHpCe); if (!ce) return dmg;
+  if (direct && KindOf(ce).surface) SafeFireMissionHit(mount, ce);     // one call per shell that hits (blasts never count)
   bool ship = KindOf(ce).ship;
   const GunFx& gx = GfxOf(mount);
   float f = 1.0f;
@@ -16225,6 +16328,16 @@ static bool SmokeSendToHost(void* vfx, void* prefab, V3* pos) {
 // each) are shared with the game's own smoke shells, so the pots leave a third of each free (review 2026-11-08).
 static std::vector<float> g_smokeLive[2];
 static const int kSmokeCap = 16;
+// Fire Mission's marker: one small cloud, counted with the pots' so they leave room for it.
+static bool FireMissionSmoke(V3 p) {
+  if (!UtilReady() || !g_ua.spawnVfx) return false;
+  void* prefab = SmokePrefab(false); void* vfx = nullptr; il2cpp_field_static_get_value(g_ua.vfxInst, &vfx);
+  V3 pos = { p.x, 0, p.z }; bool force = true, local = false;          // as a pot's: never capped, networked as the game does
+  void* a[4] = { prefab, &pos, &force, &local };
+  bool ok = vfx && prefab && Invoke(g_ua.spawnVfx, vfx, a);
+  if (ok) g_smokeLive[0].push_back(UtilTime(g_ua.time));
+  return ok;
+}
 // 1 a cloud, 0 the pool gave none, -1 left out to keep clouds free for the smoke shells
 static int SmokePuff(V3 p, bool large) {
   float now = UtilTime(g_ua.time);
