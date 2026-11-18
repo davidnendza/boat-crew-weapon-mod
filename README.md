@@ -17,7 +17,7 @@ models, Rare and Elite enemy ships, and a crew that remembers its battles.
 - **Found guns:** 1 to 3 random effects each (Homing, Chaining, Flak, Deadeye, Skipping, Drum and over 20 more), colored tracers by rarity.
 - **Uniques:** named guns with fixed powers, one for nearly every gun, such as Hornet's Nest, The Ferryman and The Metronome.
 - **Eleven more turret guns:** Twin Vickers K, Twin Type 93, 2 cm Flak 38, M4 Barge Buster, Twin DShK and more, each with its own model.
-- **Forty-seven side-grades:** the 8.8 cm Flak 36, Pom-pom, Chicago Piano, T-34 turret, Katyushas, Boys AT rifle, the Long Lance torpedo and more.
+- **Forty-six side-grades:** the 8.8 cm Flak 36, Pom-pom, Chicago Piano, T-34 turret, Katyushas, Boys AT rifle, the Long Lance torpedo and more.
 - **Found torpedoes:** Seeking, Swift or Dolphin-leaping torpedoes, plus Uniques such as Chomper, a hungry yellow ball that chomps its way in.
 - **Smoke pots and life rafts:** depth charge slot gear that lays a 150 m smoke screen or fetches your crew from the water.
 - **Rare and Elite enemies:** tougher ships with traits such as Armored, Swift, Long Boi or Chonker, each carrying a guaranteed gun.
@@ -265,7 +265,7 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
   - **Sneaking Eel** (Unique, Mk 14 for the PT tubes, Mk 24 pair for the sub chaser) is never spotted, so no ship
     steers away from it. It crawls along the surface as a commando in a red headband, hits harder (+50% warhead
     damage) and is a little slower (-15% thrust and top speed).
-- **Five torpedo side-grades (new in 0.9.9, not tested in game yet).** Period torpedoes that trade against a stock
+- **Four torpedo side-grades (new in 0.9.9, not tested in game yet).** Period torpedoes that trade against a stock
   torpedo of the same slot, so the acoustic Mk 24 and Mk 27 are not the only good choice. Like the gun side-grades they
   are always in the slot's list, never wear out, also drop as loot with random torpedo effects, and `side_grades=0`
   hides them. Prices are per torpedo:
@@ -415,7 +415,7 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
   | PIAT | Crew | Bazooka | -10% | Cheaper, and each bomb hits a little harder, but a slower, less accurate bomb with a smaller burst |
   | Type 89 Knee Mortar | Crew | M7 grenade launcher | +10% | Faster reload, but a smaller burst and it scatters far wider |
 
-    Five more, for the torpedo slots, are under Found torpedoes. `side_grades=0` in `drops.ini` hides them. Since 0.9.6 a slot's turret guns and side-grades together make up a
+    Four more, for the torpedo slots, are under Found torpedoes. `side_grades=0` in `drops.ini` hides them. Since 0.9.6 a slot's turret guns and side-grades together make up a
     fixed share of its gun drops (`mod_gun_share`, default `0.25` = 1 in 4), split among them by their `weight=`, so
     more mod guns add variety, not more mod guns. `mod_gun_share=0` goes back to each gun's own `weight=`.
 - **Co-op (experimental, new in 0.9.0).** When everyone in the session has this same version of the mod, each player's
@@ -444,7 +444,7 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
   - **155 mm M1 Long Tom**, a new Heavy and Heavy+ side-grade on the 3-inch: one huge shell at a time with a massive
     blast and a very long reach, then a long reload. Expensive and rare in the loot.
   - **Longer Tom**, its Unique: a much, much bigger gun that hits twice as hard, and every shot shoves your boat back.
-  - **Five torpedo side-grades** (not tested in game yet): the 21-inch Mk VIII and the Mk 14 Magnetic (with about 3 in
+  - **Four torpedo side-grades** (not tested in game yet): the 21-inch Mk VIII and the Mk 14 Magnetic (with about 3 in
     10 duds), the 45 cm Whitehead (drawn smaller, also two to a tube) and the Type 93 Long Lance (drawn bigger), all for the PT tubes; the
     Whitehead also fits the sub chaser and the Long Lance the PT-6's rear tubes. See Found torpedoes.
 
