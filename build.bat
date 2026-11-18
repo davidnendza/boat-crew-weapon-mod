@@ -16,7 +16,7 @@ if not defined VCVARS goto novc
 call "%VCVARS%" >nul 2>nul
 cd /d "%~dp0"
 if not exist out mkdir out
-cl /nologo /LD /O2 /MT /W3 /EHsc src\weaponmod.cpp /Fo:out\ /Fe:out\version.dll /link /DYNAMICBASE /MAP:out\version.map user32.lib
+cl /nologo /LD /O2 /MT /W3 /EHsc /bigobj src\weaponmod.cpp /Fo:out\ /Fe:out\version.dll /link /DYNAMICBASE /MAP:out\version.map user32.lib
 if errorlevel 1 exit /b 1
 echo.
 echo Built out\version.dll. Install it with install.ps1 (game closed).

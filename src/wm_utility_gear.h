@@ -505,10 +505,14 @@ static bool TorpRestoreStock(void* t) {
   }
   return util;
 }
+static void TorpSizeReset(void* t) { TorpSize(t, 1.0f, std::string()); }   // outside the __try caller: it builds a std::string
 static void Hooked_TorpFixed(void* self, void* method) {
   bool run = g_ready && g_tp.ok && g_torpRunFaults >= 0, util = false;
   if (run) { __try { TorpBegin(self); } __except (FaultFilter("found torpedoes (launch)", GetExceptionInformation())) { g_torpRunFaults = -1; run = false; } }
-  else if (g_ready && g_tp.ok && g_torpRunFaults > -2) { __try { util = TorpRestoreStock(self); } __except (EXCEPTION_EXECUTE_HANDLER) { g_torpRunFaults = -2; } }
+  else if (g_ready && g_tp.ok && g_torpRunFaults > -2) {
+    __try { util = TorpRestoreStock(self); } __except (EXCEPTION_EXECUTE_HANDLER) { g_torpRunFaults = -2; }
+    __try { TorpSizeReset(self); } __except (EXCEPTION_EXECUTE_HANDLER) {}   // a resized torpedo goes back to stock size too
+  }
   g_torpFixedOrig(self, method);
   if (run) { __try { TorpAfter(self); } __except (FaultFilter("found torpedoes (homing)", GetExceptionInformation())) { g_torpRunFaults = -1; } }
   else if (util) {                                                     // a utility charge with the found torpedoes off: off the water

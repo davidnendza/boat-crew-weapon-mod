@@ -180,6 +180,50 @@ static bool TorpLookOn(void* t, TorpLook& L, int kind) {
   L.shown = true;
   return true;
 }
+// fx torpScale (Long Lance 1.3, Whitehead 0.8): the torpedo's own meshes drawn bigger or smaller. Only mesh transforms
+// below the root with no Collider are scaled, so the root's CapsuleCollider, the hit cast and SlotConfliction stay stock;
+// the 'Torpedo/Nav' NavMeshObstacle under the mesh scales with it (harmless), and the tube's dummy model stays stock size.
+// The pooled torpedo keeps them, so every launch sets its size: stock launches put it back to 1.
+struct TorpSizeRec { std::vector<std::pair<void*, V3>> tr; std::vector<void*> h; float applied = 1; };
+static std::unordered_map<void*, TorpSizeRec> g_torpSizes;              // Torpedo -> its mesh transforms and their stock scales
+static void TorpSize(void* t, float scale, const std::string& item) {
+  auto f = g_torpSizes.find(t);
+  if (f == g_torpSizes.end() && scale == 1.0f) return;                // never resized: already stock
+  if (f != g_torpSizes.end() && scale == 1.0f) {                       // back to stock needs no model API: always allowed
+    TorpSizeRec& R = f->second;
+    if (R.applied == 1.0f || !m_setLocalScale) return;
+    R.applied = 1.0f;                                                 // first, so a fault below cannot leave it marked resized
+    for (auto& p : R.tr) if (Alive(p.first)) { V3 s = p.second; void* a[1] = { &s }; Invoke(m_setLocalScale, p.first, a); }
+    return;
+  }
+  if (g_modelsOff || !ModelApiReady() || !m_getLocalScale || !m_setLocalScale) return;
+  void* tT = Invoke(m_getTransform, t); if (!tT) return;
+  TorpSizeRec& R = g_torpSizes[t];
+  if (std::any_of(R.tr.begin(), R.tr.end(), [](const std::pair<void*, V3>& p) { return !Alive(p.first); })) { for (void* h : R.h) Unpin(h); R = TorpSizeRec(); }
+  if (R.tr.empty()) {
+    static void* colType = nullptr; static bool colTried = false;
+    if (!colTried) { colTried = true; void* ck = FindClass("UnityEngine", "Collider"); colType = ck ? il2cpp_type_get_object(il2cpp_class_get_type(ck)) : nullptr; }
+    std::vector<void*> rs; auto L = g_torpLooks.find(t);
+    if (L != g_torpLooks.end() && !L->second.stock.empty()) rs = L->second.stock;   // a look's parts are under it too: only the stock meshes
+    else for (void* r : RenderersUnder(tT)) if (IsMeshRenderer(r)) rs.push_back(r);
+    int skipped = 0;
+    for (void* r : rs) {
+      void* rt = Alive(r) ? Invoke(m_getTransform, r) : nullptr;
+      if (!rt || rt == tT || (colType && Invoke(g_mapi.getComponent, rt, (void**)&colType))) { skipped++; continue; }
+      if (std::any_of(R.tr.begin(), R.tr.end(), [&](const std::pair<void*, V3>& p) { return p.first == rt; })) continue;
+      R.tr.push_back({ rt, GetV3(m_getLocalScale, rt) }); R.h.push_back(Pin(rt));
+    }
+    if (R.tr.empty()) {
+      static bool told = false; if (!told) { told = true; Log("torpedo size: no mesh below the torpedo's root without a collider (%d skipped); torpedoes keep their size", skipped); }
+      g_torpSizes.erase(t); return;
+    }
+  }
+  if (R.applied == scale) return;
+  for (auto& p : R.tr) { V3 s = { p.second.x * scale, p.second.y * scale, p.second.z * scale }; void* a[1] = { &s }; Invoke(m_setLocalScale, p.first, a); }
+  R.applied = scale;
+  static std::set<std::string> told;
+  if (!item.empty() && told.insert(item).second) Log("torpedo size: '%s' drawn at %.0f%% (%d mesh transform(s))", item.c_str(), scale * 100, (int)R.tr.size());
+}
 static Q4 QMul(Q4 a, Q4 b) {
   return { a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y, a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
            a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w, a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z };
@@ -469,6 +513,8 @@ static void TorpBattleSummary() {
     std::string extra = std::string(homes ? ", homed on " + std::to_string(s.second.locks) + " ship(s)" : "") + (leaps ? ", leapt " + std::to_string(s.second.leaps) + " time(s)" : "") +
                         (skims ? ", skipped " + std::to_string(s.second.skips) + " time(s)" : "") +
                         (s.second.dives ? ", dived on " + std::to_string(s.second.dives) + " submerged target(s)" : "");
+    { Item buf; double dud = it ? ItemFx(ExpandBuiltFrom(*it, &buf), "dud") : 0;   // a found Mk 14 Magnetic's chance is on its side-grade
+      if (s.second.duds || dud > 0) extra += ", " + std::to_string(s.second.duds) + " of " + std::to_string(s.second.launched) + " launches were duds"; }
     Log("torpedoes, last battle: '%s' launched %d, went off %d%s, top speed %.1f m/s", s.first.c_str(), s.second.launched, s.second.exploded, extra.c_str(), s.second.topSpeed);
   }
 }
@@ -490,7 +536,7 @@ static void TorpBattleTick() {
   void* eng = EngagementInstance();
   if (eng == g_torpEng) return;
   if (g_torpEng) TorpBattleSummary();
-  g_torpStats.clear(); g_torpPaid.clear(); g_torpLogs = 0; g_torpLeapLogs = 0; g_torpCoopMiss = 0;
+  g_torpStats.clear(); g_torpPaid.clear(); g_torpLogs = 0; g_torpLeapLogs = 0; g_torpCoopMiss = 0; g_torpDudLogs = 0;
   for (auto it = g_torpRuns.begin(); it != g_torpRuns.end(); ) {
     if (it->second.handle && !it->second.ended) { ++it; continue; }
     Unpin(it->second.handle); it = g_torpRuns.erase(it);

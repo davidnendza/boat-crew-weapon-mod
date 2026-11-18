@@ -33,7 +33,8 @@ static bool FitsFamily(const Item& it, const std::string& family) {
   if (it.family == family) return true;
   if (it.builtIn) return false;
   if (!it.builtFrom.empty()) {                                         // a found turret gun or side-grade fits only where its mod gun does (its model needs that mount)
-    for (const Item& b : g_items) if (b.builtIn && b.name == it.builtFrom && b.family == family) return true;
+    // a torpedo also needs its own base in that slot: a found Long Lance rolled for the PT tubes (Mk 14) has no place in the rear tubes (Mk 15)
+    for (const Item& b : g_items) if (b.builtIn && b.name == it.builtFrom && b.family == family && (!IsTorpFamily(family) || b.base == it.base)) return true;
     return false;
   }
   auto f = g_famBases.find(family);

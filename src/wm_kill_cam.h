@@ -209,6 +209,7 @@ static void KcCast(const KcTorp& k, float& r, float& reach) {
 // heading) touches one of the boxes, on its straight track relative to the ship; -1 if none. Every 0.02 game s (~1.5 m).
 static float KcEntry(const KcTorp& k, const float* sv, const std::vector<KcBox>& bs, float tMax) {
   float r, reach; KcCast(k, r, reach);
+  if (reach <= 0) return -1;                                           // detectionDistance 0 (a dud): the game never casts for a hit
   float wx = k.v.x - sv[0], wz = k.v.z - sv[2], hl = sqrtf(k.v.x * k.v.x + k.v.z * k.v.z), dx = hl > 0.1f ? k.v.x / hl : 0, dz = hl > 0.1f ? k.v.z / hl : 0;
   for (float t = 0; t <= tMax + 1e-4f; t += 0.02f) {
     float px = k.p.x + wx * t, pz = k.p.z + wz * t;

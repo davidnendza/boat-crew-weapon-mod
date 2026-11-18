@@ -26,7 +26,8 @@ static void GfxKick(void* pj, void* mount, const GunFx& gx) {
   // tops the boat up to kick m/s backward and 15% of it upward, never adds on top: fast fire (72 shots at a plane) stacked
   // 30 m/s shoves and threw the boat out of the battle area
   V3 v = *(V3*)((char*)vb + 0x10), u{ -d.x / l, 0, -d.z / l };
-  float back = v.x * u.x + v.z * u.z, push = gx.kick - back, lift = gx.kick * 0.15f - v.y;
+  // never more than the kick: a boat driving toward its target (back < 0) was stopped dead and reversed in one shot
+  float back = v.x * u.x + v.z * u.z, push = gx.kick - (back > 0 ? back : 0), lift = gx.kick * 0.15f - v.y;
   if (push < 0) push = 0;
   if (lift < 0) lift = 0;
   GfxStat(gx.name).kicks++;
