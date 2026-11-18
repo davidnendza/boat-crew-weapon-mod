@@ -1,4 +1,4 @@
-# Boat Crew Weapon Mod 0.9.8
+# Boat Crew Weapon Mod 0.9.9
 
 **Random gun loot, new WW2 guns, tougher enemies and a crew with a story.**
 
@@ -265,7 +265,7 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
   - **Sneaking Eel** (Unique, Mk 14 for the PT tubes, Mk 24 pair for the sub chaser) is never spotted, so no ship
     steers away from it. It crawls along the surface as a commando in a red headband, hits harder (+50% warhead
     damage) and is a little slower (-15% thrust and top speed).
-- **Four torpedo side-grades (new in 0.9.9, not tested in game yet).** Period torpedoes that trade against a stock
+- **Four torpedo side-grades (new in 0.9.9).** Period torpedoes that trade against a stock
   torpedo of the same slot, so the acoustic Mk 24 and Mk 27 are not the only good choice. Like the gun side-grades they
   are always in the slot's list, never wear out, also drop as loot with random torpedo effects, and `side_grades=0`
   hides them. Prices are per torpedo:
@@ -440,13 +440,14 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
 
 ## Changes
 
-- **0.9.9 (in progress):**
+- **0.9.9, Long Tom and torpedoes:**
   - **155 mm M1 Long Tom**, a new Heavy and Heavy+ side-grade on the 3-inch: one huge shell at a time with a massive
     blast and a very long reach, then a long reload. Expensive and rare in the loot.
   - **Longer Tom**, its Unique: a much, much bigger gun that hits twice as hard, and every shot shoves your boat back.
-  - **Four torpedo side-grades** (not tested in game yet): the 21-inch Mk VIII and the Mk 14 Magnetic (with about 3 in
+  - **Four torpedo side-grades:** the 21-inch Mk VIII and the Mk 14 Magnetic (with about 3 in
     10 duds), the 45 cm Whitehead (drawn smaller, also two to a tube) and the Type 93 Long Lance (drawn bigger), all for the PT tubes; the
     Whitehead also fits the sub chaser and the Long Lance the PT-6's rear tubes. See Found torpedoes.
+  - **Co-op:** 0.9.9 does not sync with 0.9.8, so everyone needs 0.9.9.
 
 - **0.9.8, balance and options:**
   - **Crew story switches:** `crew_stories=0` keeps the after-action report shut (the crew files still keep each
