@@ -584,7 +584,31 @@ static const char* kSideGrades =
   "[item]\nname=155 mm M1 Long Tom\nfamily=Heavy Weapon,Heavy+ Weapon\nbase=3-inch Gun Player\nmodel=long_tom_155mm\nmodel_keep=Stand,US_3in_base,Bofors Hand Crank\nsound_from=US Superheavy Artillery\n"
   "description=US 155 mm Gun M1 'Long Tom', the Army's long-range field gun, bolted to a deck by someone who should not be allowed near a deck. One huge shell at a time that flies far and fast with a massive blast, then a long reload; very expensive, few shells carried.\n"
   "mul.price=3.5\nmul.roundsPerMinute=0.4\nmul.shotCooldown=2.5\nset.MagSize=1\nset.MaxAmmo=4\nset.ammoPerFill=1\nset.reloadCooldown=6\nset.Accuracy=97\nset.engagementDistance=5000\n"
-  "proj.mul.BaseDamage=6\nproj.mul.SplashDamageBase=4\nproj.mul.SplashDamageRange=1.8\nproj.mul.MuzzleVelocity=1.5\nproj.mul.MuzzleVelocityRealistic=1.3\nproj.mul.projectileWidth=1.6\n";
+  "proj.mul.BaseDamage=6\nproj.mul.SplashDamageBase=4\nproj.mul.SplashDamageRange=1.8\nproj.mul.MuzzleVelocity=1.5\nproj.mul.MuzzleVelocityRealistic=1.3\nproj.mul.projectileWidth=1.6\n\n"
+  // Torpedoes: copies of a stock TorpedoTier like the found torpedoes (no models); base= is the stock choice as
+  // 'torpedo slot ... offers' in weaponmod.log names it. Stock (Dump/Torpedoes): Mk 14 25000 damage over 50 m, 8000 m,
+  // 14 m fuse, spotted x1, 2000 RP; Mk 15 35000 over 65 m, 10000 m, thrust 150, 71.1 m/s, spotted x1.5, 3500 RP; Mk 24
+  // 6000 over 49 m, 2500 m, thrust 200, 84.6 m/s, homing, spotted x0.1, 2000 RP. price= is per torpedo: TorpTypeFor
+  // writes the price after the edits, so a set.price would be overwritten.
+  "[item]\nname=21-inch Mk VIII\nfamily=New Standard Torpedo Slot\nbase=Mk 14 Torpedo x1\nprice=2500\n"
+  "description=British 21-inch Mk VIII, the Royal Navy's standard torpedo in submarines and MTBs, with a Torpex warhead. It hits as hard as a Mk 15 with a wider blast than the Mk 14, but it runs less far, goes off only close to a hull instead of the Mk 14's wide fuse, and its wake is easy to spot, so ships turn away more often.\n"
+  "mul.damage=1.4\nmul.damageRange=1.3\nset.armingTime=0\nset.hitboxRadius=5\nset.despawnDistance=5000\nset.detectionByEntityChanceMultiplier=1.5\n\n"
+  "[item]\nname=Mk 14 Magnetic\nfamily=New Standard Torpedo Slot\nbase=Mk 14 Torpedo x1\nprice=2000\n"
+  "description=The US Mk 14 with its Mk 6 magnetic exploder, the cause of the US submarine force's torpedo scandal of 1942-43. A quarter harder hitting than the Mk 14 for the same price, and its fuse goes off far from the hull, even beside a stopped or crippled ship, but about three in ten are duds that run on and never go off.\n"
+  "set.hitboxRadius=24\nmul.damage=1.25\nfx.set.dud=0.3\n\n"
+  // PT tubes and the sub chaser's side launchers, each on its own stock base (SplitFamilies pairs family and base)
+  "[item]\nname=45 cm Whitehead\nfamily=New Standard Torpedo Slot,Sub Chaser Side Slot\nbase=Mk 24 Torpedo x1,Mk 24 Torpedo x2\nprice=500\n"
+  "description=Italian 45 cm Whitehead torpedoes, as the Regia Marina's MAS motor torpedo boats carried. Far cheaper than the Mk 24, with twice the warhead and a longer run, but they run straight with no homing, slower, with a smaller blast, and ships spot them far more often.\n"
+  "set.radarGuided=0\nset.damage=12000\nset.damageRange=40\nset.terminalVelocity=68\nset.thrust=160\nset.despawnDistance=4000\nset.idleDepth=3\nset.detectionDistance=7\nset.detectionByEntityChanceMultiplier=0.6\nfx.set.torpScale=0.8\n\n"
+  "[item]\nname=Type 93 Long Lance\nfamily=New Standard Torpedo Slot,Rear Torpedo Slot\nbase=Mk 14 Torpedo x1,Mk 15 Torpedo x1\nprice=9000\n"
+  "description=Japanese Type 93 'Long Lance', the IJN destroyers' and cruisers' oxygen-driven 61 cm torpedo. A bigger warhead and blast than the Mk 15, the longest run of any torpedo and almost no wake to spot, but it runs slower than the Mk 14 or Mk 15 and is very expensive.\n"
+  // top speed goes with the square root of thrust against the prefab's drag (terminalVelocity is only the radar's lead):
+  // x0.8 thrust gives about 63 m/s on either body, against 70-71 stock; slower is its cost (arming only shrinks the fuse here)
+  "set.damage=40000\nset.damageRange=75\nset.despawnDistance=14000\nmul.thrust=0.8\nset.hitboxRadius=5\nset.detectionByEntityChanceMultiplier=0.3\nfx.set.torpScale=1.3\n\n"
+  // two small Whiteheads per PT tube (the tubes also offer the Mk 24 as a pair); a name of its own, as one family holds a name once
+  "[item]\nname=45 cm Whitehead x2\nfamily=New Standard Torpedo Slot\nbase=Mk 24 Torpedo x2\nprice=500\n"
+  "description=Two Italian 45 cm Whitehead torpedoes to each tube, small enough to pack in pairs. Far cheaper than the Mk 24, with twice the warhead and a longer run, but they run straight with no homing, slower, with a smaller blast, and ships spot them far more often.\n"
+  "set.radarGuided=0\nset.damage=12000\nset.damageRange=40\nset.terminalVelocity=68\nset.thrust=160\nset.despawnDistance=4000\nset.idleDepth=3\nset.detectionDistance=7\nset.detectionByEntityChanceMultiplier=0.6\nfx.set.torpScale=0.8\n";
 // ---- utility gear for the depth charge launchers ----------------------------------------------------------------------
 // Smoke pots and life rafts, always in the depth charge slots' lists like stock gear. Each is a copy of a stock depth
 // charge tier (so it rolls off the side or the stern rack the same way); when it lands on the water the mod takes the
@@ -632,7 +656,8 @@ static double g_smokeSeconds = 150;                                   // drops.i
 static double g_raftSpeed = 8;                                      // drops.ini raft_speed: metres a second on the water
 static bool g_sideGrades = true;                                    // drops.ini side_grades: 0 hides them (positions kept)
 static bool IsTurretGun(const Item& it) { return it.builtIn && it.family == "Tub Turret"; }   // else a side-grade or utility gear
-static bool IsUtilityGear(const Item& it) { return it.builtIn && it.family.find("Slot") != std::string::npos; }   // torpedo families end in "Slot"
+// a smoke pot, life raft or Dave; the torpedo side-grades in kSideGrades sit in the same "...Slot" families but are side-grades
+static bool IsUtilityGear(const Item& it) { return it.builtIn && (ItemFx(it, "smoke") > 0 || ItemFx(it, "raft") > 0 || ItemFx(it, "dave") > 0); }
 
 // One Item per slot family: a built-in with family=A,B becomes a copy in A and one in B, under the same name. Only
 // FindItemIn tells them apart; every other lookup by name may take either, as the copies match in all but the family

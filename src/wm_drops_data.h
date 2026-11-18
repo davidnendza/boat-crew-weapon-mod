@@ -189,6 +189,14 @@ static const char* kDefaultDrops =
   "[template]\nlabel=Mk 15 Torpedo\nfamily=Rear Torpedo Slot\nbase=Mk 15 Torpedo x1\nweight=0.6\n\n"
   "[template]\nlabel=Mk 24 Torpedo\nfamily=Rear Torpedo Slot\nbase=Mk 24 Torpedo x1\nweight=0.6\n\n"
   "[template]\nlabel=Mk 24 Torpedo Pair\nfamily=Sub Chaser Side Slot\nbase=Mk 24 Torpedo x2\nweight=0.6\n\n"
+  // the torpedo side-grades (kSideGrades), as the gun side-grades: one template per slot family, weight 0.3
+  "[template]\nlabel=Mk VIII\nfamily=New Standard Torpedo Slot\nbase=Mk 14 Torpedo x1\nbuilt_from=21-inch Mk VIII\nweight=0.3\n\n"
+  "[template]\nlabel=Mk 14 Magnetic\nfamily=New Standard Torpedo Slot\nbase=Mk 14 Torpedo x1\nbuilt_from=Mk 14 Magnetic\nweight=0.3\n\n"
+  "[template]\nlabel=Whitehead\nfamily=New Standard Torpedo Slot\nbase=Mk 24 Torpedo x1\nbuilt_from=45 cm Whitehead\nweight=0.3\n\n"
+  "[template]\nlabel=Whitehead\nfamily=Sub Chaser Side Slot\nbase=Mk 24 Torpedo x2\nbuilt_from=45 cm Whitehead\nweight=0.3\n\n"
+  "[template]\nlabel=Whitehead x2\nfamily=New Standard Torpedo Slot\nbase=Mk 24 Torpedo x2\nbuilt_from=45 cm Whitehead x2\nweight=0.3\n\n"
+  "[template]\nlabel=Long Lance\nfamily=New Standard Torpedo Slot\nbase=Mk 14 Torpedo x1\nbuilt_from=Type 93 Long Lance\nweight=0.3\n\n"
+  "[template]\nlabel=Long Lance\nfamily=Rear Torpedo Slot\nbase=Mk 15 Torpedo x1\nbuilt_from=Type 93 Long Lance\nweight=0.3\n\n"
   "[affix]\nname=Rapid\nkind=good\n# rocket launchers have no fire rate\nnot_families=Rockets\nroll=1.25-1.75\ntext={pct}% fire rate\nmul.roundsPerMinute=$r\nmul.shotCooldown=1/$r\n\n"
   "[affix]\nname=Heavy\nkind=good\nroll=1.3-2.0\ntext={pct}% damage\nproj.mul.BaseDamage=$r\nproj.mul.SplashDamageBase=$r\n\n"
   "[affix]\nname=Blast\nkind=good\nposition=suffix\ntitle=of Ruin\nroll=1.5-2.5\ntext={pct}% blast radius\nproj.mul.SplashDamageRange=$r\n\n"
@@ -295,7 +303,7 @@ static const char* kDefaultDrops =
   "[unique]\nname=Gemelli\nbuilt_from=Breda 37/54 Twin\nuses=8\nline=hits mark a ship for 10 s: all your guns do +50% damage to it\nline=+50% fire rate\nline=+50% damage\nflavor=One points. The other one agrees.\nfx.set.mark=0.5\nfx.set.markTime=10\nmul.roundsPerMinute=1.5\nmul.shotCooldown=0.667\nproj.mul.BaseDamage=1.5\nproj.mul.SplashDamageBase=1.5\n\n"
   "[unique]\nname=Grey Wolves\nbuilt_from=10.5 cm SK C/32\nuses=8\nline=+150% damage to Rare and Elite ships\nline=+60% damage\nline=ship kills pay +300 RP\nflavor=Every hull a number in the logbook.\nfx.set.giantSlayer=2.5\nproj.mul.BaseDamage=1.6\nproj.mul.SplashDamageBase=1.6\nfx.set.killRP=300\n\n"
   // gunScale 2.5 scales the whole mount copy, seats included; kick is a velocity change on your boat per shot (GfxKick)
-  "[unique]\nname=Longer Tom\nbuilt_from=155 mm M1 Long Tom\nmodel=longer_tom\nmodel_keep=Stand,US_3in_base,Bofors Hand Crank\nuses=8\nline=a much, much bigger gun\nline=+100% damage, +60% blast radius\nline=every shot shoves your boat back hard\nline=WARNING: NOT FOR BOATING USE\nflavor=Someone measured the deck afterwards.\nfx.set.gunScale=2.5\nfx.set.kick=30\nproj.mul.BaseDamage=2\nproj.mul.SplashDamageBase=2\nproj.mul.SplashDamageRange=1.6\n\n"
+  "[unique]\nname=Longer Tom\nbuilt_from=155 mm M1 Long Tom\nmodel=longer_tom\nmodel_keep=Stand,US_3in_base,Bofors Hand Crank\nuses=8\nline=a much, much bigger gun\nline=+100% damage, +60% blast radius\nline=every shot shoves your boat back hard\nline=WARNING: NOT FOR BOATING USE\nflavor=Someone measured the deck afterwards.\nfx.set.gunScale=2.5\nfx.set.kick=5\nproj.mul.BaseDamage=2\nproj.mul.SplashDamageBase=2\nproj.mul.SplashDamageRange=1.6\n\n"
   "[unique]\nname=Acht-Acht\nbuilt_from=8.8 cm Flak 36\nuses=8\nline=+120% damage on hits beyond 1000 m\nline=+60% shell speed\nline=+100% magazine\nline=reloads twice as fast\nflavor=Pointed at the sky. Aimed at whatever comes.\nfx.set.longBonus=2.2\nfx.set.longDist=1000\nproj.mul.MuzzleVelocity=1.6\nproj.mul.MuzzleVelocityRealistic=1.6\nmul.MagSize=2\nmul.MaxAmmo=2\nmul.reloadCooldown=0.5\n\n"
   "[unique]\nname=Minengeschoss\nbuilt_from=MG 151/20 Drilling\nuses=8\nline=+200% blast radius\nline=+50% damage\nline=reloads 3x as fast\nflavor=Thin walls, big bang.\nproj.mul.SplashDamageRange=3\nproj.mul.BaseDamage=1.5\nproj.mul.SplashDamageBase=1.5\nmul.reloadCooldown=0.333\n\n"
   "[unique]\nname=Bersagliere\nbuilt_from=Breda 20/65 Mod. 40\nuses=8\nline=+10% damage per kill by its gunner (up to 10 kills), lost if that gunner dies\nline=+50% fire rate\nline=reloads twice as fast\nflavor=Feathers in the cap, one for every kill.\nfx.set.vetPerKill=0.1\nfx.set.vetCap=10\nmul.roundsPerMinute=1.5\nmul.shotCooldown=0.667\nmul.reloadCooldown=0.5\n\n"

@@ -362,7 +362,7 @@ static void CoopGunsIn(int origin, const std::string& body, const std::string& r
       if (!std::isfinite(o.value)) { it.ops.erase(it.ops.begin() + k); continue; }
       auto lim = [&](const char* f, double lo, double hi) { if (o.field == f) o.value = o.value < lo ? lo : (o.value > hi ? hi : o.value); };
       if (o.fx) { lim("gunScale", 0.3, 3); lim("chain", 0, 8); lim("chainChance", 0, 0.95); lim("chainDecay", 0, 0.95); lim("seek", 0, 360); lim("paint", 0, kPaintN - 1);
-                  lim("torpSeek", 0, 360); lim("chomp", 0, 2); lim("leap", 0, 30); lim("skim", 0, 1); lim("crawl", 0, 1); lim("priceCut", 0, 1); lim("smoke", 0, 1); lim("raft", 0, 1);
+                  lim("torpSeek", 0, 360); lim("chomp", 0, 2); lim("leap", 0, 30); lim("skim", 0, 1); lim("crawl", 0, 1); lim("priceCut", 0, 1); lim("smoke", 0, 1); lim("raft", 0, 1); lim("dud", 0, 1); lim("torpScale", 0.5, 2);
                   lim("crewOffsetX", -3, 3); lim("crewOffsetY", -3, 3); lim("crewOffsetZ", -3, 3);
                   lim("pivotOffsetX", -3, 3); lim("pivotOffsetY", -3, 3); lim("pivotOffsetZ", -3, 3); }
       else if (o.mul) { lim("FrameLifeTime", 0.05, 10); lim("projectileWidth", 0.05, 6); lim("projectileLength", 0.05, 6); lim("roundsPerMinute", 0.01, 10);
@@ -588,11 +588,13 @@ static void EnsureRemoteTorps() {
       const Item* use = def;
       auto bb = def ? byBase.find(def->base) : byBase.end();
       void* src = bb != byBase.end() ? bb->second : nullptr;
-      // a split utility item has a copy per family, each on its own base (SplitFamilies), and they describe one copy per
-      // name (MyGunsText): this machine's own copy for this family gives the base
-      if (!src && def && def->builtIn) {
+      // a built-in is built from this machine's own copy for this family (every player runs the same version). Two reasons:
+      // their text describes one copy per name, whose base may be another family's (SplitFamilies), and CoopGunsIn's bounds
+      // check drops the set. edits a torpedo side-grade is made of. retired is cleared so it shows even if side_grades=0 hid it.
+      Item own;
+      if (def && def->builtIn) {
         const Item* loc = FindItemIn(name, family);
-        if (loc && loc->builtIn && (bb = byBase.find(loc->base)) != byBase.end()) { src = bb->second; use = loc; }
+        if (loc && loc->builtIn && (bb = byBase.find(loc->base)) != byBase.end()) { src = bb->second; own = *loc; own.retired = false; use = &own; }
       }
       if (!src) {
         static std::set<std::string> told;

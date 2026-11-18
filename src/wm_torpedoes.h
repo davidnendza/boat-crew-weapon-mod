@@ -132,7 +132,8 @@ static void ClearRemoteLaunchers() { for (auto& e : g_remoteLaunchers) Unpin(e.s
 static std::set<std::string> g_remoteTorpFailed;                     // "<owner>|<launcher>|<position>|<name>|<stamp>" (or "...|pad"):
                                                                      // a build that failed, not tried again this battle
 static void ClearRemoteTorps() { ClearRemoteLaunchers(); for (auto& e : g_remoteTiers) Unpin(e.second.h); g_remoteTiers.clear(); g_remoteTorpFailed.clear(); }
-static void* TorpTypeFor(const Item& it, void* stock, int owner = -1, unsigned long long stamp = 0) {
+static void* TorpTypeFor(const Item& found, void* stock, int owner = -1, unsigned long long stamp = 0) {
+  Item buf; const Item& it = ExpandBuiltFrom(found, &buf);           // a found torpedo built_from a torpedo side-grade starts as that one
   std::string key = (it.retired ? std::string(kHiddenTag) : std::string()) + it.name + "|";
   if (owner >= 0) key = "R" + std::to_string(owner) + "|" + key + std::to_string(stamp) + "|";
   key += NameOf(stock);
@@ -178,7 +179,7 @@ static void* TorpTypeFor(const Item& it, void* stock, int owner = -1, unsigned l
   int stockPrice = *(int*)((char*)stock + g_tp.yPrice), price = stockPrice;
   double cut = ItemFx(it, "priceCut");
   if (it.retired) price = 0;
-  else if (it.fromInventory) price = (int)std::lround(stockPrice * g_priceScale * (cut > 0 && cut < 1 ? 1 - cut : 1));
+  else if (it.fromInventory) price = (int)std::lround((!it.builtFrom.empty() && it.price > 0 ? it.price : stockPrice) * g_priceScale * (cut > 0 && cut < 1 ? 1 - cut : 1));
   else if (it.price >= 0) price = it.price;
   *(int*)((char*)c.type + g_tp.yPrice) = price;
   if (!it.retired && (!it.description.empty() || it.uses > 0)) {
@@ -400,12 +401,14 @@ struct TorpRun {                                                       // one la
   // depth, the depth now and the deepest
   float aimY = 0, aimD = 1e9f, baseDepth = 0, depth = 0, maxDepth = 0; void* itemType = nullptr; bool dived = false, diveFailed = false;
   int util = 0;                                                       // utility gear: 1 smoke pot, 2 life raft, 3 Dave (UtilLanded)
+  bool dud = false;                                                   // fx dud rolled on this launch: it never goes off (TorpDudRoll)
 };
 static std::unordered_map<void*, TorpRun> g_torpRuns;                 // Torpedo -> its latest launch
-struct TorpStat { int launched = 0, exploded = 0, locks = 0, leaps = 0, skips = 0, dives = 0; float topSpeed = 0; };
+struct TorpStat { int launched = 0, exploded = 0, locks = 0, leaps = 0, skips = 0, dives = 0, duds = 0; float topSpeed = 0; };
 static std::map<std::string, TorpStat> g_torpStats;                  // this battle, by found torpedo
 static std::set<std::pair<std::string, void*>> g_torpPaid;           // (torpedo, slot) pairs that spent a mission this battle
 static int g_torpLogs = 0, g_torpCoopMiss = 0;                       // g_torpCoopMiss: launches from other players' launchers that were not theirs
+static int g_torpDudLogs = 0;                                         // dud lines this battle: the first few in full, the rest debug only
 static float TorpTime() { void* r = Invoke(g_tp.timeNow, nullptr); return r ? *(float*)((char*)r + 0x10) : 0; }
 static void TorpSpendUse(const std::string& name, void* launcher) {
   if (g_usesBase <= 0) return;
@@ -444,6 +447,38 @@ static int UtilKind(const Item& it, void* launcher) {
   std::string n = launcher ? Trim(NameOf(launcher)) : "";
   bool right = n.size() >= 5 && _stricmp(n.c_str() + n.size() - 5, "Right") == 0;
   return right || (!n.empty() && n.back() == 'R') ? 1 : 2;
+}
+// fx dud (0..1, the Mk 14 Magnetic), rolled once per launch. A dud runs on a copy of its type with detectionDistance 0:
+// Torpedo.FixedUpdate casts for a hit only while that is above 0, so it runs under the ship and on to the end of its
+// range without going off. A damage-0 copy would still explode, splash and all, as a hit that does nothing.
+static std::unordered_map<void*, std::pair<void*, void*>> g_torpDudTypes;   // a found torpedo's type -> its dud copy, GC handle
+static bool g_torpDudOff = false;                                     // copying or editing a type failed once: no more duds
+static void* TorpDudType(void* type) {
+  auto& e = g_torpDudTypes[type];
+  auto src = g_torpOfType.find(type), dud = e.first ? g_torpOfType.find(e.first) : g_torpOfType.end();
+  bool same = src == g_torpOfType.end() || (dud != g_torpOfType.end() && dud->second == src->second);   // a reused address is another torpedo
+  if (Alive(e.first) && same) return e.first;
+  if (e.first) { g_torpOfType.erase(e.first); Unpin(e.second); e = {}; }
+  void* d = CloneObject(type);
+  Op off; off.field = "detectionDistance"; off.mul = false; off.value = 0;
+  if (!d || !ApplyOp(d, off)) { g_torpDudOff = true; Log("torpedo duds: MISSING PIECES (TorpedoType copy %p or its detectionDistance); no torpedo is ever a dud", d); return nullptr; }
+  if (g_tp.hideFlags) { int keep = 32; void* a[1] = { &keep }; Invoke(g_tp.hideFlags, d, a); }   // DontUnloadUnusedAsset
+  e = { d, Pin(d) };
+  auto c = g_torpOfType.find(type); if (c != g_torpOfType.end()) g_torpOfType[d] = c->second;   // still that found torpedo, same stock type
+  return d;
+}
+static void TorpSize(void* t, float scale, const std::string& item);  // wm_torp_looks.h: fx torpScale, the model's size
+static void TorpDudRoll(void* t, TorpRun& r, const Item& it, int owner) {
+  if (g_torpDudOff || !r.itemType || owner >= 0) return;              // another player's torpedo: their machine rolls it
+  Item buf; const Item& x = ExpandBuiltFrom(it, &buf);                 // a found Mk 14 Magnetic's chance is on its side-grade
+  double chance = ItemFx(x, "dud");
+  if (chance <= 0 || Rand01() >= chance) return;
+  void* d = TorpDudType(r.itemType); if (!d) return;
+  SetRef(t, (char*)t + g_tp.pType, d);                                 // before the game's first FixedUpdate of the launch
+  r.itemType = d; r.dud = true;                                       // TorpDepth dives and surfaces it on the dud copy
+  int n = ++g_torpStats[r.item].duds;
+  if (g_torpDudLogs++ < 5) Log("torpedoes: '%s' is a dud (%.0f%% chance, %d this battle): it will not go off", r.item.c_str(), chance * 100, n);
+  else DLog("torpedoes: '%s' is a dud (%.0f%% chance, %d this battle)", r.item.c_str(), chance * 100, n);
 }
 // Before the game's FixedUpdate: a new launch (a new projectileCode) gets its tier's type.
 static void TorpBegin(void* t) {
@@ -489,7 +524,7 @@ static void TorpBegin(void* t) {
       Log("co-op torpedoes: player %d's launcher %d fired '%s' (position %d) here, not one of their found torpedoes", rl->second.owner, rl->second.index,
           TierName(tier).c_str(), *(int*)((char*)launcher + g_tp.lSelIndex));
   }
-  if (!it) return;                                                     // a stock torpedo, or a hidden placeholder's
+  if (!it) { TorpSize(t, 1.0f, ""); return; }                          // a stock torpedo, or a hidden placeholder's: stock size
   r.itemType = *(void**)((char*)t + g_tp.pType);
   if (r.itemType && g_tp.yIdle >= 0) r.baseDepth = r.depth = *(float*)((char*)r.itemType + g_tp.yIdle);
   // a type that cannot be spotted (Sneaking Eel): the game may have rolled a spot on the pooled torpedo's old type between
@@ -514,6 +549,8 @@ static void TorpBegin(void* t) {
   if (r.util) r.look = UtilLook(r.util);                               // a split load: this side's pot or raft
   { float dd = (float)NumField(*(void**)((char*)t + g_tp.pType), "despawnDistance"); r.range = dd > 0 ? dd + 60 : 0; }   // the game repools it silently past this much path
   g_torpStats[r.item].launched++;
+  TorpDudRoll(t, r, *it, owner);
+  { Item buf; const Item& x = owner >= 0 ? *it : ExpandBuiltFrom(*it, &buf); float s = (float)ItemFx(x, "torpScale"); TorpSize(t, s > 0 ? s : 1.0f, r.item); }
   if (r.player && launcher && EngagementInstance()) TorpSpendUse(r.item, launcher);
   if (g_torpLogs++ < 10) {
     std::string how = r.seek > 0 ? "homing " + std::to_string((int)std::lround(r.seek)) + " deg/s" : "no homing";
@@ -521,6 +558,7 @@ static void TorpBegin(void* t) {
     if (r.look == 3) how += ", commando look, never spotted";
     if (r.leap > 0) how += ", leaps about every " + std::to_string((int)std::lround(r.leap)) + " s";
     if (r.skim > 0) how += r.look == 4 ? ", skims the surface as a flying fish" : ", skims the surface";
+    if (r.dud) how += ", a dud";
     if (r.owner >= 0) Log("torpedoes: '%s' launched from player %d's boat (a copy here; their machine deals the damage) (%s)", r.item.c_str(), r.owner, how.c_str());
     else Log("torpedoes: '%s' launched from %s (%s)", r.item.c_str(), r.player ? "your boat" : "another boat", how.c_str());
   }
@@ -534,6 +572,7 @@ static void TorpRunReport(TorpRun& r) {
   const char* how = r.exploded ? "went off" : (r.range > 0 && r.path > r.range - 80 ? "ran out of range" : "was gone without going off");
   std::string lp = r.leap > 0 ? ", leapt " + std::to_string(r.leaps) + " time(s)" : r.skim > 0 ? ", skipped " + std::to_string(r.skips) + " time(s)" : "";
   if (r.dived) lp += ", dived to " + std::to_string((int)std::lround(r.maxDepth)) + " m";
+  if (r.dud) lp += ", a dud";
   if (r.targetName.empty()) Log("torpedoes: '%s' %s after %.1f s, %.0f m of path (range %.0f m)%s%s", r.item.c_str(), how, secs, r.path, r.range, r.seek > 0 ? "; it never found a ship" : "", lp.c_str());
   else Log("torpedoes: '%s' %s after %.1f s, %.0f m of path (range %.0f m); closest to '%s' %.0f m, turned %.0f deg%s%s", r.item.c_str(), how, secs, r.path, r.range,
            r.targetName.c_str(), r.closest, r.turned * 57.2958f, r.gaveUp ? ", had stopped homing (circling)" : "", lp.c_str());
