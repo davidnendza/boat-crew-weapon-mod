@@ -10,7 +10,9 @@
 // turns select(0) into the scheme. Schemes are only ever appended, in kCamoSchemes order. Co-op still sends the live
 // index (untested): a partner without the mod has no clamp for an index past the stock five.
 #include "wm_hull_camo_data.h"
-static void KillMarksAttach(void* slot);                             // wm_kill_marks.h, included at the end of this file
+static void KillMarksAttach(void* slot);
+static int FaultFilter(const char* job, EXCEPTION_POINTERS* ep);
+static const char* g_kmStep = "";                                    // the kill-marks step a fault happened in                             // wm_kill_marks.h, included at the end of this file
 
 static struct {
   bool ready = false;
@@ -448,7 +450,7 @@ static void Hooked_PatternSelect(void* self, int i, void* method) {
   static int kmFaults = 0;                                             // kill markings hang off every camo pick, stock ones too
   if (g_cm.block && kmFaults < 5) {
     __try { KillMarksAttach(self); }
-    __except (EXCEPTION_EXECUTE_HANDLER) { if (++kmFaults == 5) Log("kill marks: faults while hanging the marks; boats may show none"); }
+    __except (FaultFilter(g_kmStep, GetExceptionInformation())) { if (++kmFaults == 5) Log("kill marks: faults while hanging the marks; boats may show none"); }
   }
 }
 static void Hooked_CamoGroupEnable(void* self, void* method) {

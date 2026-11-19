@@ -130,6 +130,7 @@ static void KmBuild(KmLive& m) {                                       // the me
       shown[r]++;
     }
   }
+  const char* step = g_kmStep; g_kmStep = "kill marks: mesh arrays";
   Invoke(g_km.clear, m.mesh);
   void* va = KmNewArray(g_km.v3, (int)v.size() / 3); void* ua = KmNewArray(g_km.v2, (int)uv.size() / 2); void* ta = KmNewArray(g_km.i32, (int)tri.size());
   if (!va || !ua || !ta) return;
@@ -138,21 +139,27 @@ static void KmBuild(KmLive& m) {                                       // the me
   a[0] = ua; Invoke(g_km.setUv, m.mesh, a);
   a[0] = ta; Invoke(g_km.setTris, m.mesh, a);
   Invoke(g_km.normals, m.mesh); Invoke(g_km.bounds, m.mesh);
+  g_kmStep = step;
   DLog("kill marks: %s shows %d plane, %d ship and %d shore marks", kb.boat, shown[0], shown[1], shown[2]);
 }
 
 // Called after every camo pick (wm_hull_camo.h): the marks mesh under the boat's hull node, made once per boat object.
 static void KillMarksAttach(void* slot) {
+  g_kmStep = "kill marks: setup";
   if (!KmApi()) return;
+  g_kmStep = "kill marks: prune";
   for (auto it = g_kmLive.begin(); it != g_kmLive.end();) {            // boats gone with their scene
     if (Alive(it->slot) && Alive(it->go)) { ++it; continue; }
     for (void* p : it->pins) Unpin(p);
     it = g_kmLive.erase(it);
   }
+  g_kmStep = "kill marks: material";
   if (!KmMaterial()) return;
+  g_kmStep = "kill marks: rebuild";
   for (KmLive& m : g_kmLive) if (m.slot == slot) { KmBuild(m); return; }
   static std::set<void*> failed;                                       // compared only, never followed
   if (failed.count(slot)) return;
+  g_kmStep = "kill marks: boat";
   int boat = KmBoatIndex(slot);
   if (boat < 0) return;
   void* craft = EngagementInstance() ? PlayerCraft() : nullptr;        // in battle only the player's own boat (not call-ins)
@@ -173,14 +180,17 @@ static void KillMarksAttach(void* slot) {
     if (n == want) node = Invoke(m_getTransform, r);
     else if (seen.size() < 300) seen += (seen.empty() ? "" : ", ") + n;
   };
+  g_kmStep = "kill marks: renderers list";
   void* list = *(void**)((char*)slot + g_cm.offRenderers);
   for (int k = 0; k < ListCount(list) && k < 64; k++) look(ListAt(list, k));
+  g_kmStep = "kill marks: holder";
   void* holder = *(void**)((char*)slot + g_cm.offHolder);
   void* hgo = Alive(holder) ? Invoke(m_getGameObject, holder) : nullptr;
   void* arr = hgo ? Invoke(g_cm.inChildren, hgo, a6) : nullptr;
   for (int k = 0; k < ArrLen(arr) && k < 512; k++) look(ArrAt(arr, k));
   // Neither held it (the first build found nothing in both): search up from the slot, nearest parent first, so the hull
   // found is this boat's own; in battle never above the player's craft.
+  g_kmStep = "kill marks: parent search";
   void* ctr = craft ? Invoke(m_getTransform, craft) : nullptr;
   void* up = Invoke(m_getTransform, slot);
   for (int lvl = 0; up && !node && lvl < 8; lvl++) {
@@ -196,13 +206,16 @@ static void KillMarksAttach(void* slot) {
     Log("kill marks: no '%s' near the %s's camo slot '%s'; no marks on it (saw: %s)", want.c_str(), kKillBoats[boat].boat, NameOf(slot).c_str(), seen.c_str());
     return;
   }
+  g_kmStep = "kill marks: same hull";
   for (KmLive& m : g_kmLive)                                           // a second slot on the same hull
     if (Alive(m.go) && Invoke(m_getParent, Invoke(m_getTransform, m.go)) == node) { KmBuild(m); return; }
+  g_kmStep = "kill marks: new object";
   void* go = il2cpp_object_new(g_km.goCls);
   void* na[1] = { il2cpp_string_new("WM kill marks") }; Invoke(g_km.goCtor, go, na);
   void* tr = Invoke(m_getTransform, go);
   if (g_setParentTwoArgs) { bool keep = false; void* pa[2] = { node, &keep }; Invoke(m_setParent, tr, pa); }
   else { void* pa[1] = { node }; Invoke(m_setParent, tr, pa); }        // a fresh object sits at the origin: local = world
+  g_kmStep = "kill marks: components";
   void* ca[1] = { g_km.mfType }; void* mf = Invoke(g_km.addComp, go, ca);
   ca[0] = g_km.mrType; void* mr = Invoke(g_km.addComp, go, ca);
   void* mesh = il2cpp_object_new(g_km.meshCls); Invoke(g_km.meshCtor, mesh);
@@ -211,9 +224,11 @@ static void KillMarksAttach(void* slot) {
     if (g_km.destroy) { void* da[1] = { go }; Invoke(g_km.destroy, nullptr, da); }
     Log("kill marks: could not build the marks object for the %s", kKillBoats[boat].boat); return;
   }
+  g_kmStep = "kill marks: mesh + material";
   void* ma[1] = { mesh }; Invoke(g_km.setMesh, mf, ma);
   ma[0] = g_km.mat; Invoke(g_km.setMat, mr, ma);
   if (g_km.setShadows) { int off = 0; void* sa[1] = { &off }; Invoke(g_km.setShadows, mr, sa); }
+  g_kmStep = "kill marks: first build";
   KmLive m{ slot, go, mesh, boat, { Pin(slot), Pin(go), Pin(mesh) } };
   KmBuild(m);
   g_kmLive.push_back(m);
