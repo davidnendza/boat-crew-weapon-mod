@@ -10,7 +10,7 @@
 static const char* const kKillRowName[3] = { "planes", "ships", "shore targets" };
 static struct {
   bool tried = false, on = false;
-  void *goCls = nullptr, *goCtor = nullptr, *addComp = nullptr, *mfType = nullptr, *mrType = nullptr, *slotType = nullptr;
+  void *goCls = nullptr, *goCtor = nullptr, *goTr = nullptr, *addComp = nullptr, *mfType = nullptr, *mrType = nullptr, *slotType = nullptr;
   void *meshCls = nullptr, *meshCtor = nullptr, *clear = nullptr, *setVerts = nullptr, *setUv = nullptr, *setTris = nullptr;
   void *normals = nullptr, *bounds = nullptr, *setMesh = nullptr, *setMat = nullptr, *setShadows = nullptr;
   void *v3 = nullptr, *v2 = nullptr, *i32 = nullptr, *mat = nullptr, *matPin = nullptr, *tex = nullptr, *destroy = nullptr;
@@ -76,6 +76,7 @@ static bool KmApi() {
   g_km.goCls = FindClass("UnityEngine", "GameObject");
   g_km.goCtor = g_km.goCls ? FindMethod(g_km.goCls, ".ctor", 1, "System.String") : nullptr;
   g_km.addComp = g_km.goCls ? FindMethod(g_km.goCls, "AddComponent", 1, "System.Type") : nullptr;
+  g_km.goTr = g_km.goCls ? FindMethod(g_km.goCls, "get_transform", 0) : nullptr;   // m_getTransform is Component's: never on a GameObject
   g_km.mfType = type(mf); g_km.mrType = type(mr); g_km.slotType = type(FindClass("Core.Customization", "CustomPatternSlot"));
   g_km.meshCls = FindClass("UnityEngine", "Mesh");
   g_km.meshCtor = g_km.meshCls ? FindMethod(g_km.meshCls, ".ctor", 0) : nullptr;
@@ -91,7 +92,7 @@ static bool KmApi() {
   { void* uo = FindClass("UnityEngine", "Object"); g_km.destroy = uo ? FindMethod(uo, "Destroy", 1) : nullptr; }
   g_km.v3 = FindClass("UnityEngine", "Vector3"); g_km.v2 = FindClass("UnityEngine", "Vector2"); g_km.i32 = FindClass("System", "Int32");
   g_km.arrayNew = (void* (*)(void*, size_t))GetProcAddress(g_ga, "il2cpp_array_new");
-  bool ok = g_km.goCtor && g_km.addComp && g_km.mfType && g_km.mrType && g_km.slotType && g_km.meshCtor && g_km.clear && g_km.setVerts && g_km.setUv &&
+  bool ok = g_km.goCtor && g_km.goTr && g_km.addComp && g_km.mfType && g_km.mrType && g_km.slotType && g_km.meshCtor && g_km.clear && g_km.setVerts && g_km.setUv &&
             g_km.setTris && g_km.normals && g_km.bounds && g_km.setMesh && g_km.setMat && g_km.v3 && g_km.v2 && g_km.i32 && g_km.arrayNew && m_setParent && g_cm.inChildren;
   if (!ok) { Log("kill marks: a Unity lookup failed (GameObject %p/%p, Mesh %p/%p/%p/%p, MeshFilter %p, set_sharedMaterial %p); kill markings are off",
                  g_km.goCtor, g_km.addComp, g_km.meshCtor, g_km.setVerts, g_km.setUv, g_km.setTris, g_km.setMesh, g_km.setMat); return false; }
@@ -208,11 +209,11 @@ static void KillMarksAttach(void* slot) {
   }
   g_kmStep = "kill marks: same hull";
   for (KmLive& m : g_kmLive)                                           // a second slot on the same hull
-    if (Alive(m.go) && Invoke(m_getParent, Invoke(m_getTransform, m.go)) == node) { KmBuild(m); return; }
+    if (Alive(m.go) && Invoke(m_getParent, Invoke(g_km.goTr, m.go)) == node) { KmBuild(m); return; }
   g_kmStep = "kill marks: new object";
   void* go = il2cpp_object_new(g_km.goCls);
   void* na[1] = { il2cpp_string_new("WM kill marks") }; Invoke(g_km.goCtor, go, na);
-  void* tr = Invoke(m_getTransform, go);
+  void* tr = Invoke(g_km.goTr, go);
   if (g_setParentTwoArgs) { bool keep = false; void* pa[2] = { node, &keep }; Invoke(m_setParent, tr, pa); }
   else { void* pa[1] = { node }; Invoke(m_setParent, tr, pa); }        // a fresh object sits at the origin: local = world
   g_kmStep = "kill marks: components";
