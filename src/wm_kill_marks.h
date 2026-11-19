@@ -239,8 +239,11 @@ static void KillMarksAttach(void* slot) {
 }
 
 // A kill the game credits to a gun (WeaponSystem / CrewMember.creditKill): the tally of the player's boat goes up.
-static void KillMarkCredit(void* mount, void* killed) {
-  if (!mount || !killed || IsRemoteMount(mount) || IsHiddenMount(mount) || !OnPlayerBoat(mount) || !KmApi()) return;
+// member: the crew member credited, for kills with no gun (the helm gets torpedo kills with no mount).
+static bool CrewIsOurs(void* member);
+static void KillMarkCredit(void* mount, void* killed, void* member) {
+  if (!killed || !KmApi()) return;
+  if (mount ? IsRemoteMount(mount) || IsHiddenMount(mount) || !OnPlayerBoat(mount) : !CrewIsOurs(member)) return;
   void* craft = PlayerCraft();
   if (killed == craft) return;
   static void* recent[32] = {}; static DWORD recentAt[32] = {}; static int at = 0;   // every gunner and the helm get credit
@@ -265,10 +268,10 @@ static void KillMarkCredit(void* mount, void* killed) {
       il2cpp_class_get_name(il2cpp_object_get_class(killed)));
   for (KmLive& m : g_kmLive) if (m.boat == boat && Alive(m.slot) && Alive(m.go)) KmBuild(m);
 }
-static void SafeKillMarkCredit(void* mount, void* killed) {
+static void SafeKillMarkCredit(void* mount, void* killed, void* member) {
   static int faults = 0;
   if (faults >= 5) return;
-  __try { KillMarkCredit(mount, killed); }
+  __try { KillMarkCredit(mount, killed, member); }
   __except (EXCEPTION_EXECUTE_HANDLER) { if (++faults == 5) Log("kill marks: faults while counting kills; kill counting is off"); }
 }
 

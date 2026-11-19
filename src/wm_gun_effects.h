@@ -112,11 +112,11 @@ static void PayRp(int amount, const char* reason) {
   ShowMessage(std::string(reason) + ": +" + std::to_string(amount) + " RP");
 }
 static void SafeGfxKill(void* mount, void* killed, void* gunner);    // gun effects: Rallying, Veteran's
-static void SafeKillMarkCredit(void* mount, void* killed);         // wm_kill_marks.h: tallies on the hull
+static void SafeKillMarkCredit(void* mount, void* killed, void* member);         // wm_kill_marks.h: tallies on the hull
 static void Hooked_CreditKill(void* self, void* killed, float factor, void* method) {
   g_creditKillOrig(self, killed, factor, method);
   if (g_ready) SafeGfxKill(*(void**)((char*)self + g_offWsSelected), killed, nullptr);
-  if (g_ready) SafeKillMarkCredit(*(void**)((char*)self + g_offWsSelected), killed);
+  if (g_ready) SafeKillMarkCredit(*(void**)((char*)self + g_offWsSelected), killed, nullptr);
   if (g_ready && g_elitesOn && g_eliteFaults >= 0) { __try { EliteKilled(killed); } __except (FaultFilter("elite kill", GetExceptionInformation())) { g_eliteFaults = -1; } }
   if (g_ready && g_unuFaults >= 0) { __try { UnusualKill(self, *(void**)((char*)self + g_offWsSelected), killed); } __except (FaultFilter("extra effects (kill)", GetExceptionInformation())) { g_unuFaults = -1; } }
   if (g_ready && g_turretFaults >= 0) { __try { TurretKill(*(void**)((char*)self + g_offWsSelected), killed); } __except (FaultFilter("turret guns (kill)", GetExceptionInformation())) { g_turretFaults = -1; } }
@@ -130,7 +130,7 @@ static void Hooked_CrewCreditKill(void* self, void* killed, float factor, void* 
   g_crewCreditKillOrig(self, killed, factor, method);                  // the game's own: gunner XP and so on
   if (g_ready) SafeCrewLogKill(self, killed);
   if (g_ready && g_offCrewGun >= 0) SafeGfxKill(*(void**)((char*)self + g_offCrewGun), killed, self);
-  if (g_ready && g_offCrewGun >= 0) SafeKillMarkCredit(*(void**)((char*)self + g_offCrewGun), killed);
+  if (g_ready) SafeKillMarkCredit(g_offCrewGun >= 0 ? *(void**)((char*)self + g_offCrewGun) : nullptr, killed, self);
   if (g_ready && g_elitesOn && g_eliteFaults >= 0) { __try { EliteKilled(killed); } __except (FaultFilter("elite kill", GetExceptionInformation())) { g_eliteFaults = -1; } }
   if (g_ready && g_unuFaults >= 0 && g_offCrewGun >= 0) {
     __try { void* mount = *(void**)((char*)self + g_offCrewGun); UnusualKill(mount ? *(void**)((char*)mount + 0x90) : nullptr, mount, killed); }
