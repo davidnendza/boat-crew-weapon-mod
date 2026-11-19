@@ -492,8 +492,10 @@ static void SafeKillCamOff() {
   g_kcState = 0; g_kcFactor = 1.0f; g_kcBaseFdt = 0; g_kcOn = false;
 }
 static void (*g_camLateOriginal)(void*, void*) = nullptr;
+static void HelmViewFrame();                                           // wm_helm_view.h
 static void Hooked_CamLateUpdate(void* self, void* method) {
   g_camLateOriginal(self, method);
+  if (g_ready) HelmViewFrame();                                        // before the kill cam, so the kill cam wins while it runs
   if (!g_ready || g_kcFaults < 0 || (!g_kcOn && !g_kcState)) return;
   if (!g_cgTried) { __try { CgInstall(); } __except (FaultFilter("kill cam crew guard", GetExceptionInformation())) { g_cgOn = false; } }
   __try { KillCamTick(); }
