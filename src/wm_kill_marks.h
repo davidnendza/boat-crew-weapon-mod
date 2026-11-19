@@ -162,15 +162,40 @@ static void KillMarksAttach(void* slot) {
     for (int up = 0; tr && up < 32 && !under; up++) { under = tr == ctr; tr = Invoke(m_getParent, tr); }
     if (!under) { failed.insert(slot); return; }
   }
-  void* holder = *(void**)((char*)slot + g_cm.offHolder);
-  void* hgo = Alive(holder) ? Invoke(m_getGameObject, holder) : nullptr;
   bool typed = true, recursive = true, inactive = true, reverse = false;
   void* a6[6] = { g_cm.rendererType, &typed, &recursive, &inactive, &reverse, nullptr };
-  void* arr = hgo ? Invoke(g_cm.inChildren, hgo, a6) : nullptr;
+  const std::string want = kKillBoats[boat].node;
   void* node = nullptr;
-  for (int k = 0; k < ArrLen(arr) && !node; k++)
-    if (void* r = ArrAt(arr, k)) if (NameOf(r) == kKillBoats[boat].node) node = Invoke(m_getTransform, r);
-  if (!node) { failed.insert(slot); Log("kill marks: no '%s' under the %s's camo holder; no marks on it", kKillBoats[boat].node, kKillBoats[boat].boat); return; }
+  std::string seen;                                                    // for the log when nothing matches
+  auto look = [&](void* r) {
+    if (node || !r || !Alive(r)) return;
+    std::string n = NameOf(r);
+    if (n == want) node = Invoke(m_getTransform, r);
+    else if (seen.size() < 300) seen += (seen.empty() ? "" : ", ") + n;
+  };
+  void* list = *(void**)((char*)slot + g_cm.offRenderers);
+  for (int k = 0; k < ListCount(list) && k < 64; k++) look(ListAt(list, k));
+  void* holder = *(void**)((char*)slot + g_cm.offHolder);
+  void* hgo = Alive(holder) ? Invoke(m_getGameObject, holder) : nullptr;
+  void* arr = hgo ? Invoke(g_cm.inChildren, hgo, a6) : nullptr;
+  for (int k = 0; k < ArrLen(arr) && k < 512; k++) look(ArrAt(arr, k));
+  // Neither held it (the first build found nothing in both): search up from the slot, nearest parent first, so the hull
+  // found is this boat's own; in battle never above the player's craft.
+  void* ctr = craft ? Invoke(m_getTransform, craft) : nullptr;
+  void* up = Invoke(m_getTransform, slot);
+  for (int lvl = 0; up && !node && lvl < 8; lvl++) {
+    up = Invoke(m_getParent, up);
+    void* ug = up ? Invoke(m_getGameObject, up) : nullptr;
+    void* ua = ug ? Invoke(g_cm.inChildren, ug, a6) : nullptr;
+    for (int k = 0; k < ArrLen(ua) && k < 512 && !node; k++) if (void* r = ArrAt(ua, k)) if (Alive(r) && NameOf(r) == want) node = Invoke(m_getTransform, r);
+    if (node) DLog("kill marks: found '%s' %d level(s) above the camo slot ('%s')", want.c_str(), lvl + 1, NameOf(ug).c_str());
+    if (up == ctr) break;
+  }
+  if (!node) {
+    failed.insert(slot);
+    Log("kill marks: no '%s' near the %s's camo slot '%s'; no marks on it (saw: %s)", want.c_str(), kKillBoats[boat].boat, NameOf(slot).c_str(), seen.c_str());
+    return;
+  }
   for (KmLive& m : g_kmLive)                                           // a second slot on the same hull
     if (Alive(m.go) && Invoke(m_getParent, Invoke(m_getTransform, m.go)) == node) { KmBuild(m); return; }
   void* go = il2cpp_object_new(g_km.goCls);
