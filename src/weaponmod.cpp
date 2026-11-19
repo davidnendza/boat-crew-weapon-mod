@@ -112,6 +112,7 @@ static void DLog(const char* fmt, ...) {
 #include "wm_utility_gear.h"
 #include "wm_torp_looks.h"
 #include "newsreel.h"                                                // battle newsreel: a second camera films plane dives into a GIF
+#include "wm_helm_view.h"                                            // Insert in battle: ride along in the helmsman's head
 #include "wm_hull_camo.h"                                            // extra hull camo schemes in the boat's camo list
 #include "wm_frame_hooks.h"
 #include "wm_coop.h"

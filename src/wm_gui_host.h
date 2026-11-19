@@ -1,4 +1,5 @@
 // OnGUI hosts: OnGuiTick, GUI_HOOK, InstallInventoryGui (a fragment of weaponmod.cpp, included in order, not standalone)
+static void HelmViewGui();                                             // wm_helm_view.h
 static void OnGuiTick(int i) {
   StallBeat();
   if (!strcmp(g_guiHosts[i].cls, "TitleScreenManagerUI")) { SafeTitleBanner(); SafeTitleMenu(); }
@@ -14,6 +15,7 @@ static void OnGuiTick(int i) {
     LARGE_INTEGER t0; QueryPerformanceCounter(&t0);
     InventoryGui();
     EliteTags();
+    HelmViewGui();
     SafeAfterActionGui();
     SafeFileCabinetGui();
     SafeCrewMarks();
