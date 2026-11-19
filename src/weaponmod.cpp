@@ -112,6 +112,7 @@ static void DLog(const char* fmt, ...) {
 #include "wm_utility_gear.h"
 #include "wm_torp_looks.h"
 #include "newsreel.h"                                                // battle newsreel: a second camera films plane dives into a GIF
+#include "wm_hull_camo.h"                                            // extra hull camo schemes in the boat's camo list
 #include "wm_frame_hooks.h"
 #include "wm_coop.h"
 // ---- hook: WeaponSystem.Awake --------------------------------------------------------------------------------
@@ -191,6 +192,7 @@ static bool InstallHook() {
   TorpInstall();                                                       // found torpedoes (needs InstallDiagnostics' offsets)
   CrewVisInstall();                                                    // crew weapon log, red tracers, marker, aim line
   NewsreelInstall();                                                   // hooks always installed; drops.ini newsreel=0 stops the filming
+  HullCamoInstall();
   InstallInventoryGui();
   InstallNameFit();
   g_perSaveWanted = true;                                              // installed from the game thread, see TryInstallPerSave
