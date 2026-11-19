@@ -916,3 +916,8 @@ Pull requests are welcome too: bug fixes, new guns, effects, models, translation
 bigger changes so we can talk it over, and include what you tested in game (the `weaponmod.log` lines help).
 [CONTRIBUTING.md](CONTRIBUTING.md) has the build steps and the rules that keep players' saves working, and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains how the code is laid out.
+
+## Disclaimer
+
+I am not personally affiliated with the developers or publishers of Boat Crew, nor have they endorsed this project.
+Boat Crew and any of its content or materials are the property of their respective owners.
