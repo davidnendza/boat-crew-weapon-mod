@@ -8,6 +8,7 @@
 // a fault. Checked every 10 frames.
 static void SetItems(void* set, std::vector<void*>& out);
 static bool g_akOn = false, g_akOrigFcm = false, g_akOrigSearch = false;
+static bool g_akHelm = false;                                          // set by the helm view (wm_helm_view.h) while it shows
 static void *g_akFcm = nullptr, *g_akFcmHandle = nullptr, *g_akSearch = nullptr, *g_akCraft = nullptr, *g_akMount = nullptr, *g_akEng = nullptr, *g_akLoggedEng = nullptr;
 static int g_akOffConstrain = -2, g_akOffSearch = -1, g_akOffSphere = -1, g_akOffSelf = -1, g_akOffMountEntity = -1;
 static int g_akFrames = 0, g_akFaults = 0, g_akTimes = 0, g_akCrewShots = 0, g_akShotsAtOn = 0;
@@ -28,8 +29,8 @@ static void AllKnowingSet(bool on, void* mount) {
     *fcm = false; if (sphere) *sphere = false;
     g_akOn = true; g_akMount = mount; g_akOnAt = GetTickCount(); g_akShotsAtOn = g_akCrewShots;
     if (++g_akTimes <= 20)
-      Log("all-knowing: on while you aim '%s': the crew fires at every enemy in sight (fire control marked-only %d -> 0, its search sphere %d -> 0)",
-          StripTags(NameOf(mount)).c_str(), g_akOrigFcm, g_akOrigSearch);
+      Log("all-knowing: on for '%s': the crew fires at every enemy in sight (fire control marked-only %d -> 0, its search sphere %d -> 0)",
+          mount ? StripTags(NameOf(mount)).c_str() : "the helm view", g_akOrigFcm, g_akOrigSearch);
   } else {
     *fcm = g_akOrigFcm; if (sphere) *sphere = g_akOrigSearch;
     DWORD ms = GetTickCount() - g_akOnAt; g_akMsTotal += ms;
@@ -82,6 +83,12 @@ static void AllKnowingTick() {
     Unpin(g_akFcmHandle); g_akFcmHandle = nullptr; g_akFcm = g_akSearch = nullptr;
   }
   if (!eng || !craft || ++g_akFrames % 10 != 0) return;
+  if (!g_akHelm && g_akOn && !g_akMount) AllKnowingSet(false, nullptr); // the helm view closed (it turns on with no gun), before the gates below
+  if (g_akHelm) {                                                      // the helm view: nobody can mark targets in it, so fire at all in sight
+    if (!g_akFcm && g_akFrames % 60 == 0) AllKnowingFind(craft);
+    AllKnowingSet(g_akFcm != nullptr, nullptr);
+    return;
+  }
   static void *fMode = nullptr, *ctl = nullptr, *ctlHandle = nullptr, *ctlEng = nullptr;
   static int offAux = -2, offAwSystem = -1, offAwFire = -1;
   if (offAux == -2) {
