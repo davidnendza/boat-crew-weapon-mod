@@ -81,6 +81,9 @@ static void SwitchInventory(const std::string& src, const std::string& why, bool
 }
 
 static void CrewFilesSwitch(const std::string& src, const std::string& why);   // crew files (crew personality phase 4)
+static void KillMarksAfterSave(unsigned long long h);                  // wm_kill_marks.h: saves\<hash>.kill
+static void KillMarksAfterLoad(unsigned long long h, const std::string& name);
+static void KillMarksReset(const char* why);
 static std::string CrewSidecar(unsigned long long h) { char b[32]; snprintf(b, sizeof b, "\\%016llx.crew", h); return SavesDir() + b; }
 static bool IsCurrentCampaign(void* state) {
   if (!state || !g_clsCampaignState || il2cpp_object_get_class(state) != g_clsCampaignState) return false;
@@ -99,6 +102,7 @@ static void AfterCampaignSave(void* state) {
   else DLog("saves: game saved %s; inventory copied to saves\\%016llx.ini", FileNameOf(path).c_str(), h);
   std::string crew = g_folder + "\\crew-files.ini";                    // the crew files go with the save the same way
   if (FileExists(crew) && !CopyAtomic(crew, CrewSidecar(h))) Log("crew files: could not write %s (error %lu)", CrewSidecar(h).c_str(), GetLastError());
+  KillMarksAfterSave(h);
 }
 // ---- stall watch ----
 // Loading a save from the main menu sometimes sits on a black screen for minutes
@@ -125,6 +129,7 @@ static void AfterCampaignRead(void* state, void* pathStr) {
   g_campaignState = state; g_newCampaignSeen = false;
   // rebuild: the game may have built the boat already, with the last save's guns (see RealizePlaceholder)
   CrewFilesSwitch(FileExists(CrewSidecar(h)) ? CrewSidecar(h) : std::string(), "loaded " + name);   // no copy: no files (never another campaign's)
+  KillMarksAfterLoad(h, name);
   if (FileExists(side)) SwitchInventory(side, "loaded " + name, true);
   else if (FileExists(legacy)) SwitchInventory(legacy, "loaded " + name + " (saved before per-save inventories: the inventory from then)", true);
   else Log("saves: loaded %s; it has no inventory copy, so the current inventory carries on", name.c_str());
@@ -163,6 +168,7 @@ static void CheckNewCampaign(bool rebuild) {
   g_campaignState = cur; g_newCampaignSeen = false;
   SwitchInventory("", "new campaign", rebuild);
   CrewFilesSwitch("", "new campaign");
+  KillMarksReset("new campaign");
 }
 static void TryInstallPerSave(const char* from);
 static void SafeCheckNewCampaign() { __try { TryInstallPerSave("WeaponSystem.Awake"); CheckNewCampaign(false); } __except (EXCEPTION_EXECUTE_HANDLER) { g_fStartState = nullptr; Log("saves: fault in the new-campaign check; switched off"); } }
@@ -251,11 +257,11 @@ static void PrepareSaves() {
   unsigned long long now = ((unsigned long long)nowFt.dwHighDateTime << 32) | nowFt.dwLowDateTime;
   const unsigned long long kKeep = 30ULL * 24 * 3600 * 10000000ULL;    // 30 days in 100 ns units
   int removed = 0, kept = 0, waiting = 0;
-  WIN32_FIND_DATAA fa; HANDLE ah = FindFirstFileA((dir + "\\*").c_str(), &fa);   // <hash>.ini inventories and <hash>.crew crew files
+  WIN32_FIND_DATAA fa; HANDLE ah = FindFirstFileA((dir + "\\*").c_str(), &fa);   // <hash>.ini inventories, <hash>.crew crew files, <hash>.kill kill marks
   if (ah == INVALID_HANDLE_VALUE) return;
   do {
     unsigned long long h; char tail[8] = ""; size_t len = strlen(fa.cFileName);
-    if ((len != 20 && len != 21) || sscanf(fa.cFileName, "%16llx%5s", &h, tail) != 2 || (_stricmp(tail, ".ini") != 0 && _stricmp(tail, ".crew") != 0)) continue;   // legacy.ini
+    if ((len != 20 && len != 21) || sscanf(fa.cFileName, "%16llx%5s", &h, tail) != 2 || (_stricmp(tail, ".ini") != 0 && _stricmp(tail, ".crew") != 0 && _stricmp(tail, ".kill") != 0)) continue;   // legacy.ini
     if (live.count(h)) { kept++; continue; }
     unsigned long long wt = ((unsigned long long)fa.ftLastWriteTime.dwHighDateTime << 32) | fa.ftLastWriteTime.dwLowDateTime;
     if (now < wt || now - wt < kKeep) { waiting++; continue; }

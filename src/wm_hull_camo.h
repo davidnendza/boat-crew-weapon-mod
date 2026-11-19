@@ -10,6 +10,9 @@
 // turns select(0) into the scheme. Schemes are only ever appended, in kCamoSchemes order. Co-op still sends the live
 // index (untested): a partner without the mod has no clamp for an index past the stock five.
 #include "wm_hull_camo_data.h"
+static void KillMarksAttach(void* slot);
+static int FaultFilter(const char* job, EXCEPTION_POINTERS* ep);
+static const char* g_kmStep = "";                                    // the kill-marks step a fault happened in                             // wm_kill_marks.h, included at the end of this file
 
 static struct {
   bool ready = false;
@@ -444,6 +447,11 @@ static void Hooked_PatternSelect(void* self, int i, void* method) {
     __try { CamoAfterSelect(self); }
     __except (EXCEPTION_EXECUTE_HANDLER) { if (++faults == 5) Log("hull camo: faults while painting a camo; the mod's camos may show a flat hull"); }
   }
+  static int kmFaults = 0;                                             // kill markings hang off every camo pick, stock ones too
+  if (g_cm.block && kmFaults < 5) {
+    __try { KillMarksAttach(self); }
+    __except (FaultFilter(g_kmStep, GetExceptionInformation())) { if (++kmFaults == 5) Log("kill marks: faults while hanging the marks; boats may show none"); }
+  }
 }
 static void Hooked_CamoGroupEnable(void* self, void* method) {
   static int faults = 0;
@@ -575,3 +583,5 @@ static void HullCamoInstall() {
   DLog("hull camo: %d schemes for %d boats, hooks on CustomPatternSlot.Awake/selectIndex and CamoGroupUI.OnEnable", kCamoCount,
        (int)(sizeof(kCamoBoats) / sizeof(kCamoBoats[0])));
 }
+
+#include "wm_kill_marks.h"                                          // kill markings use this file's camo slot lookups
