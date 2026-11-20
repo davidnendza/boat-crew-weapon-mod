@@ -63,6 +63,7 @@ static void Hooked_PMLateUpdate(void* self, void* method) {
     __except (FaultFilter("effect streaks", GetExceptionInformation())) { g_streakFaults = -1; SafeStreaksOff(); }
   }
   if (g_ready && g_nrFaults >= 0) SafeNewsreelTick();
+  if (g_ready) KillMarksFrame();
   if (g_ready && EngagementInstance()) {                                // battle only; the time includes the game's own LateUpdate
     double ms = PerfMs(t0); g_bPerfMs += ms; if (ms > g_bPerfMax) g_bPerfMax = ms; g_bPerfFrames++;
     DWORD now = GetTickCount();

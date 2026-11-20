@@ -40,7 +40,7 @@ static void MigrateDrops(const std::string& path) {
   // migrated=N in [drops] records the numbered updates this file has had, so each applies once: a player who sets a
   // value back to an old default, or deletes an added line, keeps it. Entries with since=0 match
   // only text that is still exactly old and are safe to run every launch.
-  const int kMigrations = 24;
+  const int kMigrations = 25;
   int done = 0;
   { size_t mp = text.find(nl + "migrated="); if (mp != std::string::npos) done = atoi(text.c_str() + mp + nl.size() + 9); }
   for (const AffixLineUpdate& u : kAffixLineUpdates) {
@@ -361,6 +361,19 @@ static void MigrateDrops(const std::string& path) {
     }
     if (nu) fixedNames += "uses(" + std::to_string(nu) + " uniques) ";
   }
+  if (ds != std::string::npos && done < 25) {                          // kill_marks (0.9.10), under newsreel_keep=
+    size_t de = dropsEnd(ds), sp = text.find(nl + "kill_marks=", ds);
+    if (sp == std::string::npos || sp >= de) {
+      size_t at = text.find(nl + "newsreel_keep=", ds);
+      if (at != std::string::npos && at < de) { size_t le = text.find(nl, at + nl.size()); at = le == std::string::npos || le > de ? de : le; }
+      else { at = text.find(nl + "# Co-op (", ds); if (at == std::string::npos || at >= de) at = de; }
+      const char* last = "kill_marks=1\n";
+      std::string block, def = kDefaultDrops; size_t a = def.find("# kill_marks:"), b = a == std::string::npos ? a : def.find(last, a);
+      if (a != std::string::npos && b != std::string::npos) block = def.substr(a, b + strlen(last) - a);
+      block = WithNewlines(block, nl);
+      if (!block.empty()) { text.insert(at + (at < text.size() ? nl.size() : 0), at < text.size() ? block : nl + block); fixedNames += "kill_marks "; }
+    }
+  }
   if (ds != std::string::npos && done < kMigrations) {                 // record it, so these updates never run again
     std::string line = "migrated=" + std::to_string(kMigrations);
     size_t mp = text.find(nl + "migrated=", ds);
@@ -467,11 +480,13 @@ static bool g_talkOn = true; static double g_talkChatter = 1;
 static bool g_storiesOn = true, g_lettersOn = true;
 static bool g_newsreelOn = true;                                     // drops.ini newsreel: the battle film (newsreel.h), switched while playing
 static int g_newsreelKeep = 10;                                      // drops.ini newsreel_keep: GIFs kept, oldest deleted (0 = all)
+static bool g_killMarks = true;                                      // drops.ini kill_marks: 0 hides the hull tallies (wm_kill_marks.h), kills still count
 static bool CrewVisKey(const std::string& k, const std::string& v) {
   if (k == "crew_talk") g_talkOn = atoi(v.c_str()) != 0;
   else if (k == "crew_stories") g_storiesOn = atoi(v.c_str()) != 0;
   else if (k == "crew_letters") g_lettersOn = atoi(v.c_str()) != 0;
   else if (k == "newsreel") g_newsreelOn = atoi(v.c_str()) != 0;
+  else if (k == "kill_marks") g_killMarks = atoi(v.c_str()) != 0;
   else if (k == "newsreel_keep") { int x = atoi(v.c_str()); g_newsreelKeep = x < 0 ? 0 : x > 200 ? 200 : x; }
   else if (k == "crew_chatter") { double x = atof(v.c_str()); g_talkChatter = !(x >= 0.25) ? 0.25 : x > 2 ? 2.0 : x; }
   else if (k == "crew_tracers") g_crewTracers = atoi(v.c_str()) != 0;

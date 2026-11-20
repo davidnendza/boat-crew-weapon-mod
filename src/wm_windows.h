@@ -88,6 +88,9 @@ static std::vector<ModOpt>& ModOpts() {
     { kTabVisuals, "drops.ini", "modded_banner", "MODDED on the title screen", "The red tag under the logo",
       "Shows the red MODDED tag under the BOAT CREW logo on the title screen, with the mod's version next to it. Off, the version stays above the title screen's mod buttons.",
       "ON", 'b', 0, 1, 1, 'n', &g_bannerOn },
+    { kTabVisuals, "drops.ini", "kill_marks", "Kill markings on the hull", "A silhouette per kill, gold per ten",
+      "Rows of small silhouettes on your boat's hull: planes shot down, ships sunk and shore targets destroyed, a gold one for every ten. Off hides them; the kills are still counted. A change shows at your next kill or the next time the boat is loaded.",
+      "ON", 'b', 0, 1, 1, 'n', &g_killMarks },
     { kTabEnemies, "enemies.ini", "enabled", "Rare and Elite enemies", "",
       "Some enemy ships appear as Rare or Elite, with traits, a name tag, a guaranteed gun drop and bonus call-in progress.",
       "ON", 'b', 0, 1, 1, 'n', &s_optElites, nullptr, nullptr, R, &g_elitesAtLaunch },
@@ -263,7 +266,7 @@ static void OptionsWindow(int type, Vec2 mouse) {
   int tab = g_optTab;                                                  // a tab clicked below switches from the next event on
   float colX = S.x + 52, colW = S.w - 52 - 26 - 250 - 52, top = S.y + 86, rowH = 52;
   { int rows = 0; for (const ModOpt& o : opts) if (o.tab == tab) rows++;   // 416 px between the first row and the footer: 8 rows of 52, more get closer
-    if (rows > 8) rowH = (std::max)(44.0f, 416.0f / rows); }
+    if (rows > 8) rowH = (std::max)(40.0f, 416.0f / rows); }               // shortcut: 10 rows is the most a tab holds, an 11th needs a scroll or a new tab
   // the note card's subject: the row last hovered on this tab (it stays after the mouse leaves), else the tab's first row
   if (g_optHot < 0 || g_optHot >= (int)opts.size() || opts[g_optHot].tab != tab) {
     g_optHot = -1; for (size_t k = 0; k < opts.size(); k++) if (opts[k].tab == tab) { g_optHot = (int)k; break; }
@@ -303,8 +306,8 @@ static void OptionsWindow(int type, Vec2 mouse) {
       FillC({ row.x, row.y + rowH - 1, row.w, 1 }, Hex(kInk, 0.25f));
       Text({ row.x + 6, row.y, 30, rowH }, std::to_string(tab + 1) + "." + std::to_string(n), 12, kMutedHex);
       bool restart = o.when == kOptRestart, changed = restart && OptPending(o);
-      Text({ row.x + 44, row.y + 4, colW - 44 - 170, 26 }, o.label, 15, kInkHex);
-      Text({ row.x + 44, row.y + 27, colW - 44 - 170, 18 }, restart ? (changed ? "Changed: game needs a restart to take effect" : "Game needs a restart to take effect") : o.desc,
+      Text({ row.x + 44, cy - 22, colW - 44 - 170, 26 }, o.label, 15, kInkHex);
+      Text({ row.x + 44, cy + 1, colW - 44 - 170, 18 }, restart ? (changed ? "Changed: game needs a restart to take effect" : "Game needs a restart to take effect") : o.desc,
            11, changed ? kRedHex : kMutedHex, kLeft, changed);
     }
     if (o.kind == 'b') {                                               // [X] ON  [ ] OFF; clicking the marked one does nothing
@@ -323,7 +326,8 @@ static void OptionsWindow(int type, Vec2 mouse) {
       if (HitBox({ ar.x - 5, cy - 14, 24, 28 })) OptChange(o, +1);
       if (type == 7) {
         InkArrow(al, false, v <= o.lo + 1e-9);
-        Text(val, OptValueText(o), 16, kBlueHex, kCenter, true);
+        std::string vt = OptValueText(o);
+        Text(val, vt, vt.size() > 7 ? 13 : 16, kBlueHex, kCenter, true);   // "Uncommon" wraps in the 90 px box at 16
         FillC({ val.x, val.y + val.h, val.w, 2 }, Hex(kInk));
         InkArrow(ar, true, v >= o.hi - 1e-9);
       }
@@ -355,6 +359,12 @@ static void OptionsWindow(int type, Vec2 mouse) {
 
 // What's New: the README's change lists, shortened, newest first. Keep the secret tier out of it, as out of the README.
 static const char* kChangelog =
+  "## 0.9.10 - Helm view, camo and kill markings\n"
+  "- Helm view: press Insert in a battle to ride along in the helmsman's head, and Insert again to leave. Move the mouse to look around. The helmsman keeps steering, WASD still drives the boat, and while you ride along the crew fire at every enemy in sight, shore guns included.\n"
+  "- Ten new hull camo schemes in the boat's camo list: Measure 22 Graded, Measure 31 Jungle, Measure 32 Dazzle, Western Approaches, Admiralty 1944, Flaming Tiger, Wild Badger, Big Johnson, Pride and Stormy Night. A save loaded without the mod shows Plain.\n"
+  "- Kill markings: rows of small plane, ship and shore-gun silhouettes on your hull, one per kill and a gold one per ten, kept with each save. Mod Options > Visuals hides them.\n"
+  "- Co-op: 0.9.10 does not sync with 0.9.9, so everyone needs 0.9.10. The new camos are untested in co-op: wear a stock camo if a partner plays without this version.\n"
+  "\n"
   "## 0.9.9 - Long Tom and torpedoes\n"
   "- New Heavy and Heavy+ side-grade on the 3-inch, by request: the 155 mm M1 Long Tom, the US Army's long-range field gun. One huge shell at a time with a massive blast and a very long reach, then a long reload. It is expensive and rare in the loot.\n"
   "- Its Unique, Longer Tom: a much, much bigger gun that hits twice as hard, and every shot shoves your boat back.\n"

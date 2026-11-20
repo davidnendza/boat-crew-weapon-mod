@@ -129,10 +129,10 @@ static void AfterCampaignRead(void* state, void* pathStr) {
   g_campaignState = state; g_newCampaignSeen = false;
   // rebuild: the game may have built the boat already, with the last save's guns (see RealizePlaceholder)
   CrewFilesSwitch(FileExists(CrewSidecar(h)) ? CrewSidecar(h) : std::string(), "loaded " + name);   // no copy: no files (never another campaign's)
-  KillMarksAfterLoad(h, name);
   if (FileExists(side)) SwitchInventory(side, "loaded " + name, true);
   else if (FileExists(legacy)) SwitchInventory(legacy, "loaded " + name + " (saved before per-save inventories: the inventory from then)", true);
   else Log("saves: loaded %s; it has no inventory copy, so the current inventory carries on", name.c_str());
+  KillMarksAfterLoad(h, name);                                         // last: the inventory switch must not depend on it
 }
 static void Hooked_SaveState(void* state, void* method) {
   g_saveStateOrig(state, method);
