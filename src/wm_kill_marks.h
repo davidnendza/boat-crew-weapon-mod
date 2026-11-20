@@ -19,11 +19,16 @@ static struct {
 static int g_kmCount[kKillBoatCount][3] = {};
 struct KmLive { void* slot; void* go; void* mesh; int boat; std::vector<void*> pins; };
 static std::vector<KmLive> g_kmLive;                                   // one marks mesh per boat object (pinned)
+// A load or a new campaign changed the tallies on disk. The save hooks may run off the game thread, so they only set
+// this; KmSync reads the file and rebuilds the meshes on the game thread. 1 = read kill-marks.ini; 2 = the live file
+// could not be switched: read g_kmStaleFrom (the save's own copy, or "" for zero) and write the live file from it.
+static volatile LONG g_kmStale = 0;
+static char g_kmStaleFrom[MAX_PATH] = "";
 
 static std::string KmPath() { return g_folder + "\\kill-marks.ini"; }
-static void KmLoad() {                                                 // lines "PT-109=planes,ships,shore"
+static void KmLoad(const std::string& path = KmPath()) {                                                 // lines "PT-109=planes,ships,shore"
   memset(g_kmCount, 0, sizeof g_kmCount);
-  FILE* f = fopen(KmPath().c_str(), "rb");
+  FILE* f = path.empty() ? nullptr : fopen(path.c_str(), "rb");
   if (!f) return;
   char line[256];
   while (fgets(line, sizeof line, f)) {
@@ -118,7 +123,7 @@ static void KmBuild(KmLive& m) {                                       // the me
   std::vector<float> v, uv; std::vector<int> tri;
   int shown[3] = {};
   for (int r = 0; r < kKillRows; r++) {
-    int n = g_kmCount[m.boat][r], tens = (std::min)(n / 10, kKillCols), ones = (std::min)(n % 10, kKillCols - tens);
+    int n = g_killMarks ? g_kmCount[m.boat][r] : 0, tens = (std::min)(n / 10, kKillCols), ones = (std::min)(n % 10, kKillCols - tens);
     for (int c = 0; c < tens + ones; c++) {
       const KillMarkSpot& sp = kb.spot[r * kKillCols + c];
       if (!sp.ok) continue;
@@ -143,6 +148,13 @@ static void KmBuild(KmLive& m) {                                       // the me
   g_kmStep = step;
   DLog("kill marks: %s shows %d plane, %d ship and %d shore marks", kb.boat, shown[0], shown[1], shown[2]);
 }
+static void KmRebuildAll() { for (KmLive& m : g_kmLive) if (Alive(m.slot) && Alive(m.go)) KmBuild(m); }
+static void KmSync() {                                                 // game thread only
+  LONG s = InterlockedExchange(&g_kmStale, 0);
+  if (!s) return;
+  if (s == 2) { KmLoad(g_kmStaleFrom); KmSave(); } else KmLoad();
+  KmRebuildAll();
+}
 
 // Called after every camo pick (wm_hull_camo.h): the marks mesh under the boat's hull node, made once per boat object.
 static void KillMarksAttach(void* slot) {
@@ -156,10 +168,9 @@ static void KillMarksAttach(void* slot) {
   }
   g_kmStep = "kill marks: material";
   if (!KmMaterial()) return;
+  KmSync();
   g_kmStep = "kill marks: rebuild";
   for (KmLive& m : g_kmLive) if (m.slot == slot) { KmBuild(m); return; }
-  static std::set<void*> failed;                                       // compared only, never followed
-  if (failed.count(slot)) return;
   g_kmStep = "kill marks: boat";
   int boat = KmBoatIndex(slot);
   if (boat < 0) return;
@@ -168,7 +179,7 @@ static void KillMarksAttach(void* slot) {
     void* tr = Invoke(m_getTransform, slot); void* ctr = Invoke(m_getTransform, craft);
     bool under = false;
     for (int up = 0; tr && up < 32 && !under; up++) { under = tr == ctr; tr = Invoke(m_getParent, tr); }
-    if (!under) { failed.insert(slot); return; }
+    if (!under) return;
   }
   bool typed = true, recursive = true, inactive = true, reverse = false;
   void* a6[6] = { g_cm.rendererType, &typed, &recursive, &inactive, &reverse, nullptr };
@@ -203,8 +214,8 @@ static void KillMarksAttach(void* slot) {
     if (up == ctr) break;
   }
   if (!node) {
-    failed.insert(slot);
-    Log("kill marks: no '%s' near the %s's camo slot '%s'; no marks on it (saw: %s)", want.c_str(), kKillBoats[boat].boat, NameOf(slot).c_str(), seen.c_str());
+    static int toldNone = 0;                                           // every pick retries: slot addresses get reused, so none is remembered
+    if (++toldNone <= 6) Log("kill marks: no '%s' near the %s's camo slot '%s'; no marks on it (saw: %s)", want.c_str(), kKillBoats[boat].boat, NameOf(slot).c_str(), seen.c_str());
     return;
   }
   g_kmStep = "kill marks: same hull";
@@ -221,9 +232,9 @@ static void KillMarksAttach(void* slot) {
   ca[0] = g_km.mrType; void* mr = Invoke(g_km.addComp, go, ca);
   void* mesh = il2cpp_object_new(g_km.meshCls); Invoke(g_km.meshCtor, mesh);
   if (!mf || !mr || !Alive(mesh)) {
-    failed.insert(slot);
     if (g_km.destroy) { void* da[1] = { go }; Invoke(g_km.destroy, nullptr, da); }
-    Log("kill marks: could not build the marks object for the %s", kKillBoats[boat].boat); return;
+    static int toldBuild = 0;
+    if (++toldBuild <= 6) Log("kill marks: could not build the marks object for the %s", kKillBoats[boat].boat); return;
   }
   g_kmStep = "kill marks: mesh + material";
   void* ma[1] = { mesh }; Invoke(g_km.setMesh, mf, ma);
@@ -243,7 +254,8 @@ static void KillMarksAttach(void* slot) {
 static bool CrewIsOurs(void* member);
 static void KillMarkCredit(void* mount, void* killed, void* member) {
   if (!killed || !KmApi()) return;
-  if (mount ? IsRemoteMount(mount) || IsHiddenMount(mount) || !OnPlayerBoat(mount) : !CrewIsOurs(member)) return;
+  KmSync();                                                            // before the count below is written to the file
+  if (mount ? IsRemoteMount(mount) || !OnPlayerBoat(mount) : !CrewIsOurs(member)) return;   // a hidden stand-in gun is still the boat's gun
   void* craft = PlayerCraft();
   if (killed == craft) return;
   static void* recent[32] = {}; static DWORD recentAt[32] = {}; static int at = 0;   // every gunner and the helm get credit
@@ -266,7 +278,14 @@ static void KillMarkCredit(void* mount, void* killed, void* member) {
   KmSave();
   Log("kill marks: %s %s %d -> %d (%s, %s)", kKillBoats[boat].boat, kKillRowName[row], was, was + 1, StripTags(NameOf(killed)).c_str(),
       il2cpp_class_get_name(il2cpp_object_get_class(killed)));
-  for (KmLive& m : g_kmLive) if (m.boat == boat && Alive(m.slot) && Alive(m.go)) KmBuild(m);
+  KmRebuildAll();
+}
+// Every frame (wm_frame_hooks.h): a load or new campaign shows on the hull at once, not at the next kill or camo pick.
+static void KillMarksFrame() {
+  static int faults = 0;
+  if (!g_kmStale || !g_km.on || faults >= 3) return;
+  __try { KmSync(); }
+  __except (EXCEPTION_EXECUTE_HANDLER) { if (++faults == 3) Log("kill marks: faults while reloading the tallies; they update at the next kill"); }
 }
 static void SafeKillMarkCredit(void* mount, void* killed, void* member) {
   static int faults = 0;
@@ -279,13 +298,14 @@ static void SafeKillMarkCredit(void* mount, void* killed, void* member) {
 // before kill markings has none: the tallies start at zero.
 static std::string KillMarksSidecar(unsigned long long h) { char b[32]; snprintf(b, sizeof b, "\\%016llx.kill", h); return SavesDir() + b; }
 static void KillMarksAfterSave(unsigned long long h) {
-  if (FileExists(KmPath()) && !CopyAtomic(KmPath(), KillMarksSidecar(h))) Log("kill marks: could not write %s (error %lu)", KillMarksSidecar(h).c_str(), GetLastError());
+  // A switch still waiting for the game thread (state 2): the live file is the LAST save's, so copy what it will become.
+  std::string src = g_kmStale == 2 ? std::string(g_kmStaleFrom) : KmPath();
+  if (!src.empty() && FileExists(src) && !CopyAtomic(src, KillMarksSidecar(h))) Log("kill marks: could not write %s (error %lu)", KillMarksSidecar(h).c_str(), GetLastError());
 }
 static void KillMarksReset(const char* why) {                          // a new campaign starts with clean hulls
   bool had = FileExists(KmPath());
   if (had && !DeleteFileA(KmPath().c_str())) Log("kill marks: %s: could not clear kill-marks.ini (error %lu)", why, GetLastError());
-  memset(g_kmCount, 0, sizeof g_kmCount);
-  if (g_km.on) for (KmLive& m : g_kmLive) if (Alive(m.slot) && Alive(m.go)) KmBuild(m);
+  g_kmStaleFrom[0] = 0; InterlockedExchange(&g_kmStale, 2);            // zero, and the live file rewritten if the delete failed
   if (had) Log("kill marks: %s: tallies start at zero", why);
 }
 static void KillMarksAfterLoad(unsigned long long h, const std::string& name) {
@@ -293,5 +313,7 @@ static void KillMarksAfterLoad(unsigned long long h, const std::string& name) {
   bool ok = FileExists(side) ? CopyAtomic(side, KmPath()) : (DeleteFileA(KmPath().c_str()) || GetLastError() == ERROR_FILE_NOT_FOUND);
   if (!ok) Log("kill marks: loaded %s, but kill-marks.ini could not be switched (error %lu)", name.c_str(), GetLastError());
   else Log("kill marks: loaded %s: %s", name.c_str(), FileExists(side) ? "its tallies are back" : "no tallies with it, starting at zero");
-  if (g_km.on) { KmLoad(); for (KmLive& m : g_kmLive) if (Alive(m.slot) && Alive(m.go)) KmBuild(m); }
+  // A failed switch must not leave the last save's tallies in place: they would be copied into this save next.
+  if (!ok) snprintf(g_kmStaleFrom, sizeof g_kmStaleFrom, "%s", FileExists(side) ? side.c_str() : "");
+  InterlockedExchange(&g_kmStale, ok ? 1 : 2);
 }

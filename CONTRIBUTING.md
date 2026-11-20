@@ -21,6 +21,8 @@ Breaking one of these can make an existing save load the wrong gun or lose a loa
 
 - **The gun tables are append only.** A save stores the position of the chosen gun, not its name. Add new entries to
   `kTurretGuns`, `kSideGrades`, `kUtilityGear` and `kPaint` at the end. To take one away, set `retired=1`.
+  The hull camo schemes (`SCHEMES` in `tools/hull_camo.py`, generated into `kCamoSchemes`) follow the same rule: add
+  at the end and never rename one. A save stores the scheme by name and co-op sends its position.
 - **Changed defaults need a migration.** New `[template]`, `[affix]` and `[unique]` blocks are added to existing
   `drops.ini` files on their own. A changed line in an `[affix]` or `[unique]` block needs a row in `kAffixLineUpdates`
   (`wm_drops_data.h`). A new or changed `[drops]` key needs a numbered `done < N` block in `MigrateDrops` and a higher

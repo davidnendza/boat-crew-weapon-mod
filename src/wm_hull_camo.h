@@ -1,4 +1,4 @@
-// ---- extra hull camouflage schemes (Measure 22/31/32, Western Approaches, Admiralty 1944, Flaming Tiger, Wild Badger) ----
+// ---- extra hull camouflage schemes (Measure 22/31/32, Western Approaches, Admiralty 1944 and five fun ones: kCamoSchemes) ----
 // The game's camo list is CustomPatternSlot.patterns, a List<ColorPattern> of plain [Serializable] objects on each boat:
 // name, GlobalPattern, a key-colour mask texture in the hull's UV layout, a picker sprite and up to 5 ColorEntries
 // (_Color slot, colour, channel). selectIndex writes the mask and colours into the hull renderers' property block.
@@ -10,9 +10,9 @@
 // turns select(0) into the scheme. Schemes are only ever appended, in kCamoSchemes order. Co-op still sends the live
 // index (untested): a partner without the mod has no clamp for an index past the stock five.
 #include "wm_hull_camo_data.h"
-static void KillMarksAttach(void* slot);
+static void KillMarksAttach(void* slot);                             // wm_kill_marks.h, included at the end of this file
 static int FaultFilter(const char* job, EXCEPTION_POINTERS* ep);
-static const char* g_kmStep = "";                                    // the kill-marks step a fault happened in                             // wm_kill_marks.h, included at the end of this file
+static const char* g_kmStep = "";                                    // the kill-marks step a fault happened in
 
 static struct {
   bool ready = false;
@@ -285,23 +285,28 @@ static void* Hooked_CollGetParams(void* coll, void* mi) {
   return arr;
 }
 static void CamoLoadRedirect(void* slot, int* i) {                      // select(0) from validate(): MOD_CAMO wins
-  if (!g_cs.on || *i != 0) return;
+  if (!g_cs.on) return;
   bool inactive = true; void* a[2] = { g_cs.collType, &inactive };
   void* coll = Invoke(g_cs.inParent, slot, a);
   if (!coll || CamoSlotOf(coll) != slot) return;
   void* ka[1] = { il2cpp_string_new(kCamoKey) };
   void* p = Invoke(g_cs.getCustom, coll, ka);
   if (!p) return;
+  void* dict = *(void**)((char*)coll + g_cs.offParams);
+  void* getItem = dict ? il2cpp_class_get_method_from_name(il2cpp_object_get_class(dict), "get_Item", 1) : nullptr;
+  void* ga[1] = { il2cpp_string_new(kCamoSlot) };
+  void* live = getItem ? Invoke(getItem, dict, ga) : nullptr;
+  if (*i != 0) {                                                       // a stock camo saved by a game without the mod: the key is stale,
+    std::string cur = live ? std::string(Str(*(void**)((char*)live + g_cs.offPValue))) : std::string();   // and would turn the next Plain pick into the scheme
+    if (!cur.empty() && atoi(cur.c_str()) == *i) { Invoke(g_cs.removeCustom, coll, ka); DLog("hull camo: stock camo %d is saved, dropped the unused %s key", *i, kCamoKey); }
+    return;
+  }
   std::string want = Str(*(void**)((char*)p + g_cs.offPValue));
   Invoke(g_cs.removeCustom, coll, ka);
   void* patterns = *(void**)((char*)slot + g_camo.offPatterns);
   for (int k = 0; k < ListCount(patterns); k++) {
     if (strcmp(Str(*(void**)((char*)ListAt(patterns, k) + g_camo.offName)), want.c_str())) continue;
     *i = k;
-    void* dict = *(void**)((char*)coll + g_cs.offParams);
-    void* getItem = dict ? il2cpp_class_get_method_from_name(il2cpp_object_get_class(dict), "get_Item", 1) : nullptr;
-    void* ga[1] = { il2cpp_string_new(kCamoSlot) };
-    void* live = getItem ? Invoke(getItem, dict, ga) : nullptr;
     if (live) SetRef(live, (char*)live + g_cs.offPValue, il2cpp_string_new(std::to_string(k).c_str()));
     DLog("hull camo: loaded %s from the save's %s key (camo %d)", want.c_str(), kCamoKey, k);
     return;

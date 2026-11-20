@@ -6,7 +6,7 @@
 // is hidden meanwhile by answering the game window's WM_SETCURSOR (the first-person mod's lesson: Unity's
 // Cursor.visible is fought by the game), and a banner at the top says how to leave. Only in the game's free camera
 // (controlMode 0): targeting, rockets, torpedoes and the kill cam show their own view, with the cursor, and the helm
-// view comes back after them.
+// view comes back after them. In co-op, Escape ends it: that menu does not pause, so nothing else gives the cursor back.
 // Camera at CrewMember.headEnd + 0.18 m along the flat view direction, as in the first-person mod (confirmed there to
 // look straight ahead, not through the head). The helmsman is read from the crew battle log's records (wm_crew_log.h).
 // The player's crew only fire at targets marked in targeting mode (FireControlMaster.constrainToAssignedTargets),
@@ -18,8 +18,11 @@ struct HvApi { bool ok = false, tried = false; void *camMain = nullptr, *compTr 
 static HvApi g_hv;
 static bool g_hvOn = false, g_hvKeyWas = false, g_hvShowing = false;
 static bool g_hvHideCursor = false;                                   // showing and not paused (the pause menu needs the cursor)
+static DWORD g_hvHideAt = 0;                                          // GetTickCount of the last tick that wanted it hidden: the hide expires
+                                                                      // by itself if the camera hook stops running with the flag still set
 static int g_hvFaults = 0;
 static void* g_hvMember = nullptr;                                    // the helmsman being shown, for the log
+static void* g_hvEng = nullptr;                                       // the battle it was switched on in: never carried into the next
 static bool HvInit() {
   if (g_hv.tried) return g_hv.ok;
   HvApi& h = g_hv; h.tried = true;
@@ -40,7 +43,7 @@ static CrewRec* HvHelmsman() {
 }
 static WNDPROC g_hvOrigProc = nullptr;
 static LRESULT CALLBACK HvWndProc(HWND w, UINT msg, WPARAM wp, LPARAM lp) {
-  if (msg == WM_SETCURSOR && g_hvHideCursor && LOWORD(lp) == HTCLIENT) { SetCursor(nullptr); return TRUE; }
+  if (msg == WM_SETCURSOR && g_hvHideCursor && LOWORD(lp) == HTCLIENT && GetTickCount() - g_hvHideAt < 500 && GameInForeground()) { SetCursor(nullptr); return TRUE; }
   return CallWindowProcW(g_hvOrigProc, w, msg, wp, lp);
 }
 static void HvHookWindow() {                                          // once, on the game thread, while the game window is in front
@@ -57,23 +60,27 @@ static void HvSet(bool on, const char* why) {
 static void HvTick() {
   bool key = GameInForeground() && (GetAsyncKeyState(VK_INSERT) & 0x8000) != 0;
   bool press = key && !g_hvKeyWas; g_hvKeyWas = key;
-  bool battle = EngagementInstance() != nullptr;
-  if (press) { if (g_hvOn) HvSet(false, "Insert"); else if (!battle) Log("helm view: Insert outside a battle, nothing to show"); else if (HvInit()) HvSet(true, "Insert"); }
+  void* eng = EngagementInstance(); bool battle = eng != nullptr;
+  if (press) { if (g_hvOn) HvSet(false, "Insert"); else if (!battle) Log("helm view: Insert outside a battle, nothing to show"); else if (HvInit()) { HvSet(true, "Insert"); g_hvEng = eng; } }
+  // A menu that does not pause the game (co-op) needs the cursor, and nothing else here sees it open.
+  if (g_hvShowing && g_coopRole && GameInForeground() && (GetAsyncKeyState(VK_ESCAPE) & 0x8000)) HvSet(false, "Escape in co-op");
   if (!g_hvOn) return;
-  if (!battle) { HvSet(false, "the battle ended"); return; }
+  if (!battle || eng != g_hvEng) { HvSet(false, "the battle ended"); return; }
   if (!g_crewLogOn || g_crewLogFaults < 0) { HvSet(false, "the crew battle log is off, so the helmsman cannot be found"); return; }
   int mode = -1; il2cpp_field_static_get_value(g_hv.modeField, &mode);
   CrewRec* r = HvHelmsman();
-  bool show = mode == 0 && r;
-  if (show != g_hvShowing || (r && r->member != g_hvMember)) {
+  bool show = mode == 0 && r && !g_kcState;                            // the torpedo kill cam shows its own view, without the banner
+  bool ak = mode == 0 && r;                                            // the crew keep firing at everything through a kill cam
+  if (show != g_hvShowing || ak != g_akHelm || (r && r->member != g_hvMember)) {
     if (!r) Log("helm view: nobody at the helm, game camera until someone takes it");
     else if (mode != 0) Log("helm view: camera mode %d, the game's view until it is back to free", mode);
+    else if (g_kcState) Log("helm view: kill cam, its view until it is over");
     else Log("helm view: riding with %s at the helm", r->name.c_str());
-    g_hvShowing = g_akHelm = show; g_hvMember = r ? r->member : nullptr;   // g_akHelm: the crew fire at every enemy in sight (wm_all_knowing.h)
+    g_hvShowing = show; g_akHelm = ak; g_hvMember = r ? r->member : nullptr;   // g_akHelm: the crew fire at every enemy in sight (wm_all_knowing.h)
   }
   g_hvHideCursor = show && GameTimeScale() > 0.01f;                    // Time.timeScale is 0 while paused
-  if (!show) return;
-  if (g_hvHideCursor && GameInForeground()) SetCursor(nullptr);       // also between mouse moves, in case the game set its cursor this frame
+  if (g_hvHideCursor) g_hvHideAt = GetTickCount();
+  if (!ak) return;                                                     // under a kill cam the camera is still placed: it runs after and wins
   void* head = *(void**)((char*)r->member + g_hv.headEnd); if (!UnityAlive(head)) return;
   V3 eye = GetV3(g_hv.trPos, head);
   V3 f = GetV3(m_crewTrFwd, Invoke(g_hv.compTr, r->member)); float fl = sqrtf(f.x * f.x + f.z * f.z);
@@ -81,6 +88,7 @@ static void HvTick() {
   f = { f.x / fl, 0, f.z / fl };
   float nx = 0, ny = 0; HWND w = GameInForeground() ? GetForegroundWindow() : nullptr; RECT rc; POINT p;  // cursor offset from the game window's centre, -1..1
   if (w && GetClientRect(w, &rc) && rc.right > 0 && rc.bottom > 0 && GetCursorPos(&p) && ScreenToClient(w, &p)) {
+    if (g_hvHideCursor && PtInRect(&rc, p)) SetCursor(nullptr);        // between mouse moves too; not over the title bar or another window
     nx = (std::max)(-1.0f, (std::min)(1.0f, (p.x - rc.right * 0.5f) / (rc.right * 0.5f)));
     ny = (std::max)(-1.0f, (std::min)(1.0f, (p.y - rc.bottom * 0.5f) / (rc.bottom * 0.5f)));
   }

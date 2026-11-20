@@ -1,4 +1,4 @@
-# Boat Crew Weapon Mod 0.9.9
+# Boat Crew Weapon Mod 0.9.10
 
 **Random gun loot, new WW2 guns, tougher enemies and a crew with a story.**
 
@@ -26,6 +26,9 @@ models, Rare and Elite enemy ships, and a crew that remembers its battles.
 - **Crew files and after-action reports:** every battle told as a story, a past for each crew member, a memorial for the lost.
 - **Letters and talk:** letters home and mail call, crew lines over their heads in 8 personalities, closest mates and earned nicknames.
 - **Female crew:** a quarter of the crew are women by default, with their own hair, figure and names.
+- **Helm view:** press Insert in a battle to ride along in the helmsman's head, Insert again to leave.
+- **Ten more hull camos:** Measure 22, 31 and 32, Western Approaches, Admiralty 1944 and five less serious ones.
+- **Kill markings:** rows of small silhouettes on your hull for planes, ships and shore targets, gold for every ten.
 
 ## Pictures
 
@@ -62,6 +65,7 @@ Loot, Arsenal, Visuals, Enemies, Crew and Co-op. The same switches are in `BoatC
   `crew_talk=0` the crew's lines (the first two are new in 0.9.8).
 - `female_crew` sets the share of women (default 25), and `no_females=1` turns them off completely.
 - `newsreel=0` stops the battle filming, which can slow battles on some machines.
+- `kill_marks=0` hides the kill markings on the hull (new in 0.9.10).
 - `turret_guns=0` and `side_grades=0` hide the new guns; `killcam=0` turns off the kill cam.
 
 Enemy traits are in `BoatCrewMod\enemies.ini`, and you can write your own guns in `BoatCrewMod\weapons.ini`.
@@ -437,8 +441,43 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
   barrel elevates around (with the barrel and the model) the same way. `crates_per_round=<N>` (2-100): only
   every Nth ammo crate a loader brings adds rounds.
 - **Custom gun models (experimental).** A hand-made gun can wear its own 3D model: see "Custom gun models" below.
+- **Helm view (new in 0.9.10).** Press Insert in a battle and the camera sits in the head of the crew member at the
+  helm; press Insert again to get the game camera back. Move the mouse to look around: the further the cursor is
+  from the middle of the window, the further the view turns (up to 160 degrees to a side, 45 up or down). The cursor
+  is hidden meanwhile and a banner at the top says how to leave.
+  - **Nothing else changes.** The helmsman keeps steering, WASD still drives the boat and the gunners fire on their
+    own. Your crew normally only fire at targets you marked in targeting mode; while the helm view shows they fire
+    at every enemy in sight, shore guns included (docks are never targets).
+  - **Only in the free camera.** Targeting, rockets, torpedoes and the kill cam show their own view, and the helm
+    view comes back after them. It needs someone at the helm.
+  - **Limits.** Insert is fixed and cannot be rebound. In co-op, Escape ends the view, because that menu needs the
+    cursor.
+- **Ten more hull camo schemes (new in 0.9.10).** The boat's own camo list gets ten more entries on the six player
+  boats: Measure 22 Graded, Measure 31 Jungle, Measure 32 Dazzle, Western Approaches, Admiralty 1944, Flaming Tiger,
+  Wild Badger, Big Johnson, Pride and Stormy Night. Pick them like any stock camo.
+  - **Saves stay safe.** A boat in one of these is saved as Plain plus a note for the mod (`MOD_CAMO`), so the same
+    save opened without the mod shows Plain and loads normally.
+  - **Memory.** Each scheme you look at on a boat keeps about 16 MB of video memory until the game closes.
+  - **Co-op: untested.** If a partner plays without this version, wear a stock camo.
+- **Kill markings (new in 0.9.10).** Three rows of small silhouettes under the deck edge, on both sides of the hull:
+  planes shot down, ships sunk and shore targets destroyed. One dark mark per kill, a gold one for every ten.
+  - **What counts:** kills the game credits to your own boat's guns and torpedoes. A co-op partner's kills, allies
+    and call-ins do not count.
+  - **Kept per boat type and per save.** The tallies are in `BoatCrewMod\kill-marks.ini` and go with each save; a
+    new campaign starts with a clean hull.
+  - **Switching it off.** Kill markings on the hull in Mod Options, Visuals tab, or `kill_marks=0`. The kills are
+    still counted, so the marks are all there when you switch it back on.
 
 ## Changes
+
+- **0.9.10, helm view, camo and kill markings:**
+  - **Helm view:** press Insert in a battle to ride along in the helmsman's head. Steering and the crew stay as
+    they are, and the crew fire at every enemy in sight while you ride along. See Helm view.
+  - **Ten more hull camo schemes** in the boat's camo list, from Measure 22 Graded to Stormy Night. A save loaded
+    without the mod shows Plain.
+  - **Kill markings:** silhouette tallies on your hull for planes, ships and shore targets, gold for every ten, kept
+    with each save. `kill_marks=0` hides them.
+  - **Co-op:** 0.9.10 does not sync with 0.9.9, so everyone needs 0.9.10. The new camos are untested in co-op.
 
 - **0.9.9, Long Tom and torpedoes:**
   - **155 mm M1 Long Tom**, a new Heavy and Heavy+ side-grade on the 3-inch: one huge shell at a time with a massive
@@ -722,12 +761,14 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
   mid-way are gone when you load. Skirmish and custom battles use whatever inventory was loaded last.
   The copies are in `BoatCrewMod\saves` (one per save file). **When you back up your saves, back up that folder too.**
   A copy whose save has been missing for 30 days is removed at launch. Since 0.9.5 each save also gets a `.crew` copy of
-  its crew files in the same folder (see Crew attachments); back it up with the rest.
+  its crew files in the same folder (see Crew attachments); back it up with the rest. Since 0.9.10 each save also gets
+  a `.kill` copy of its kill markings there.
 - **Co-op is experimental.** Everyone in the session needs this same version of the mod (the log and the kill feed warn
   when it differs). Joining and hosting have been tested with two players; sharing guns, enemies and effects has seen
   the least testing of anything in the mod. If co-op misbehaves, turn the parts off in `drops.ini` (`coop_guns=0`,
   `coop_elites=0`, `coop_visuals=0`, `coop_helpers=0`, `coop_torpedoes=0`) and send the log. Players without the mod
-  see stock guns.
+  see stock guns. The extra hull camos are untested in co-op: if a partner does not run this version, wear a stock camo.
+  Kill markings show your own tallies, also on a partner's boat of the same type.
 - **Uninstalling.**
   - **Before you uninstall:** unequip all found guns and torpedoes, hand-made guns and the mod's extra turret guns and
     side-grades, then confirm the loadout.
@@ -764,11 +805,13 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
   - **New in 0.9.4, least tested:** smoke pots and life rafts in co-op.
   - **New in 0.9.6, least tested:** the 8.8 cm Flak 36, the loot share, the dead man's station, the Newsreel TV page
     and the newsreel in co-op.
+  - **New in 0.9.10, least tested:** the helm view, the extra hull camos and kill markings in co-op, and torpedo
+    kills in the kill markings.
   - **Balance:** it is untested. Every number is in `BoatCrewMod\drops.ini`.
   - **Text:** if names ever show raw `<color=...>` text, set `color_text=0` in `drops.ini`.
 - **Enemy traits:** size traits rescale the whole ship. Resized ships floated and steered normally in testing; if one
     ever behaves oddly, set that trait's `weight=0` in `enemies.ini`.
-- **Don't edit the mod's files while the game runs.** `inventory.ini`, `positions.ini`, `crew-files.ini` and `talk-last.txt` are written by the mod.
+- **Don't edit the mod's files while the game runs.** `inventory.ini`, `positions.ini`, `crew-files.ini`, `kill-marks.ini` and `talk-last.txt` are written by the mod.
 
 ## Install
 
@@ -786,7 +829,8 @@ Unequip the mod's guns and confirm the loadout, close the game, then delete `ver
 Delete the `BoatCrewMod` folder too if you want everything gone (`BoatCrewMod\newsreels` alone can hold several
 hundred MB of GIFs). Crew recruited as women keep their women's first
 names and stay without the beards and pipes the mod removed (see the warnings above). Each crew member also keeps a
-harmless `MOD_CREWID` entry in the save, which the game ignores.
+harmless `MOD_CREWID` entry in the save, which the game ignores. A boat saved in one of the mod's camos loads in Plain
+and keeps a harmless `MOD_CAMO` entry the same way.
 
 ## Settings (`BoatCrewMod\drops.ini`)
 
@@ -832,6 +876,7 @@ harmless `MOD_CREWID` entry in the save, which the game ignores.
 | `smoke_seconds` | How long a smoke pot keeps puffing smoke, in seconds (default `150`, 10 to 600) |
 | `raft_speed` | Speed of a life raft on the water, metres a second (default `8`, 1 to 60) |
 | `newsreel` | Battle newsreel: films each battle into a GIF in `BoatCrewMod\newsreels` (default `1`; `0` = off, if battles run slower). Mod Options, Visuals tab; switchable while playing |
+| `kill_marks` | Kill markings on the hull (default `1`; `0` hides them, the kills are still counted). Mod Options, Visuals tab; a change shows at the next kill or the next time the boat is loaded. |
 | `newsreel_keep` | Newsreel GIFs to keep. After each new film the oldest the mod made are deleted (default `10`, max `200`, `0` = keep all). Each can be up to about 80 MB. Mod Options, Visuals tab |
 | `mod_gun_share` | Share of each slot type's gun drops that go to the mod's turret guns and side-grades together, split by their `weight=` (default `0.25` = 1 in 4, max `0.9`; `0` = each rolls on its own `weight=`, as before 0.9.6) |
 | `debug` | `1` writes a much more detailed `weaponmod.log`, for bug reports |
