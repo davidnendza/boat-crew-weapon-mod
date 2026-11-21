@@ -171,7 +171,7 @@ static void EnsureCamoButtons(void* group) {                            // CamoG
       float pos[2] = { p0[0] + col * step[0] + row * cross[0], p0[1] + col * step[1] + row * cross[1] };
       void* a[1] = { pos }; Invoke(setPos, tr, a);
     }
-    ListAdd(elems, b);
+    if (!ListAdd(elems, b)) { Log("hull camo: could not add a camo button; the list shows %d of %d camos", ListCount(elems), g_camo.maxPatterns); return; }
   }
   Log("hull camo: the camo list now has %d buttons%s", ListCount(elems), place ? "" : " (not placed: RectTransform lookups failed, they sit on the last one)");
 }
