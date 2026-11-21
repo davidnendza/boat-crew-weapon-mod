@@ -1,0 +1,2 @@
+# Text files are stored with LF in the repository, whatever the line endings on disk.
+* text=auto
