@@ -75,10 +75,12 @@ static void* FemArray(void* cls, size_t n, const void* data, size_t elem) {
 // A mesh we reshaped is known by its wrapper AND its native object, so a new Mesh that reuses a collected wrapper's
 // address is not taken for one of ours.
 static bool FemDone(void* m) { auto it = g_femDone.find(m); return it != g_femDone.end() && Alive(m) && *(void**)((char*)m + 0x10) == it->second.native; }
+// The maps' keys are not pinned: a collected wrapper's memory can be gone (the GC gives pages back), so it is read guarded.
+static void* FemNativeOf(void* o) { __try { return o ? *(void**)((char*)o + 0x10) : nullptr; } __except (EXCEPTION_EXECUTE_HANDLER) { return nullptr; } }
 static void FemPrune() {
-  for (auto it = g_femDone.begin(); it != g_femDone.end();) { void* m = it->first; if (!Alive(m) || *(void**)((char*)m + 0x10) != it->second.native) it = g_femDone.erase(it); else ++it; }
+  for (auto it = g_femDone.begin(); it != g_femDone.end();) { void* nat = FemNativeOf(it->first); if (!nat || nat != it->second.native) it = g_femDone.erase(it); else ++it; }
   for (auto* map : { &g_femHair, &g_femBra })
-    for (auto it = map->begin(); it != map->end();) { if (!Alive(it->first) || !Alive(it->second.go)) { Unpin(it->second.pin); it = map->erase(it); } else ++it; }
+    for (auto it = map->begin(); it != map->end();) { if (!FemNativeOf(it->first) || !Alive(it->second.go)) { Unpin(it->second.pin); it = map->erase(it); } else ++it; }
 }
 
 // The lip paint lookups, all optional: without them the lips use the pale peach patch. The 12-argument
