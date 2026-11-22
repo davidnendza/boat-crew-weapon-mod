@@ -42,9 +42,16 @@ static CrewRec* HvHelmsman() {
   return nullptr;
 }
 static WNDPROC g_hvOrigProc = nullptr;
+// The game shows its cursor again while the mouse moves, so SetCursor alone flickers: the cursor's display count is
+// lowered too (ShowCursor), which hides it whatever cursor is set. Game thread only (it owns the window).
+static bool g_hvCursorDown = false;
+static void HvCursor(bool hide) { if (hide != g_hvCursorDown) { ShowCursor(hide ? FALSE : TRUE); g_hvCursorDown = hide; } }
 static LRESULT CALLBACK HvWndProc(HWND w, UINT msg, WPARAM wp, LPARAM lp) {
+  if (g_hvCursorDown && GetTickCount() - g_hvHideAt >= 500) HvCursor(false);   // the tick stopped running: give the cursor back
   if (msg == WM_SETCURSOR && g_hvHideCursor && LOWORD(lp) == HTCLIENT && GetTickCount() - g_hvHideAt < 500 && GameInForeground()) { SetCursor(nullptr); return TRUE; }
-  return CallWindowProcW(g_hvOrigProc, w, msg, wp, lp);
+  LRESULT r = CallWindowProcW(g_hvOrigProc, w, msg, wp, lp);
+  if (msg == WM_MOUSEMOVE && g_hvHideCursor && GetTickCount() - g_hvHideAt < 500 && GameInForeground()) SetCursor(nullptr);
+  return r;
 }
 static void HvHookWindow() {                                          // once, on the game thread, while the game window is in front
   if (g_hvOrigProc) return;
@@ -56,6 +63,7 @@ static void HvSet(bool on, const char* why) {
   if (on != g_hvOn) Log("helm view: %s (%s)", on ? "ON" : "off", why);
   if (on) HvHookWindow();
   g_hvOn = on; g_hvShowing = g_hvHideCursor = g_akHelm = false; g_hvMember = nullptr;
+  HvCursor(false);
 }
 static void HvTick() {
   bool key = GameInForeground() && (GetAsyncKeyState(VK_INSERT) & 0x8000) != 0;
@@ -80,6 +88,7 @@ static void HvTick() {
   }
   g_hvHideCursor = show && GameTimeScale() > 0.01f;                    // Time.timeScale is 0 while paused
   if (g_hvHideCursor) g_hvHideAt = GetTickCount();
+  HvCursor(g_hvHideCursor && GameInForeground());
   if (!ak) return;                                                     // under a kill cam the camera is still placed: it runs after and wins
   void* head = *(void**)((char*)r->member + g_hv.headEnd); if (!UnityAlive(head)) return;
   V3 eye = GetV3(g_hv.trPos, head);
