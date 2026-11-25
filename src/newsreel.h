@@ -18,7 +18,7 @@ struct NrApi {
        *setFar = nullptr, *getFar = nullptr, *getMask = nullptr, *setMask = nullptr, *setTarget = nullptr, *render = nullptr, *camMain = nullptr,
        *compTr = nullptr, *trSetPR = nullptr, *trPos = nullptr, *rtCls = nullptr, *rtCtor = nullptr, *rtGetActive = nullptr, *rtSetActive = nullptr,
        *texCls = nullptr, *texCtor = nullptr, *readPx = nullptr, *getRaw = nullptr, *dontDestroy = nullptr,
-       *trUp = nullptr, *linecast = nullptr, *linecastHit = nullptr, *hitCollider = nullptr, *trIsChild = nullptr;   // optional: Linecast checks a deck camera spot, linecastHit names the blocker
+       *trUp = nullptr, *linecast = nullptr, *linecastHit = nullptr, *hitCollider = nullptr, *trIsChild = nullptr, *trParent = nullptr;   // optional: Linecast checks a deck camera spot, linecastHit names the blocker
   int ctrlPlane = -1, flight = -1, leTeam = -1, leAlive = -1;
 };
 static NrApi g_nr;
@@ -72,7 +72,7 @@ static void NewsreelInstall() {
   // RaycastHit.collider = FindObjectFromInstanceID(m_Collider at +0x28); invoking the getter on a fake box gave null in game
   // (11-24), so the id is read and looked up here: a static call, no unboxing question.
   { void* ok0 = FindClass("UnityEngine", "Object"); a.hitCollider = ok0 ? FindMethod(ok0, "FindObjectFromInstanceID", 1) : nullptr; }
-  if (tr) a.trIsChild = FindMethod(tr, "IsChildOf", 1);
+  if (tr) { a.trIsChild = FindMethod(tr, "IsChildOf", 1); a.trParent = FindMethod(tr, "get_parent", 0); }
   void* ok = FindClass("UnityEngine", "Object"); a.dontDestroy = ok ? FindMethod(ok, "DontDestroyOnLoad", 1) : nullptr;
   std::string missing;
   const std::pair<const char*, bool> need[] = { { "PlaneControllerAI.plane/flightState", a.ctrlPlane >= 0 && a.flight >= 0 }, { "LiveEntity.teamCode/_alive", a.leTeam >= 0 && a.leAlive >= 0 },
@@ -408,7 +408,11 @@ static bool NrBlockedPast(V3 a, V3 b, void* skipTr, std::string* what, std::vect
     V3 at; void* c = NrHitWhat(a, b, at); if (!c) return false;
     void* ct = c != (void*)1 ? Invoke(g_nr.compTr, c) : nullptr; void* arg[1] = { skipTr };
     void* r = ct && skipTr && g_nr.trIsChild ? Invoke(g_nr.trIsChild, ct, arg) : nullptr;
-    bool part = r && *(bool*)((char*)r + 0x10) && (!back || std::find(seen.begin(), seen.end(), c) != seen.end());
+    // the mount's own slot (its parent, e.g. 'Primary Weapon Aft') is the gun's base: looked past too, not its siblings
+    void* slot = ct && skipTr && g_nr.trParent ? Invoke(g_nr.trParent, skipTr) : nullptr;
+    bool mine = (r && *(bool*)((char*)r + 0x10)) || (ct && ct == slot);
+    static int toldSlot = 0; if (ct && ct == slot && toldSlot < 3) { toldSlot++; DLog("newsreel: looking past the gun's slot '%s'", CrewClean(NameOf(c)).c_str()); }
+    bool part = mine && (!back || std::find(seen.begin(), seen.end(), c) != seen.end());
     if (!part) { if (what) *what = ct ? CrewClean(NameOf(c)) : std::string("?"); return true; }
     if (!back) seen.push_back(c);
     V3 d = V3Sub(b, at); float l = sqrtf(V3Dot(d, d)); if (l < 0.1f) return false;
