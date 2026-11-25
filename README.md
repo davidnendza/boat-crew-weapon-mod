@@ -1,4 +1,4 @@
-# Boat Crew Weapon Mod 0.9.10
+# Boat Crew Weapon Mod 0.9.11
 
 **Random gun loot, new WW2 guns, tougher enemies and a crew with a story.**
 
@@ -469,6 +469,18 @@ untested in co-op. Each part can be switched off; see the co-op warning below.
     still counted, so the marks are all there when you switch it back on.
 
 ## Changes
+
+- **0.9.11, faster loads and fixes:**
+  - **Slow save loads fixed:** at every launch the game writes about 255 reference files to `Definitions\Dump`,
+    and a save loaded in the first minute or two could hang on a black screen for over a minute while they were
+    written. The mod now skips that dump, so a save loads in seconds whenever you load it. The files already there
+    stay; after a game update the mod leaves the dump alone until it is checked against the new version.
+  - **Newsreel:** the deck shots of your gunners can now look past the gunner's own gun instead of giving up on
+    that spot.
+  - **Helm view:** the mouse cursor no longer flickers while you look around.
+  - **Fixes:** the camo list can no longer hang when a camo button cannot be added; a crash guard in the female
+    crew tidy-up; a hand-set enemy trait size in `enemies.ini` is no longer changed back at launch.
+  - **Co-op:** 0.9.11 does not sync with 0.9.10, so everyone needs 0.9.11.
 
 - **0.9.10, helm view, camo and kill markings:**
   - **Helm view:** press Insert in a battle to ride along in the helmsman's head. Steering and the crew stay as

@@ -14,6 +14,7 @@ static int g_eliteTraitsLo = 2, g_eliteTraitsHi = 3, g_rareDropMin = 2, g_eliteD
 
 static const char* kDefaultEnemies =
   "# BoatCrewWeaponMod: Rare and Elite enemy ships.\n"
+  "migrated=1\n"                                                     // the trait size update is in; see MigrateEnemies
   "#\n"
   "# Each enemy ship that spawns may become Rare (blue, one trait) or Elite (gold, elite_hp times the HP and 2-3 traits).\n"
   "# Killing one drops a gun into the loot grid: rare_drop / elite_drop is the least number of effects (2 = Uncommon or\n"
@@ -75,16 +76,21 @@ static void MigrateEnemies(const std::string& path) {
   std::set<std::string> have; char line[512]; std::string text;
   while (fgets(line, sizeof line, f)) { text += line; std::string l = Trim(line); if (l.compare(0, 5, "name=") == 0) have.insert(Trim(l.substr(5))); }
   fclose(f);
+  // migrated=1 (a line before any section) says the size update ran: without it a size set by hand that equals an old
+  // default would be changed back at every launch.
+  bool done = text.compare(0, 11, "migrated=1\n") == 0 || text.find("\nmigrated=1") != std::string::npos;
   std::string resized;
   for (auto& s : kOldTraitSizes) {
+    if (done) break;
     size_t at = text.find(s[0]);
     if (at == std::string::npos) continue;
     text.replace(at, strlen(s[0]), s[1]);
     resized += (resized.empty() ? "" : ", ") + Trim(std::string(s[0]).substr(5, std::string(s[0]).find('\n') - 5));
   }
-  if (!resized.empty()) {
+  if (!done) {
+    text = "migrated=1\n" + text;
     FILE* w = OpenForSave(path);
-    if (w) { fputs(text.c_str(), w); FinishSave(w, path); Log("enemies.ini: bigger size changes for %s", resized.c_str()); }
+    if (w) { fputs(text.c_str(), w); FinishSave(w, path); if (!resized.empty()) Log("enemies.ini: bigger size changes for %s", resized.c_str()); }
   }
   std::string def = kDefaultEnemies, add, names;
   for (size_t at = def.find("[trait]"); at != std::string::npos; ) {

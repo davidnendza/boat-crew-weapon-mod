@@ -66,8 +66,8 @@ static void NewsreelInstall() {
     while ((m = il2cpp_class_get_methods(phys, &iter)))
       if (!strcmp(il2cpp_method_get_name(m), "Linecast") && il2cpp_method_get_param_count(m) == 4 &&
           TypeName(il2cpp_method_get_param(m, 2)) == "System.Int32" && TypeName(il2cpp_method_get_param(m, 3)) == "UnityEngine.QueryTriggerInteraction") a.linecast = m;
-      else if (!strcmp(il2cpp_method_get_name(m), "Linecast") && il2cpp_method_get_param_count(m) == 5 &&   // (start, end, out RaycastHit, mask, triggers)
-          TypeName(il2cpp_method_get_param(m, 2)).rfind("UnityEngine.RaycastHit", 0) == 0 && TypeName(il2cpp_method_get_param(m, 3)) == "System.Int32") a.linecastHit = m;
+      else if (!strcmp(il2cpp_method_get_name(m), "Raycast") && il2cpp_method_get_param_count(m) == 6 &&    // (origin, dir, out RaycastHit, dist, mask, triggers):
+          TypeName(il2cpp_method_get_param(m, 2)).rfind("UnityEngine.RaycastHit", 0) == 0 && TypeName(il2cpp_method_get_param(m, 3)) == "System.Single") a.linecastHit = m;   // Linecast with a hit is stripped from this build
   }
   void* rh = FindClass("UnityEngine", "RaycastHit"); a.hitCollider = rh ? FindMethod(rh, "get_collider", 0) : nullptr;
   if (tr) a.trIsChild = FindMethod(tr, "IsChildOf", 1);
@@ -81,7 +81,7 @@ static void NewsreelInstall() {
   if (!missing.empty()) { Log("newsreel: off (missing%s)", missing.c_str()); g_nrFaults = -1; return; }
   if (!pc || !PatchPointer(pc, "FixedUpdate", 0, (void*)&Hooked_NrPlaneFixed, (void**)&g_nrPlaneFixedOrig)) { Log("newsreel: off (could not hook PlaneControllerAI.FixedUpdate)"); g_nrFaults = -1; return; }
   a.ok = true;
-  if (!a.linecastHit || !a.hitCollider || !a.trIsChild) Log("newsreel: Linecast with hit %s, RaycastHit.collider %s, Transform.IsChildOf %s; a gunner's own gun blocks his spots",
+  if (!a.linecastHit || !a.hitCollider || !a.trIsChild) Log("newsreel: Raycast with hit %s, RaycastHit.collider %s, Transform.IsChildOf %s; a gunner's own gun blocks his spots",
       a.linecastHit ? "found" : "NOT found", a.hitCollider ? "found" : "NOT found", a.trIsChild ? "found" : "NOT found");
   if (!a.linecast || !a.trUp) Log("newsreel: Physics.Linecast(mask, triggers) %s, Transform.get_up %s; deck shots stand where a crewmate stands, unchecked", a.linecast ? "found" : "NOT found", a.trUp ? "found" : "NOT found");
   Log("newsreel: ready (the best %d planes going down, planes swooping at us, ships sinking, close ships and our crew at work are filmed %dx%d at 20 frames/s, up to %d s per battle, written to BoatCrewMod\\newsreels)", kNrMaxFalls, kNrW, kNrH, kNrMaxFrames / 20);
@@ -387,7 +387,9 @@ static bool NrBlocked(V3 a, V3 b) {                                    // Physic
 static void* NrHitWhat(V3 a, V3 b, V3& at) {
   alignas(16) unsigned char box[0x10 + 128] = {}; unsigned char* hit = box + 0x10;   // a fake boxed RaycastHit: invoke unboxes at +0x10
   int mask = ~((1 << 12) | (1 << 2)), qti = 1;
-  void* args[5] = { &a, &b, hit, &mask, &qti };
+  V3 d = V3Sub(b, a); float dist = sqrtf(V3Dot(d, d)); if (dist < 1e-4f) return nullptr;
+  d = { d.x / dist, d.y / dist, d.z / dist };                          // a Raycast from a towards b, as long as a to b
+  void* args[6] = { &a, &d, hit, &dist, &mask, &qti };
   void* r = Invoke(g_nr.linecastHit, nullptr, args); if (!r || !*(bool*)((char*)r + 0x10)) return nullptr;
   at = *(V3*)hit;                                                      // RaycastHit.m_Point
   void* c = Invoke(g_nr.hitCollider, box, nullptr); return c ? c : (void*)1;

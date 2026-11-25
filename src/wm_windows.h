@@ -359,6 +359,13 @@ static void OptionsWindow(int type, Vec2 mouse) {
 
 // What's New: the README's change lists, shortened, newest first. Keep the secret tier out of it, as out of the README.
 static const char* kChangelog =
+  "## 0.9.11 - Faster loads and fixes\n"
+  "- Slow save loads fixed: at every launch the game writes about 255 reference files, and a save loaded in the first minute or two could sit on a black screen for over a minute while they were written. The mod skips those files, so saves load in seconds.\n"
+  "- Newsreel: deck shots of your gunners can now look past the gunner's own gun.\n"
+  "- Helm view: the mouse cursor no longer flickers while you look around.\n"
+  "- Fixes: the camo list can no longer hang; a crash guard in the female crew tidy-up; a hand-set enemy trait size in enemies.ini is no longer changed back at launch.\n"
+  "- Co-op: 0.9.11 does not sync with 0.9.10, so everyone needs 0.9.11.\n"
+  "\n"
   "## 0.9.10 - Helm view, camo and kill markings\n"
   "- Helm view: press Insert in a battle to ride along in the helmsman's head, and Insert again to leave. Move the mouse to look around. The helmsman keeps steering, WASD still drives the boat, and while you ride along the crew fire at every enemy in sight, shore guns included.\n"
   "- Ten new hull camo schemes in the boat's camo list: Measure 22 Graded, Measure 31 Jungle, Measure 32 Dazzle, Western Approaches, Admiralty 1944, Flaming Tiger, Wild Badger, Big Johnson, Pride and Stormy Night. A save loaded without the mod shows Plain.\n"
