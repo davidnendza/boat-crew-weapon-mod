@@ -69,7 +69,9 @@ static void NewsreelInstall() {
       else if (!strcmp(il2cpp_method_get_name(m), "Raycast") && il2cpp_method_get_param_count(m) == 6 &&    // (origin, dir, out RaycastHit, dist, mask, triggers):
           TypeName(il2cpp_method_get_param(m, 2)).rfind("UnityEngine.RaycastHit", 0) == 0 && TypeName(il2cpp_method_get_param(m, 3)) == "System.Single") a.linecastHit = m;   // Linecast with a hit is stripped from this build
   }
-  void* rh = FindClass("UnityEngine", "RaycastHit"); a.hitCollider = rh ? FindMethod(rh, "get_collider", 0) : nullptr;
+  // RaycastHit.collider = FindObjectFromInstanceID(m_Collider at +0x28); invoking the getter on a fake box gave null in game
+  // (11-24), so the id is read and looked up here: a static call, no unboxing question.
+  { void* ok0 = FindClass("UnityEngine", "Object"); a.hitCollider = ok0 ? FindMethod(ok0, "FindObjectFromInstanceID", 1) : nullptr; }
   if (tr) a.trIsChild = FindMethod(tr, "IsChildOf", 1);
   void* ok = FindClass("UnityEngine", "Object"); a.dontDestroy = ok ? FindMethod(ok, "DontDestroyOnLoad", 1) : nullptr;
   std::string missing;
@@ -81,7 +83,7 @@ static void NewsreelInstall() {
   if (!missing.empty()) { Log("newsreel: off (missing%s)", missing.c_str()); g_nrFaults = -1; return; }
   if (!pc || !PatchPointer(pc, "FixedUpdate", 0, (void*)&Hooked_NrPlaneFixed, (void**)&g_nrPlaneFixedOrig)) { Log("newsreel: off (could not hook PlaneControllerAI.FixedUpdate)"); g_nrFaults = -1; return; }
   a.ok = true;
-  if (!a.linecastHit || !a.hitCollider || !a.trIsChild) Log("newsreel: Raycast with hit %s, RaycastHit.collider %s, Transform.IsChildOf %s; a gunner's own gun blocks his spots",
+  if (!a.linecastHit || !a.hitCollider || !a.trIsChild) Log("newsreel: Raycast with hit %s, FindObjectFromInstanceID %s, Transform.IsChildOf %s; a gunner's own gun blocks his spots",
       a.linecastHit ? "found" : "NOT found", a.hitCollider ? "found" : "NOT found", a.trIsChild ? "found" : "NOT found");
   if (!a.linecast || !a.trUp) Log("newsreel: Physics.Linecast(mask, triggers) %s, Transform.get_up %s; deck shots stand where a crewmate stands, unchecked", a.linecast ? "found" : "NOT found", a.trUp ? "found" : "NOT found");
   Log("newsreel: ready (the best %d planes going down, planes swooping at us, ships sinking, close ships and our crew at work are filmed %dx%d at 20 frames/s, up to %d s per battle, written to BoatCrewMod\\newsreels)", kNrMaxFalls, kNrW, kNrH, kNrMaxFrames / 20);
@@ -392,7 +394,10 @@ static void* NrHitWhat(V3 a, V3 b, V3& at) {
   void* args[6] = { &a, &d, hit, &dist, &mask, &qti };
   void* r = Invoke(g_nr.linecastHit, nullptr, args); if (!r || !*(bool*)((char*)r + 0x10)) return nullptr;
   at = *(V3*)hit;                                                      // RaycastHit.m_Point
-  void* c = Invoke(g_nr.hitCollider, box, nullptr); return c ? c : (void*)1;
+  int id = *(int*)(hit + 0x28);                                        // RaycastHit.m_Collider (an EntityId, 4 bytes)
+  void* arg[1] = { &id }; void* c = id ? Invoke(g_nr.hitCollider, nullptr, arg) : nullptr;
+  static int told = 0; if (g_debug && told < 3) { told++; DLog("newsreel: a blocker hit: collider id %d, object %p", id, c); }
+  return c ? c : (void*)1;
 }
 // Blocked from a to b, looking through parts of skipTr (a gunner's own gun: in the foreground of his shot, fine); what = the blocker.
 // Going out (back = false) the parts looked through are kept in seen; coming back only those may be looked through again, so a
