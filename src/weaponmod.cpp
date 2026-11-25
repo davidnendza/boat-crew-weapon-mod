@@ -434,6 +434,24 @@ static DWORD WINAPI StallWatchThread(LPVOID) {
   }
 }
 
+// At launch LoadOverrides.Awake tail-jumps to dumpDefaultInfo, which fires ~255 un-awaited File.WriteAllLinesAsync for
+// Definitions/Dump. Each blocks a pool thread, so for up to 2 min the pool is starved, and a save loaded then waits on
+// Task.Delay(25) for the world read (75 s instead of 2). A ret at its first byte skips the dump; old Dump files stay.
+// The call is a direct jump, so the MethodInfo swap used elsewhere would miss it, and it must land before Awake runs.
+static void SkipGameDump() {
+  static const unsigned char kStart[] = { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x57, 0x48, 0x83, 0xEC, 0x30, 0x80, 0x3D };
+  unsigned char* p = (unsigned char*)g_ga + 0x6FAAB0;                 // its RVA in the GameAssembly.dll of 2026-10-01
+  __try {
+    if (memcmp(p, kStart, sizeof kStart) != 0) { Log("slow load fix: the game's dump code is not where this build expects it (game updated?); left alone"); return; }
+    DWORD old = 0;
+    if (!VirtualProtect(p, 1, PAGE_EXECUTE_READWRITE, &old)) { Log("slow load fix: VirtualProtect failed; the game still writes Definitions/Dump"); return; }
+    *p = 0xC3;
+    VirtualProtect(p, 1, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), p, 1);
+    Log("slow load fix: the game's launch-time Definitions/Dump writes are skipped");
+  } __except (EXCEPTION_EXECUTE_HANDLER) { Log("slow load fix: fault while patching; left alone"); }
+}
+
 static DWORD WINAPI InitThread(LPVOID) {
   char dir[MAX_PATH]; GetModuleFileNameA(nullptr, dir, MAX_PATH);
   char* slash = strrchr(dir, '\\'); if (slash) *slash = 0;
@@ -470,6 +488,7 @@ static DWORD WINAPI InitThread(LPVOID) {
   PrepareSaves();
   for (int i = 0; i < 1200 && !(g_ga = GetModuleHandleA("GameAssembly.dll")); i++) Sleep(100);
   if (!g_ga) { Log("GameAssembly.dll was never loaded; giving up"); return 0; }
+  SkipGameDump();                                                      // before il2cpp init, so before LoadOverrides.Awake
   if (!Resolve()) { Log("some il2cpp exports are missing; giving up"); return 0; }
   for (int i = 0; i < 1200; i++) { if (DomainReady(&g_domain)) break; Sleep(250); }
   if (!g_domain) { Log("the IL2CPP runtime never became ready; giving up"); return 0; }
