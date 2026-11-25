@@ -18,7 +18,7 @@ struct NrApi {
        *setFar = nullptr, *getFar = nullptr, *getMask = nullptr, *setMask = nullptr, *setTarget = nullptr, *render = nullptr, *camMain = nullptr,
        *compTr = nullptr, *trSetPR = nullptr, *trPos = nullptr, *rtCls = nullptr, *rtCtor = nullptr, *rtGetActive = nullptr, *rtSetActive = nullptr,
        *texCls = nullptr, *texCtor = nullptr, *readPx = nullptr, *getRaw = nullptr, *dontDestroy = nullptr,
-       *trUp = nullptr, *linecast = nullptr, *linecastHit = nullptr, *hitCollider = nullptr, *trIsChild = nullptr;   // optional: Linecast checks a deck camera spot, linecastHit names the blocker
+       *trUp = nullptr, *linecast = nullptr, *linecastHit = nullptr, *hitCollider = nullptr, *trIsChild = nullptr, *trParent = nullptr;   // optional: Linecast checks a deck camera spot, linecastHit names the blocker
   int ctrlPlane = -1, flight = -1, leTeam = -1, leAlive = -1;
 };
 static NrApi g_nr;
@@ -66,11 +66,13 @@ static void NewsreelInstall() {
     while ((m = il2cpp_class_get_methods(phys, &iter)))
       if (!strcmp(il2cpp_method_get_name(m), "Linecast") && il2cpp_method_get_param_count(m) == 4 &&
           TypeName(il2cpp_method_get_param(m, 2)) == "System.Int32" && TypeName(il2cpp_method_get_param(m, 3)) == "UnityEngine.QueryTriggerInteraction") a.linecast = m;
-      else if (!strcmp(il2cpp_method_get_name(m), "Linecast") && il2cpp_method_get_param_count(m) == 5 &&   // (start, end, out RaycastHit, mask, triggers)
-          TypeName(il2cpp_method_get_param(m, 2)).rfind("UnityEngine.RaycastHit", 0) == 0 && TypeName(il2cpp_method_get_param(m, 3)) == "System.Int32") a.linecastHit = m;
+      else if (!strcmp(il2cpp_method_get_name(m), "Raycast") && il2cpp_method_get_param_count(m) == 6 &&    // (origin, dir, out RaycastHit, dist, mask, triggers):
+          TypeName(il2cpp_method_get_param(m, 2)).rfind("UnityEngine.RaycastHit", 0) == 0 && TypeName(il2cpp_method_get_param(m, 3)) == "System.Single") a.linecastHit = m;   // Linecast with a hit is stripped from this build
   }
-  void* rh = FindClass("UnityEngine", "RaycastHit"); a.hitCollider = rh ? FindMethod(rh, "get_collider", 0) : nullptr;
-  if (tr) a.trIsChild = FindMethod(tr, "IsChildOf", 1);
+  // RaycastHit.collider = FindObjectFromInstanceID(m_Collider at +0x28); invoking the getter on a fake box gave null in game
+  // (11-24), so the id is read and looked up here: a static call, no unboxing question.
+  { void* ok0 = FindClass("UnityEngine", "Object"); a.hitCollider = ok0 ? FindMethod(ok0, "FindObjectFromInstanceID", 1) : nullptr; }
+  if (tr) { a.trIsChild = FindMethod(tr, "IsChildOf", 1); a.trParent = FindMethod(tr, "get_parent", 0); }
   void* ok = FindClass("UnityEngine", "Object"); a.dontDestroy = ok ? FindMethod(ok, "DontDestroyOnLoad", 1) : nullptr;
   std::string missing;
   const std::pair<const char*, bool> need[] = { { "PlaneControllerAI.plane/flightState", a.ctrlPlane >= 0 && a.flight >= 0 }, { "LiveEntity.teamCode/_alive", a.leTeam >= 0 && a.leAlive >= 0 },
@@ -81,7 +83,7 @@ static void NewsreelInstall() {
   if (!missing.empty()) { Log("newsreel: off (missing%s)", missing.c_str()); g_nrFaults = -1; return; }
   if (!pc || !PatchPointer(pc, "FixedUpdate", 0, (void*)&Hooked_NrPlaneFixed, (void**)&g_nrPlaneFixedOrig)) { Log("newsreel: off (could not hook PlaneControllerAI.FixedUpdate)"); g_nrFaults = -1; return; }
   a.ok = true;
-  if (!a.linecastHit || !a.hitCollider || !a.trIsChild) Log("newsreel: Linecast with hit %s, RaycastHit.collider %s, Transform.IsChildOf %s; a gunner's own gun blocks his spots",
+  if (!a.linecastHit || !a.hitCollider || !a.trIsChild) Log("newsreel: Raycast with hit %s, FindObjectFromInstanceID %s, Transform.IsChildOf %s; a gunner's own gun blocks his spots",
       a.linecastHit ? "found" : "NOT found", a.hitCollider ? "found" : "NOT found", a.trIsChild ? "found" : "NOT found");
   if (!a.linecast || !a.trUp) Log("newsreel: Physics.Linecast(mask, triggers) %s, Transform.get_up %s; deck shots stand where a crewmate stands, unchecked", a.linecast ? "found" : "NOT found", a.trUp ? "found" : "NOT found");
   Log("newsreel: ready (the best %d planes going down, planes swooping at us, ships sinking, close ships and our crew at work are filmed %dx%d at 20 frames/s, up to %d s per battle, written to BoatCrewMod\\newsreels)", kNrMaxFalls, kNrW, kNrH, kNrMaxFrames / 20);
@@ -387,10 +389,15 @@ static bool NrBlocked(V3 a, V3 b) {                                    // Physic
 static void* NrHitWhat(V3 a, V3 b, V3& at) {
   alignas(16) unsigned char box[0x10 + 128] = {}; unsigned char* hit = box + 0x10;   // a fake boxed RaycastHit: invoke unboxes at +0x10
   int mask = ~((1 << 12) | (1 << 2)), qti = 1;
-  void* args[5] = { &a, &b, hit, &mask, &qti };
+  V3 d = V3Sub(b, a); float dist = sqrtf(V3Dot(d, d)); if (dist < 1e-4f) return nullptr;
+  d = { d.x / dist, d.y / dist, d.z / dist };                          // a Raycast from a towards b, as long as a to b
+  void* args[6] = { &a, &d, hit, &dist, &mask, &qti };
   void* r = Invoke(g_nr.linecastHit, nullptr, args); if (!r || !*(bool*)((char*)r + 0x10)) return nullptr;
   at = *(V3*)hit;                                                      // RaycastHit.m_Point
-  void* c = Invoke(g_nr.hitCollider, box, nullptr); return c ? c : (void*)1;
+  int id = *(int*)(hit + 0x28);                                        // RaycastHit.m_Collider (an EntityId, 4 bytes)
+  void* arg[1] = { &id }; void* c = id ? Invoke(g_nr.hitCollider, nullptr, arg) : nullptr;
+  static int told = 0; if (g_debug && told < 3) { told++; DLog("newsreel: a blocker hit: collider id %d, object %p", id, c); }
+  return c ? c : (void*)1;
 }
 // Blocked from a to b, looking through parts of skipTr (a gunner's own gun: in the foreground of his shot, fine); what = the blocker.
 // Going out (back = false) the parts looked through are kept in seen; coming back only those may be looked through again, so a
@@ -401,7 +408,11 @@ static bool NrBlockedPast(V3 a, V3 b, void* skipTr, std::string* what, std::vect
     V3 at; void* c = NrHitWhat(a, b, at); if (!c) return false;
     void* ct = c != (void*)1 ? Invoke(g_nr.compTr, c) : nullptr; void* arg[1] = { skipTr };
     void* r = ct && skipTr && g_nr.trIsChild ? Invoke(g_nr.trIsChild, ct, arg) : nullptr;
-    bool part = r && *(bool*)((char*)r + 0x10) && (!back || std::find(seen.begin(), seen.end(), c) != seen.end());
+    // the mount's own slot (its parent, e.g. 'Primary Weapon Aft') is the gun's base: looked past too, not its siblings
+    void* slot = ct && skipTr && g_nr.trParent ? Invoke(g_nr.trParent, skipTr) : nullptr;
+    bool mine = (r && *(bool*)((char*)r + 0x10)) || (ct && ct == slot);
+    static int toldSlot = 0; if (ct && ct == slot && toldSlot < 3) { toldSlot++; DLog("newsreel: looking past the gun's slot '%s'", CrewClean(NameOf(c)).c_str()); }
+    bool part = mine && (!back || std::find(seen.begin(), seen.end(), c) != seen.end());
     if (!part) { if (what) *what = ct ? CrewClean(NameOf(c)) : std::string("?"); return true; }
     if (!back) seen.push_back(c);
     V3 d = V3Sub(b, at); float l = sqrtf(V3Dot(d, d)); if (l < 0.1f) return false;
